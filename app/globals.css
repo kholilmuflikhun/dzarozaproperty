@@ -1,0 +1,44 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-cream text-charcoal-950 font-body antialiased;
+}
+
+h1, h2, h3, h4 { @apply font-display; }
+
+::selection { @apply bg-orange-500 text-white; }
+
+.blueprint-frame { position: relative; }
+.blueprint-frame::before,
+.blueprint-frame::after {
+  content: "";
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  border-color: theme("colors.orange.DEFAULT");
+  z-index: 10;
+}
+.blueprint-frame::before { top: -10px; left: -10px; border-top: 3px solid; border-left: 3px solid; }
+.blueprint-frame::after { bottom: -10px; right: -10px; border-bottom: 3px solid; border-right: 3px solid; }
+
+.blueprint-bg {
+  background-image: linear-gradient(rgba(234, 88, 12, 0.09) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(234, 88, 12, 0.09) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+.eyebrow {
+  @apply inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-orange-500;
+}
+
+.section-pad { @apply px-6 sm:px-10 lg:px-16 py-20 lg:py-28; }
+.container-content { @apply mx-auto max-w-content; }
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }

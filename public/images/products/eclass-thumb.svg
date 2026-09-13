@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="800" height="500">
+  <rect width="800" height="500" fill="#141415"/>
+  <circle cx="400" cy="230" r="60" fill="#EA580C" opacity="0.9"/>
+  <polygon points="385,205 385,255 430,230" fill="#0F0F10"/>
+  <text x="400" y="420" text-anchor="middle" font-family="Arial" font-size="26" font-weight="bold" fill="#FFFFFF">E-CLASS MANAJERIAL PROPERTY</text>
+</svg>

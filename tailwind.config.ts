@@ -1,0 +1,64 @@
+import type { Config } from "tailwindcss";
+
+const config: Config = {
+  darkMode: "class",
+  content: [
+    "./app/**/*.{js,ts,jsx,tsx,mdx}",
+    "./components/**/*.{js,ts,jsx,tsx,mdx}",
+  ],
+  theme: {
+    extend: {
+      colors: {
+        orange: {
+          50: "#FFF4ED",
+          100: "#FFE4D2",
+          200: "#FFC49C",
+          300: "#FFA166",
+          400: "#FB8B3D",
+          DEFAULT: "#EA580C",
+          500: "#EA580C",
+          600: "#D14E08",
+          700: "#B34206",
+          800: "#8A3305",
+          900: "#5C2203",
+        },
+        charcoal: {
+          DEFAULT: "#0F0F10",
+          50: "#F4F4F5",
+          100: "#E4E4E7",
+          400: "#6B6B70",
+          600: "#3F3F42",
+          800: "#1C1C1E",
+          900: "#141415",
+          950: "#0A0A0B",
+        },
+        cream: {
+          DEFAULT: "#FFFFFF",
+          soft: "#F7F6F4",
+          muted: "#F0EFEC",
+        },
+      },
+      fontFamily: {
+        display: ["var(--font-space-grotesk)", "sans-serif"],
+        body: ["var(--font-inter)", "sans-serif"],
+      },
+      backgroundSize: { blueprint: "32px 32px" },
+      boxShadow: {
+        card: "0 1px 2px rgba(15,15,16,0.04), 0 8px 24px -8px rgba(15,15,16,0.12)",
+        "card-hover": "0 4px 8px rgba(15,15,16,0.06), 0 16px 32px -12px rgba(234,88,12,0.25)",
+      },
+      borderRadius: { xl2: "1.25rem" },
+      maxWidth: { content: "1280px" },
+      keyframes: {
+        fadeUp: {
+          "0%": { opacity: "0", transform: "translateY(16px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+      },
+      animation: { fadeUp: "fadeUp 0.6s ease-out both" },
+    },
+  },
+  plugins: [],
+};
+
+export default config;

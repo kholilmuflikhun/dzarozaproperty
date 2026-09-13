@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="800" height="500">
+  <rect width="800" height="500" fill="#0F0F10"/>
+  <rect width="800" height="500" fill="url(#gw)"/>
+  <defs>
+    <pattern id="gw" width="32" height="32" patternUnits="userSpaceOnUse">
+      <path d="M32 0H0V32" fill="none" stroke="#EA580C" stroke-opacity="0.08" stroke-width="1"/>
+    </pattern>
+  </defs>
+  <rect x="240" y="140" width="320" height="200" rx="12" fill="#1C1C1E" stroke="#EA580C" stroke-opacity="0.5" stroke-width="2"/>
+  <circle cx="400" cy="220" r="34" fill="#EA580C" opacity="0.9"/>
+  <path d="M370 290c6-30 24-46 30-46s24 16 30 46" fill="#EA580C" opacity="0.9"/>
+  <rect x="330" y="350" width="140" height="10" rx="5" fill="#EA580C" fill-opacity="0.4"/>
+  <text x="400" y="420" text-anchor="middle" font-family="Arial" font-size="24" font-weight="bold" fill="#FFFFFF">WEBINAR PROPERTY SYARIAH</text>
+</svg>
