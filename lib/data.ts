@@ -377,7 +377,7 @@ export const companyProfile = {
   founded: "2019",
   address: "Perum. Permata Regency Blok D No. 03 RT 003 RW 001, Klapasawit, Kalimanah, Purbalingga, Jawa Tengah, Indonesia",
   mapEmbedUrl:
-    "https://www.google.com/maps?q=Perum.+Permata+Regency+Blok+D+No.+03+Klapasawit+Kalimanah+Purbalingga+Jawa+Tengah&output=embed",
+    "https://www.google.com/maps?q=Perum.+Permata+Regency+Blok+D+No.+03+Klapasawit+Kalimanah+Purbalingga+Jawa+Tengah&output=embed<iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3956.5468591382128!2d109.33832677172187!3d-7.404560256546188!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e6559bb29e44e47%3A0x80ec89f17e338b0a!2sMitra%20Berlian%20Sejahtera!5e0!3m2!1sid!2sid!4v1789610587696!5m2!1sid!2sid" width="600" height="450" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe>",
   history:
     "Dzaroza Property berawal dari kegelisahan atas minimnya jasa pengelolaan proyek properti yang transparan dan amanah di kalangan pemilik rumah dan tanah. Sejak 2019, kami tumbuh dari layanan renovasi skala kecil menjadi mitra managerial property tepercaya di wilayah Jawa Tengah, dengan akad yang jelas sejak awal dan bebas dari gharar.",
   vision:
