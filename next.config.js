@@ -13,7 +13,7 @@ const csp = [
   "img-src 'self' data: blob: https://drive.google.com https://lh3.googleusercontent.com https://*.googleusercontent.com https://*.public.blob.vercel-storage.com https://www.googletagmanager.com",
   "font-src 'self' data:",
   "connect-src 'self' https://app.sandbox.midtrans.com https://app.midtrans.com https://*.midtrans.com https://accounts.google.com https://oauth2.googleapis.com https://www.googleapis.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com",
-  "frame-src https://app.sandbox.midtrans.com https://app.midtrans.com https://*.midtrans.com https://accounts.google.com",
+  "frame-src https://app.sandbox.midtrans.com https://app.midtrans.com https://*.midtrans.com https://accounts.google.com https://www.google.com",
   "frame-ancestors 'self'",
   "base-uri 'self'",
   "form-action 'self' https://app.sandbox.midtrans.com https://app.midtrans.com https://*.midtrans.com",

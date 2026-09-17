@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { Target, Eye, HeartHandshake } from "lucide-react";
+import { Target, Eye, HeartHandshake, MapPin } from "lucide-react";
 import WhatsAppIcon from "./WhatsAppIcon";
 import SectionHeading from "./SectionHeading";
 import Lightbox from "./Lightbox";
@@ -48,6 +48,38 @@ export default function CompanyProfile() {
                   </li>
                 ))}
               </ul>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-16">
+          <div className="flex items-center gap-2 mb-6">
+            <MapPin size={20} className="text-orange-500" />
+            <h3 className="text-lg font-bold">Lokasi Kantor</h3>
+          </div>
+          <div className="grid lg:grid-cols-[1fr_1.2fr] gap-6 items-start">
+            <div className="rounded-xl2 border border-white/10 bg-white/5 p-5">
+              <p className="text-sm text-white/70 leading-relaxed">{companyProfile.address}</p>
+              <a
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(companyProfile.address)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-4 inline-flex items-center gap-2 rounded-full border border-white/20 px-4 py-2 text-xs font-semibold hover:bg-orange-500 hover:border-orange-500 transition-colors"
+              >
+                <MapPin size={14} />
+                Buka di Google Maps
+              </a>
+            </div>
+            <div className="overflow-hidden rounded-xl2 border border-white/10">
+              <iframe
+                src={`https://www.google.com/maps?q=${encodeURIComponent(companyProfile.address)}&output=embed`}
+                width="100%"
+                height="280"
+                style={{ border: 0 }}
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                title="Lokasi Kantor Dzaroza Property"
+              />
             </div>
           </div>
         </div>
