@@ -72,7 +72,7 @@ export default function CompanyProfile() {
             </div>
             <div className="overflow-hidden rounded-xl2 border border-white/10">
               <iframe
-                src={`https://www.google.com/maps?q=${encodeURIComponent(companyProfile.address)}&output=embed`}
+                src={companyProfile.mapEmbedUrl}
                 width="100%"
                 height="280"
                 style={{ border: 0 }}
