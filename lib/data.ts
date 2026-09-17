@@ -375,6 +375,9 @@ export const testimonials: Testimonial[] = [
 export const companyProfile = {
   name: "Dzaroza Property",
   founded: "2019",
+  address: "Perum. Permata Regency Blok D No. 03 RT 003 RW 001, Klapasawit, Kalimanah, Purbalingga, Jawa Tengah, Indonesia",
+  mapEmbedUrl:
+    "https://www.google.com/maps?q=Perum.+Permata+Regency+Blok+D+No.+03+Klapasawit+Kalimanah+Purbalingga+Jawa+Tengah&output=embed",
   history:
     "Dzaroza Property berawal dari kegelisahan atas minimnya jasa pengelolaan proyek properti yang transparan dan amanah di kalangan pemilik rumah dan tanah. Sejak 2019, kami tumbuh dari layanan renovasi skala kecil menjadi mitra managerial property tepercaya di wilayah Jawa Tengah, dengan akad yang jelas sejak awal dan bebas dari gharar.",
   vision:
