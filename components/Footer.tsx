@@ -20,21 +20,21 @@ export default function Footer() {
             Managerial property & titip-jual tanah/bangunan dengan akad jelas
             di awal — transparan dan amanah, tanpa unsur gharar.
           </p>
-          <div className="mt-6 flex items-center gap-3">
+          <div className="mt-6 flex flex-col gap-2.5">
             {instagramAccounts.map((ig) => (
-            <a
-              key={ig.url}
-              href={ig.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 hover:bg-orange-500 transition-colors"
-              aria-label={`Instagram Dzaroza Property — ${ig.label}`}
-              title={ig.label}
-            >
-              <Instagram size={18} />
-            </a>
-          ))}
-        </div>
+              <a
+                key={ig.url}
+                href={ig.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 w-fit rounded-full bg-white/10 pl-3 pr-4 py-2 text-sm font-medium hover:bg-orange-500 transition-colors"
+                aria-label={`Instagram Dzaroza Property — ${ig.label}`}
+              >
+                <Instagram size={16} className="shrink-0" />
+                {ig.label}
+              </a>
+            ))}
+          </div>
       </div>
 
       <div>
