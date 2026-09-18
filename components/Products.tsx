@@ -7,6 +7,7 @@ import { BookOpen, GraduationCap, Package, Check, PlayCircle, ChevronLeft, Chevr
 import SectionHeading from "./SectionHeading";
 import PurchaseButton from "./PurchaseButton";
 import ProductStatusBadge from "./ProductStatusBadge";
+import CarouselDots from "./CarouselDots";
 import { products, type Product } from "@/lib/data";
 
 const ICONS: Record<string, typeof BookOpen> = { "E-Book": BookOpen, "E-Class": GraduationCap };
@@ -197,18 +198,7 @@ export default function Products() {
               <ChevronLeft size={16} />
             </button>
 
-            <div className="flex items-center gap-2">
-              {pages.map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => setPage(i)}
-                  aria-label={`Ke halaman ${i + 1}`}
-                  className={`h-2 rounded-full transition-all ${
-                    i === safePage ? "w-6 bg-orange-500" : "w-2 bg-charcoal-200 hover:bg-charcoal-300"
-                  }`}
-                />
-              ))}
-            </div>
+            <CarouselDots count={pages.length} active={safePage} onSelect={setPage} />
 
             <button
               onClick={() => canNext && setPage(safePage + 1)}
