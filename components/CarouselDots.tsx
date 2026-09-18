@@ -1,7 +1,9 @@
+import type { Dispatch, SetStateAction } from "react";
+
 type Props = {
   count: number;
   active: number;
-  onSelect: (index: number) => void;
+  onSelect: Dispatch<SetStateAction<number>>;
   className?: string;
 };
 

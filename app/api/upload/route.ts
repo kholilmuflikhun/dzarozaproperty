@@ -59,9 +59,8 @@ export async function POST(request: Request): Promise<NextResponse> {
         };
       },
       onUploadCompleted: async ({ blob }) => {
-        // Hanya untuk logging. Webhook ini butuh URL publik (tidak jalan di
-        // localhost), jadi baru aktif setelah situs di-deploy ke Vercel.
-        console.log("[api/upload] Upload selesai:", blob.url);
+        // Webhook ini membutuhkan URL publik dan aktif setelah situs di-deploy.
+        void blob.url;
       },
     });
 

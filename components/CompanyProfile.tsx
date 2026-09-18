@@ -3,7 +3,6 @@
 import { useState } from "react";
 import Image from "next/image";
 import { Target, Eye, HeartHandshake, MapPin } from "lucide-react";
-import WhatsAppIcon from "./WhatsAppIcon";
 import SectionHeading from "./SectionHeading";
 import Lightbox from "./Lightbox";
 import { companyProfile, team, type TeamMember } from "@/lib/data";

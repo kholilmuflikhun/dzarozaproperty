@@ -6,21 +6,9 @@ import { CreditCard, Loader2, Clock } from "lucide-react";
 import { primaryWhatsApp, type ProductStatus } from "@/lib/data";
 import ComingSoonModal from "./ComingSoonModal";
 
-declare global {
-  interface Window {
-    snap?: {
-      pay: (
-        token: string,
-        callbacks?: {
-          onSuccess?: (result: unknown) => void;
-          onPending?: (result: unknown) => void;
-          onError?: (result: unknown) => void;
-          onClose?: () => void;
-        }
-      ) => void;
-    };
-  }
-}
+type Snap = {
+  pay: Function;
+};
 
 type Props = {
   label: string; // "Pesan Sekarang" | "Berlangganan Sekarang"
@@ -82,12 +70,13 @@ export default function PurchaseButton({
 
       setLoading(false);
 
-      if (!window.snap) {
+      const snap = (window as Window & { snap?: Snap }).snap;
+      if (!snap) {
         setError("Sistem pembayaran belum termuat, coba muat ulang halaman.");
         return;
       }
 
-      window.snap.pay(json.token, {
+      snap.pay(json.token, {
         onSuccess: () => {
           window.location.href = `/produk/${productSlug}?payment=success`;
         },

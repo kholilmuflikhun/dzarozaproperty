@@ -1,7 +1,6 @@
 import Image from "next/image";
 import { Instagram, Mail, MapPin } from "lucide-react";
-import WhatsAppIcon from "./WhatsAppIcon";
-import { team, instagramAccounts, contactEmail } from "@/lib/data";
+import { instagramAccounts, contactEmail } from "@/lib/data";
 
 export default function Footer() {
   const year = new Date().getFullYear();
