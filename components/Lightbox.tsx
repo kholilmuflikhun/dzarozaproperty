@@ -28,12 +28,16 @@ export default function Lightbox({ images, alt, title, subtitle, onClose }: Prop
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();
-      if (hasMultiple && e.key === "ArrowLeft") goPrev();
-      if (hasMultiple && e.key === "ArrowRight") goNext();
+      if (hasMultiple && e.key === "ArrowLeft") {
+        setIndex((currentIndex) => (currentIndex - 1 + images.length) % images.length);
+      }
+      if (hasMultiple && e.key === "ArrowRight") {
+        setIndex((currentIndex) => (currentIndex + 1) % images.length);
+      }
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [hasMultiple, images.length]);
+  }, [hasMultiple, images.length, onClose]);
 
   return (
     <div

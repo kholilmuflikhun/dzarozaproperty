@@ -77,7 +77,9 @@ export default function Testimonials() {
   // pointer/jari user berada di area carousel supaya nyaman dibaca.
   useEffect(() => {
     if (pages.length <= 1 || paused) return;
-    const timer = setInterval(goNext, AUTO_SLIDE_MS);
+    const timer = setInterval(() => {
+      setPage((currentPage) => (currentPage + 1) % pages.length);
+    }, AUTO_SLIDE_MS);
     return () => clearInterval(timer);
   }, [pages.length, paused]);
 

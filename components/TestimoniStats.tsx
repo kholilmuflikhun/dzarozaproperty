@@ -61,7 +61,7 @@ export default function TestimoniStats({ items }: Props) {
           Konsultasi dulu, gratis. Tim kami siap bantu jawab pertanyaan seputar
           jasa bangun, renovasi, hingga titip-jual properti Anda.
         </p>
-        
+        <a
           href={`https://wa.me/${primaryWhatsApp}?text=${encodeURIComponent(
             "Halo Customer Service Dzaroza Property, saya ingin konsultasi sebelum menggunakan layanan."
           )}`}
