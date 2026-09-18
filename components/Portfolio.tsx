@@ -5,6 +5,8 @@ import Image from "next/image";
 import { MapPin, Calendar, Images, ChevronLeft, ChevronRight } from "lucide-react";
 import SectionHeading from "./SectionHeading";
 import Lightbox from "./Lightbox";
+import CarouselDots from "./CarouselDots";
+import { useColumns } from "@/lib/useColumns";
 import { portfolioProjects, type PortfolioProject } from "@/lib/data";
 
 const FILTERS = ["Semua", "Interior", "Eksterior"] as const;
@@ -16,39 +18,11 @@ const TAG_COLOR: Record<string, string> = {
   "Titip & Menjualkan": "bg-orange-700",
 };
 
-// Mendeteksi jumlah kolom grid aktif sesuai breakpoint Tailwind yang dipakai
-// (grid sm:grid-cols-2 lg:grid-cols-3), supaya "3 baris" dihitung benar di
-// tiap ukuran layar — mobile 1 kolom, tablet 2 kolom, desktop 3 kolom.
-function useColumns() {
-  const [columns, setColumns] = useState(1);
-
-  useEffect(() => {
-    const mqLg = window.matchMedia("(min-width: 1024px)");
-    const mqSm = window.matchMedia("(min-width: 640px)");
-
-    function update() {
-      if (mqLg.matches) setColumns(3);
-      else if (mqSm.matches) setColumns(2);
-      else setColumns(1);
-    }
-
-    update();
-    mqLg.addEventListener("change", update);
-    mqSm.addEventListener("change", update);
-    return () => {
-      mqLg.removeEventListener("change", update);
-      mqSm.removeEventListener("change", update);
-    };
-  }, []);
-
-  return columns;
-}
-
 export default function Portfolio() {
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>("Semua");
   const [active, setActive] = useState<PortfolioProject | null>(null);
   const [page, setPage] = useState(0);
-  const columns = useColumns();
+  const columns = useColumns({ sm: 2, lg: 3 });
 
   const filtered = useMemo(() => {
     if (filter === "Semua") return portfolioProjects;
@@ -225,18 +199,7 @@ export default function Portfolio() {
               <ChevronLeft size={16} />
             </button>
 
-            <div className="flex items-center gap-2">
-              {pages.map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => setPage(i)}
-                  aria-label={`Ke halaman ${i + 1}`}
-                  className={`h-2 rounded-full bg-white mix-blend-difference transition-all ${
-                    i === safePage ? "w-6 opacity-100" : "w-2 opacity-40 hover:opacity-70"
-                  }`}
-                />
-              ))}
-            </div>
+            <CarouselDots count={pages.length} active={safePage} onSelect={setPage} />
 
             <button
               onClick={() => canNext && setPage(safePage + 1)}

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
+import CarouselDots from "./CarouselDots";
 
 type Props = {
   images: string[];
@@ -88,17 +89,8 @@ export default function Lightbox({ images, alt, title, subtitle, onClose }: Prop
         </div>
 
         {hasMultiple && (
-          <div className="flex items-center justify-center gap-2 py-3">
-            {images.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => setIndex(i)}
-                aria-label={`Lihat foto ${i + 1}`}
-                className={`h-2 rounded-full transition-all ${
-                  i === index ? "w-6 bg-orange-500" : "w-2 bg-charcoal-100 hover:bg-charcoal-200"
-                }`}
-              />
-            ))}
+          <div className="flex items-center justify-center py-3">
+            <CarouselDots count={images.length} active={index} onSelect={setIndex} />
           </div>
         )}
 

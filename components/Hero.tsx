@@ -1,4 +1,4 @@
-import { ArrowRight, ShieldCheck, HandCoins, KeyRound } from "lucide-react";
+import { ArrowRight, ShieldCheck, HandCoins, KeyRound, ImageIcon } from "lucide-react";
 
 const QUICK_SERVICES = [
   { icon: HandCoins, title: "Cost and Fee 10%", desc: "Jasa bangun & renovasi, akad jelas sejak awal." },
@@ -62,14 +62,25 @@ export default function Hero() {
           </div>
 
           <div className="relative hidden lg:block animate-fadeUp" style={{ animationDelay: "0.1s" }}>
-            <div className="blueprint-frame relative rounded-xl2 overflow-hidden border border-white/10 bg-charcoal-900 h-[520px] flex items-center justify-center">
-              <div className="text-center px-10">
-                <p className="text-6xl font-display font-bold text-orange-500/30">
-                  120+
-                </p>
-                <p className="mt-2 text-sm uppercase tracking-widest text-white/50">
-                  Proyek Selesai dengan Akad Amanah
-                </p>
+            {/* Gradasi transisi antara teks Hero dan placeholder di kanan,
+                supaya kedua sisi terasa menyatu, bukan terpotong tegas. */}
+            <div className="pointer-events-none absolute inset-y-0 -left-14 z-10 w-28 bg-gradient-to-r from-charcoal-950 via-charcoal-950/70 to-transparent" />
+
+            {/* Placeholder Hero: ruang untuk foto utama (properti/proyek)
+                yang nanti bisa diganti dengan <Image> asli. */}
+            <div className="blueprint-frame relative rounded-xl2 overflow-hidden border border-dashed border-white/20 bg-charcoal-900 h-[520px] flex items-center justify-center">
+              <div className="flex flex-col items-center gap-5 px-10 text-center">
+                <span className="flex h-16 w-16 items-center justify-center rounded-full border border-white/10 bg-white/5">
+                  <ImageIcon size={26} className="text-orange-500/70" />
+                </span>
+                <div>
+                  <p className="text-6xl font-display font-bold text-orange-500/30">
+                    120+
+                  </p>
+                  <p className="mt-2 text-sm uppercase tracking-widest text-white/50">
+                    Proyek Selesai dengan Akad Amanah
+                  </p>
+                </div>
               </div>
               <div className="absolute bottom-5 left-5 right-5 rounded-xl bg-white/95 backdrop-blur px-5 py-4 flex items-center justify-between">
                 <div>
