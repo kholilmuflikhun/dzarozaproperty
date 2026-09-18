@@ -1,4 +1,6 @@
 import { ArrowRight, ShieldCheck, HandCoins, KeyRound, ImageIcon } from "lucide-react";
+import { getTestimonials } from "@/lib/testimonials.server";
+import { computeTestimonialStats } from "@/lib/testimonialStats";
 
 const QUICK_SERVICES = [
   { icon: HandCoins, title: "Cost and Fee 10%", desc: "Jasa bangun & renovasi, akad jelas sejak awal." },
@@ -6,7 +8,14 @@ const QUICK_SERVICES = [
   { icon: ShieldCheck, title: "Amanah & Transparan", desc: "Laporan biaya terbuka di setiap tahap." },
 ];
 
-export default function Hero() {
+export default async function Hero() {
+  // Rating diambil otomatis dari data testimoni asli (sama seperti sumber
+  // data di section Testimoni), bukan angka statis — jadi selalu akurat
+  // begitu ada testimoni baru masuk.
+  const testimonials = await getTestimonials();
+  const { average, total } = computeTestimonialStats(testimonials);
+  const displayRating = total > 0 ? average.toFixed(1) : "5.0";
+
   return (
     <section id="beranda" className="relative overflow-hidden bg-charcoal-950 text-white">
       <div className="absolute inset-0 blueprint-bg opacity-40" />
@@ -85,7 +94,7 @@ export default function Hero() {
               <div className="absolute bottom-5 left-5 right-5 rounded-xl bg-white/95 backdrop-blur px-5 py-4 flex items-center justify-between">
                 <div>
                   <p className="text-xs font-semibold text-charcoal-400 uppercase tracking-wider">Kepuasan Klien</p>
-                  <p className="text-xl font-bold text-orange-500">4.9 / 5.0</p>
+                  <p className="text-xl font-bold text-orange-500">{displayRating} / 5.0</p>
                 </div>
                 <div className="h-10 w-px bg-charcoal-100" />
                 <div>

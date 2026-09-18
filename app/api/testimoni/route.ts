@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { google } from "googleapis";
-import { testimonials as staticTestimonials } from "@/lib/data";
+import { getSheetsClient, getTestimonials } from "@/lib/testimonials.server";
 
 // ---------------------------------------------------------------------------
 // app/api/testimoni/route.ts
@@ -11,25 +10,10 @@ import { testimonials as staticTestimonials } from "@/lib/data";
 //         tetap di dalam website (seamless), tanpa redirect keluar.
 //
 // GET  -> mengembalikan daftar testimoni untuk ditampilkan di section Review.
-//         Fallback ke data statis (lib/data.ts) bila kredensial Google Sheets
-//         belum diisi, supaya UI tetap bisa di-preview tanpa setup dulu.
+//         Logika ambil data (Sheets + fallback statis) ada di
+//         lib/testimonials.server.ts, dipakai bersama oleh Hero (rating
+//         rata-rata) supaya datanya selalu konsisten di seluruh halaman.
 // ---------------------------------------------------------------------------
-
-function getSheetsClient() {
-  const clientEmail = process.env.GOOGLE_SHEETS_CLIENT_EMAIL;
-  const privateKey = process.env.GOOGLE_SHEETS_PRIVATE_KEY?.replace(/\\n/g, "\n");
-  const spreadsheetId = process.env.GOOGLE_SHEETS_SPREADSHEET_ID;
-
-  if (!clientEmail || !privateKey || !spreadsheetId) return null;
-
-  const auth = new google.auth.JWT({
-    email: clientEmail,
-    key: privateKey,
-    scopes: ["https://www.googleapis.com/auth/spreadsheets"],
-  });
-
-  return { sheets: google.sheets({ version: "v4", auth }), spreadsheetId };
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -107,36 +91,6 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET() {
-  const client = getSheetsClient();
-
-  if (!client) {
-    return NextResponse.json({ success: true, source: "static", data: staticTestimonials });
-  }
-
-  try {
-    const { sheets, spreadsheetId } = client;
-    const range = process.env.GOOGLE_SHEETS_RANGE ?? "Testimoni!A:G";
-    const res = await sheets.spreadsheets.values.get({ spreadsheetId, range });
-    const rows = res.data.values ?? [];
-
-    // Kolom: [Timestamp, Nama, Email, No.HP, Alamat, Rating, Review, FotoURL]
-    // .slice(1) melewati baris 1 (header kolom), supaya tidak ikut tampil
-    // sebagai testimoni sungguhan. Baris yang nama/review-nya kosong juga
-    // disaring (mis. baris kosong tak sengaja ke-input di spreadsheet).
-    const data = rows
-      .slice(1)
-      .map((row, i) => ({
-        id: String(i),
-        name: row[1]?.trim() || "",
-        rating: Number(row[5]) || 0,
-        message: row[6]?.trim() || "",
-        photo: row[7] || undefined,
-      }))
-      .filter((t) => t.name && t.message);
-
-    return NextResponse.json({ success: true, source: "sheets", data: data.length ? data : staticTestimonials });
-  } catch (error) {
-    console.error("[api/testimoni] Gagal membaca Google Sheets, fallback ke data statis:", error);
-    return NextResponse.json({ success: true, source: "static", data: staticTestimonials });
-  }
+  const data = await getTestimonials();
+  return NextResponse.json({ success: true, data });
 }

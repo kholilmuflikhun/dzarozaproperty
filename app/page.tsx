@@ -20,6 +20,11 @@ const FAQ = dynamic(() => import("@/components/FAQ"), {
   loading: () => <div className="h-96 bg-white animate-pulse" />,
 });
 
+// Hero mengambil rating rata-rata langsung dari data testimoni (Google
+// Sheets/fallback statis) saat render di server. Revalidate berkala supaya
+// angkanya ikut ter-update tanpa perlu rebuild manual tiap ada testimoni baru.
+export const revalidate = 1800; // 30 menit
+
 export default function HomePage() {
   return (
     <>

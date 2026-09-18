@@ -5,6 +5,7 @@ import Image from "next/image";
 import { Star, Quote, ChevronLeft, ChevronRight } from "lucide-react";
 import SectionHeading from "./SectionHeading";
 import TestimoniForm from "./TestimoniForm";
+import TestimoniStats from "./TestimoniStats";
 import CarouselDots from "./CarouselDots";
 import { useColumns } from "@/lib/useColumns";
 import type { Testimonial } from "@/lib/data";
@@ -170,8 +171,9 @@ export default function Testimonials() {
           </div>
         )}
 
-        <div className="mt-12 max-w-xl">
+        <div className="mt-12 grid lg:grid-cols-[1fr_320px] gap-8 items-start">
           <TestimoniForm />
+          <TestimoniStats items={items} />
         </div>
       </div>
     </section>
