@@ -8,7 +8,7 @@ import Lightbox from "./Lightbox";
 import { portfolioProjects, type PortfolioProject } from "@/lib/data";
 
 const FILTERS = ["Semua", "Interior", "Eksterior"] as const;
-const MAX_ROWS = 3;
+const MAX_ROWS = 1;
 
 const TAG_COLOR: Record<string, string> = {
   "Bangunan Baru": "bg-orange-500",
@@ -231,8 +231,8 @@ export default function Portfolio() {
                   key={i}
                   onClick={() => setPage(i)}
                   aria-label={`Ke halaman ${i + 1}`}
-                  className={`h-2 rounded-full transition-all ${
-                    i === safePage ? "w-6 bg-orange-500" : "w-2 bg-charcoal-200 hover:bg-charcoal-300"
+                  className={`h-2 rounded-full bg-white mix-blend-difference transition-all ${
+                    i === safePage ? "w-6 opacity-100" : "w-2 opacity-40 hover:opacity-70"
                   }`}
                 />
               ))}
