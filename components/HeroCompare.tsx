@@ -33,20 +33,20 @@ export default function HeroCompare({ rating }: HeroCompareProps) {
         />
       </div>
 
-      <span className="absolute left-4 top-4 rounded-full bg-charcoal-950/75 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-white backdrop-blur-sm">
+      <span className="absolute left-4 top-4 rounded-full border border-white/30 bg-white/15 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-white shadow-[0_8px_24px_rgba(0,0,0,0.18)] backdrop-blur-xl">
         Before / Konsep
       </span>
-      <span className="absolute right-4 top-4 rounded-full bg-orange-500/90 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-white">
+      <span className="absolute right-4 top-4 rounded-full border border-white/35 bg-orange-500/35 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-white shadow-[0_8px_24px_rgba(0,0,0,0.18)] backdrop-blur-xl">
         After / Hasil
       </span>
 
       <div
-        className="pointer-events-none absolute inset-y-0 z-10 w-px -translate-x-1/2 bg-white shadow-[0_0_18px_rgba(0,0,0,0.45)]"
+        className="pointer-events-none absolute inset-y-0 z-10 w-0.5 -translate-x-1/2 bg-gradient-to-b from-white/20 via-white to-white/20 shadow-[0_0_18px_rgba(255,255,255,0.5)]"
         style={{ left: `${position}%` }}
         aria-hidden="true"
       >
-        <div className="absolute left-1/2 top-1/2 flex h-11 w-11 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-white bg-orange-500 text-white shadow-lg">
-          <span className="text-lg leading-none" aria-hidden="true">&lt;&gt;</span>
+        <div className="absolute left-1/2 top-1/2 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-white/65 bg-white/20 text-white shadow-[0_8px_30px_rgba(0,0,0,0.3),inset_0_1px_1px_rgba(255,255,255,0.7)] backdrop-blur-xl">
+          <span className="text-lg font-semibold leading-none tracking-[-0.18em]" aria-hidden="true">&lt;&gt;</span>
         </div>
       </div>
 
