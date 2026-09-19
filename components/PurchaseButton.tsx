@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { CreditCard, Loader2, Clock } from "lucide-react";
 import { primaryWhatsApp, type ProductStatus } from "@/lib/data";
 import ComingSoonModal from "./ComingSoonModal";
@@ -30,6 +31,7 @@ export default function PurchaseButton({
   className = "",
 }: Props) {
   const { data: session } = useSession();
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showComingSoon, setShowComingSoon] = useState(false);
@@ -78,10 +80,10 @@ export default function PurchaseButton({
 
       snap.pay(json.token, {
         onSuccess: () => {
-          window.location.href = `/produk/${productSlug}?payment=success`;
+          router.push(`/produk/${productSlug}?payment=success`);
         },
         onPending: () => {
-          window.location.href = `/produk/${productSlug}?payment=pending`;
+          router.push(`/produk/${productSlug}?payment=pending`);
         },
         onError: () => {
           setError("Pembayaran gagal diproses. Silakan coba lagi.");
@@ -90,7 +92,7 @@ export default function PurchaseButton({
           // Pengguna menutup popup Snap sebelum menyelesaikan pembayaran.
         },
       });
-    } catch (err) {
+    } catch {
       setError("Terjadi kesalahan jaringan. Coba lagi.");
       setLoading(false);
     }

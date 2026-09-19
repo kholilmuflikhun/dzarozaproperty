@@ -1,6 +1,8 @@
 import nextVitals from "eslint-config-next/core-web-vitals";
+import { globalIgnores } from "eslint/config";
 
 export default [
+  globalIgnores(["**/*.d.ts"]),
   ...nextVitals,
   {
     rules: {

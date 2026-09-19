@@ -159,7 +159,6 @@ export default function ProductDetailPage({
                   Video Preview
                 </h3>
                 <div className="mt-3 overflow-hidden rounded-xl2 border border-charcoal-100 bg-charcoal-950">
-                  {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
                   <video
                     src={product.videoUrl}
                     controls
