@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSheetsClient, getTestimonials } from "@/lib/testimonials.server";
+import { checkRateLimit, cleanupRateLimitEntries, getClientAddress } from "@/lib/rate-limit";
 
 // ---------------------------------------------------------------------------
 // app/api/testimoni/route.ts
@@ -33,6 +34,23 @@ const MAX_LENGTHS = {
 
 export async function POST(request: NextRequest) {
   try {
+    cleanupRateLimitEntries();
+    const rateLimit = await checkRateLimit(`testimoni:${getClientAddress(request)}`, {
+      limit: 3,
+      windowMs: 60 * 60 * 1000,
+    });
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { success: false, message: "Terlalu banyak pengiriman. Coba lagi nanti." },
+        { status: 429, headers: { "Retry-After": String(rateLimit.retryAfterSeconds) } }
+      );
+    }
+
+    const contentLength = Number(request.headers.get("content-length") ?? 0);
+    if (contentLength > 32 * 1024) {
+      return NextResponse.json({ success: false, message: "Payload terlalu besar." }, { status: 413 });
+    }
+
     const body = await request.json();
     const { name, photo, email, phone, address, rating, message } = body ?? {};
 
@@ -48,7 +66,8 @@ export async function POST(request: NextRequest) {
       typeof email !== "string" ||
       typeof phone !== "string" ||
       typeof address !== "string" ||
-      typeof message !== "string"
+      typeof message !== "string" ||
+      (photo !== null && typeof photo !== "undefined" && typeof photo !== "string")
     ) {
       return NextResponse.json(
         { success: false, message: "Format data tidak valid." },
@@ -74,6 +93,13 @@ export async function POST(request: NextRequest) {
     if (typeof rating !== "number" || rating < 1 || rating > 5) {
       return NextResponse.json(
         { success: false, message: "Rating harus berupa angka 1 - 5." },
+        { status: 400 }
+      );
+    }
+
+    if (photo && (photo.length > 2048 || !isAllowedPhotoUrl(photo))) {
+      return NextResponse.json(
+        { success: false, message: "URL foto tidak valid." },
         { status: 400 }
       );
     }
@@ -134,6 +160,21 @@ export async function POST(request: NextRequest) {
       { success: false, message: "Terjadi kesalahan saat mengirim testimoni. Coba lagi." },
       { status: 500 }
     );
+  }
+}
+
+function isAllowedPhotoUrl(value: string) {
+  try {
+    const url = new URL(value);
+    return (
+      url.protocol === "https:" &&
+      (url.hostname === "drive.google.com" ||
+        url.hostname === "lh3.googleusercontent.com" ||
+        url.hostname.endsWith(".googleusercontent.com") ||
+        url.hostname.endsWith(".public.blob.vercel-storage.com"))
+    );
+  } catch {
+    return false;
   }
 }
 

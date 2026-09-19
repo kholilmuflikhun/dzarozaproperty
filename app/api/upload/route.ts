@@ -1,5 +1,9 @@
 import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import { NextResponse } from "next/server";
+import crypto from "crypto";
+import { getServerSession } from "next-auth";
+import { authOptions, isAdminEmail } from "@/lib/auth";
+import { checkRateLimit, cleanupRateLimitEntries, getClientAddress } from "@/lib/rate-limit";
 
 // ---------------------------------------------------------------------------
 // app/api/upload/route.ts
@@ -28,17 +32,45 @@ import { NextResponse } from "next/server";
 // ---------------------------------------------------------------------------
 
 export async function POST(request: Request): Promise<NextResponse> {
-  const body = (await request.json()) as HandleUploadBody;
-
   try {
+    const session = await getServerSession(authOptions);
+    if (!session || !isAdminEmail(session.user?.email)) {
+      return NextResponse.json({ error: "Login admin diperlukan." }, { status: 401 });
+    }
+
+    cleanupRateLimitEntries();
+    const identity = session.user?.email?.toLowerCase() || getClientAddress(request);
+    const rateLimit = await checkRateLimit(`upload:${identity}`, {
+      limit: 10,
+      windowMs: 15 * 60 * 1000,
+    });
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: "Terlalu banyak percobaan upload. Coba lagi nanti." },
+        { status: 429, headers: { "Retry-After": String(rateLimit.retryAfterSeconds) } }
+      );
+    }
+
+    const body = (await request.json()) as HandleUploadBody;
     const jsonResponse = await handleUpload({
       body,
       request,
-      onBeforeGenerateToken: async (pathname, clientPayload) => {
-        if (!process.env.UPLOAD_SECRET) {
+      onBeforeGenerateToken: async (_pathname, clientPayload) => {
+        const secrets = [process.env.UPLOAD_SECRET, process.env.UPLOAD_SECRET_PREVIOUS].filter(
+          (secret): secret is string => Boolean(secret)
+        );
+        if (secrets.length === 0) {
           throw new Error("UPLOAD_SECRET belum dikonfigurasi di server.");
         }
-        if (clientPayload !== process.env.UPLOAD_SECRET) {
+
+        const supplied = Buffer.from(clientPayload ?? "");
+        const validSecret = secrets.some((secret) => {
+          const expected = Buffer.from(secret);
+          return (
+            expected.length === supplied.length && crypto.timingSafeEqual(expected, supplied)
+          );
+        });
+        if (!validSecret) {
           throw new Error("Kata sandi upload salah.");
         }
 
@@ -47,7 +79,6 @@ export async function POST(request: Request): Promise<NextResponse> {
             "image/jpeg",
             "image/png",
             "image/webp",
-            "image/svg+xml",
             "video/mp4",
             "video/quicktime",
             "video/webm",
@@ -68,8 +99,8 @@ export async function POST(request: Request): Promise<NextResponse> {
   } catch (error) {
     console.error("[api/upload] Gagal menerbitkan token upload:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Upload gagal." },
-      { status: 400 } // Vercel akan retry webhook 5x kalau bukan status 200
+      { error: "Upload gagal. Pastikan session dan secret upload valid." },
+      { status: 400 }
     );
   }
 }

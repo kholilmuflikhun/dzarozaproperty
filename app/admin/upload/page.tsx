@@ -71,13 +71,13 @@ export default function AdminUploadPage() {
 
         <form onSubmit={handleUpload} className="mt-6 space-y-4">
           <div>
-            <label className="text-xs font-semibold text-charcoal-600">Kata Sandi Upload</label>
+            <label className="text-xs font-semibold text-charcoal-600">Secret Upload</label>
             <input
               type="password"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Isi sesuai UPLOAD_SECRET di .env"
+              placeholder="Masukkan secret upload aktif"
               className="mt-1.5 w-full rounded-lg border border-charcoal-100 px-4 py-2.5 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20"
             />
           </div>

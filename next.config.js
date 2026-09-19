@@ -7,7 +7,7 @@
 // atau fitur itu akan diblokir browser walau kodenya benar.
 const csp = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://app.sandbox.midtrans.com https://app.midtrans.com https://*.midtrans.com https://www.googletagmanager.com https://*.googletagmanager.com",
+  "script-src 'self' 'unsafe-inline' https://app.sandbox.midtrans.com https://app.midtrans.com https://www.googletagmanager.com https://*.googletagmanager.com",
   "script-src-elem 'self' 'unsafe-inline' https://app.sandbox.midtrans.com https://app.midtrans.com https://*.midtrans.com https://www.googletagmanager.com https://*.googletagmanager.com",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https://drive.google.com https://lh3.googleusercontent.com https://*.googleusercontent.com https://*.public.blob.vercel-storage.com https://www.googletagmanager.com",
@@ -16,6 +16,7 @@ const csp = [
   "frame-src https://app.sandbox.midtrans.com https://app.midtrans.com https://*.midtrans.com https://accounts.google.com https://www.google.com",
   "frame-ancestors 'self'",
   "base-uri 'self'",
+  "object-src 'none'",
   "form-action 'self' https://app.sandbox.midtrans.com https://app.midtrans.com https://*.midtrans.com",
 ].join("; ");
 
@@ -32,7 +33,7 @@ const securityHeaders = [
 
 const nextConfig = {
   images: {
-    dangerouslyAllowSVG: true,
+    dangerouslyAllowSVG: false,
     remotePatterns: [
       // Mengizinkan foto yang di-hosting di Google Drive dipakai lewat next/image.
       // Lihat lib/gdrive.ts untuk cara mendapatkan URL yang benar dari link share Drive.
