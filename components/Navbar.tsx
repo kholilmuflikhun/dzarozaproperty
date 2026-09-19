@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { Menu, X } from "lucide-react";
 
 const NAV_LINKS = [
@@ -41,9 +42,8 @@ export default function Navbar() {
       }`}
     >
       <nav className="container-content flex items-center justify-between px-6 sm:px-10 lg:px-16 py-4">
-        <a
-          href="#beranda"
-          onClick={(e) => handleAnchorClick(e, "#beranda")}
+        <Link
+          href="/"
           className="flex items-center"
           aria-label="Dzaroza Property — Beranda"
         >
@@ -55,7 +55,7 @@ export default function Navbar() {
             className="h-8 sm:h-9 w-auto"
             priority
           />
-        </a>
+        </Link>
 
         <div className="hidden lg:flex items-center gap-8">
           {NAV_LINKS.map((link) => (
