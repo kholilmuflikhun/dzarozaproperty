@@ -10,17 +10,17 @@ const config: Config = {
     extend: {
       colors: {
         orange: {
-          50: "#FF5349",
-          100: "#FF5349",
-          200: "#FF5349",
-          300: "#FF5349",
-          400: "#FF5349",
-          DEFAULT: "#FF5349",
-          500: "#FF5349",
-          600: "#FF5349",
-          700: "#FF5349",
-          800: "#FF5349",
-          900: "#FF5349",
+          50: "#FF8C00",
+          100: "#FF8C00",
+          200: "#FF8C00",
+          300: "#FF8C00",
+          400: "#FF8C00",
+          DEFAULT: "#FF8C00",
+          500: "#FF8C00",
+          600: "#FF8C00",
+          700: "#FF8C00",
+          800: "#FF8C00",
+          900: "#FF8C00",
         },
         charcoal: {
           DEFAULT: "#0F0F10",
@@ -45,7 +45,7 @@ const config: Config = {
       backgroundSize: { blueprint: "32px 32px" },
       boxShadow: {
         card: "0 1px 2px rgba(15,15,16,0.04), 0 8px 24px -8px rgba(15,15,16,0.12)",
-        "card-hover": "0 4px 8px rgba(15,15,16,0.06), 0 16px 32px -12px rgba(255,83,73,0.25)",
+        "card-hover": "0 4px 8px rgba(15,15,16,0.06), 0 16px 32px -12px rgba(255,140,0,0.25)",
       },
       borderRadius: { xl2: "1.25rem" },
       maxWidth: { content: "1280px" },
