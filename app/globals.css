@@ -29,8 +29,8 @@ h1, h2, h3, h4 { @apply font-display; }
 .blueprint-frame::after { bottom: -10px; right: -10px; border-bottom: 3px solid; border-right: 3px solid; }
 
 .blueprint-bg {
-  background-image: linear-gradient(rgba(234, 88, 12, 0.09) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(234, 88, 12, 0.09) 1px, transparent 1px);
+  background-image: linear-gradient(rgba(255, 165, 0, 0.09) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 165, 0, 0.09) 1px, transparent 1px);
   background-size: 32px 32px;
 }
 
