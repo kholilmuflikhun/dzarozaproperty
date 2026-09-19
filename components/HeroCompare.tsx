@@ -46,7 +46,7 @@ export default function HeroCompare({ rating }: HeroCompareProps) {
         aria-hidden="true"
       >
         <div className="absolute left-1/2 top-1/2 flex h-10 w-10 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-charcoal-600 bg-charcoal-950 text-white shadow-[0_8px_30px_rgba(0,0,0,0.3)]">
-          <span className="text-base font-semibold leading-none tracking-[-0.18em]" aria-hidden="true">&lt; &gt;</span>
+          <span className="text-base font-semibold leading-none tracking-[-0.18em]" aria-hidden="true">&lt;  &gt;</span>
         </div>
       </div>
 
