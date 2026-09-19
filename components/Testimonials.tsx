@@ -12,7 +12,7 @@ import type { Testimonial } from "@/lib/data";
 
 const AUTO_SLIDE_MS = 5000;
 
-const PALETTE = ["#EA580C", "#0F0F10", "#FB8B3D", "#1C1C1E"];
+const PALETTE = ["#B34206", "#0F0F10", "#8A3305", "#1C1C1E"];
 function hashString(str: string) {
   let hash = 0;
   for (let i = 0; i < str.length; i++) hash = (hash << 5) - hash + str.charCodeAt(i);
