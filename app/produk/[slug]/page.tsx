@@ -44,8 +44,13 @@ export function generateStaticParams() {
   return products.map((p) => ({ slug: p.slug }));
 }
 
-export function generateMetadata({ params }: { params: { slug: string } }): Metadata {
-  const product = products.find((p) => p.slug === params.slug);
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const product = products.find((p) => p.slug === slug);
   if (!product) return { title: "Produk Tidak Ditemukan — Dzaroza Property" };
 
   return {
@@ -54,19 +59,19 @@ export function generateMetadata({ params }: { params: { slug: string } }): Meta
   };
 }
 
-export default function ProductDetailPage({
+export default async function ProductDetailPage({
   params,
   searchParams,
 }: {
-  params: { slug: string };
-  searchParams: { payment?: string };
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ payment?: string }>;
 }) {
-  const product = products.find((p) => p.slug === params.slug);
+  const [{ slug }, { payment: paymentStatus }] = await Promise.all([params, searchParams]);
+  const product = products.find((p) => p.slug === slug);
   if (!product) notFound();
 
   const others = products.filter((p) => p.slug !== product.slug);
   const Icon = ICONS[product.type] ?? Package;
-  const paymentStatus = searchParams.payment;
 
   return (
     <div className="bg-white">
