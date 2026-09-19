@@ -24,7 +24,13 @@ function verifySignature(payload: {
   const serverKey = process.env.MIDTRANS_SERVER_KEY ?? "";
   const raw = `${payload.order_id}${payload.status_code}${payload.gross_amount}${serverKey}`;
   const expected = crypto.createHash("sha512").update(raw).digest("hex");
-  return expected === payload.signature_key;
+
+  // Bandingkan dengan timingSafeEqual, bukan `===`, untuk mencegah timing
+  // attack saat menebak signature yang valid.
+  const expectedBuf = Buffer.from(expected, "hex");
+  const receivedBuf = Buffer.from(payload.signature_key ?? "", "hex");
+  if (expectedBuf.length !== receivedBuf.length) return false;
+  return crypto.timingSafeEqual(expectedBuf, receivedBuf);
 }
 
 export async function POST(request: NextRequest) {

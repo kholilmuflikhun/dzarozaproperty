@@ -15,6 +15,22 @@ import { getSheetsClient, getTestimonials } from "@/lib/testimonials.server";
 //         rata-rata) supaya datanya selalu konsisten di seluruh halaman.
 // ---------------------------------------------------------------------------
 
+// Karakter yang bisa memicu Google Sheets/Excel membaca sel sebagai formula
+// (Formula/CSV Injection) bila diawali salah satu dari ini. Endpoint ini bisa
+// diisi siapa saja tanpa login, jadi input harus dianggap tidak tepercaya.
+const FORMULA_PREFIX = /^[=+\-@\t\r]/;
+function sanitizeCell(value: string) {
+  return FORMULA_PREFIX.test(value) ? `'${value}` : value;
+}
+
+const MAX_LENGTHS = {
+  name: 100,
+  email: 254,
+  phone: 20,
+  address: 300,
+  message: 2000,
+} as const;
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -23,6 +39,34 @@ export async function POST(request: NextRequest) {
     if (!name || !email || !phone || !address || !message || !rating) {
       return NextResponse.json(
         { success: false, message: "Semua field wajib diisi." },
+        { status: 400 }
+      );
+    }
+
+    if (
+      typeof name !== "string" ||
+      typeof email !== "string" ||
+      typeof phone !== "string" ||
+      typeof address !== "string" ||
+      typeof message !== "string"
+    ) {
+      return NextResponse.json(
+        { success: false, message: "Format data tidak valid." },
+        { status: 400 }
+      );
+    }
+
+    // Batasi panjang tiap field — mencegah payload raksasa membebani Google
+    // Sheets API atau memenuhi tampilan testimoni dengan teks tak wajar.
+    if (
+      name.length > MAX_LENGTHS.name ||
+      email.length > MAX_LENGTHS.email ||
+      phone.length > MAX_LENGTHS.phone ||
+      address.length > MAX_LENGTHS.address ||
+      message.length > MAX_LENGTHS.message
+    ) {
+      return NextResponse.json(
+        { success: false, message: "Salah satu field melebihi batas panjang yang diizinkan." },
         { status: 400 }
       );
     }
@@ -57,18 +101,21 @@ export async function POST(request: NextRequest) {
     await sheets.spreadsheets.values.append({
       spreadsheetId,
       range,
-      valueInputOption: "USER_ENTERED",
+      // RAW (bukan USER_ENTERED): mencegah Google Sheets menafsirkan input
+      // sebagai formula (Formula/CSV Injection) — endpoint ini publik dan
+      // tanpa login, jadi setiap input harus dianggap tidak tepercaya.
+      valueInputOption: "RAW",
       requestBody: {
         values: [
           [
             new Date().toISOString(),
-            name,
-            email,
-            phone,
-            address,
+            sanitizeCell(name),
+            sanitizeCell(email),
+            sanitizeCell(phone),
+            sanitizeCell(address),
             String(rating),
-            message,
-            photo ?? "",
+            sanitizeCell(message),
+            photo ? sanitizeCell(String(photo)) : "",
           ],
         ],
       },
