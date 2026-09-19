@@ -61,6 +61,12 @@ export default function Products() {
   const SWIPE_THRESHOLD = 40;
 
   function handlePointerDown(e: React.PointerEvent<HTMLDivElement>) {
+    const target = e.target as HTMLElement | null;
+    if (target?.closest("a, button, input, textarea, select, [role='button']")) {
+      swipeStart.current = null;
+      return;
+    }
+
     swipeStart.current = { x: e.clientX, y: e.clientY };
     e.currentTarget.setPointerCapture(e.pointerId);
   }
