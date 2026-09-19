@@ -13,7 +13,7 @@ export default function HeroCompare({ rating }: HeroCompareProps) {
   return (
     <div className="blueprint-frame relative h-[520px] overflow-hidden rounded-xl2 border border-white/10">
       <Image
-        src="/images/portfolio/erhanesia-9.png"
+        src="/images/compare-after.png"
         alt="Hasil proyek properti Dzaroza Property"
         fill
         priority
@@ -25,7 +25,7 @@ export default function HeroCompare({ rating }: HeroCompareProps) {
         style={{ clipPath: `inset(0 ${100 - position}% 0 0)` }}
       >
         <Image
-          src="/images/hero-property.png"
+          src="/images/compare-before.png"
           alt="Konsep rumah dari Dzaroza Property"
           fill
           className="object-cover"
