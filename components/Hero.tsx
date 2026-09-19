@@ -85,17 +85,17 @@ export default async function Hero() {
                 className="object-cover"
                 sizes="(min-width: 1024px) 45vw, 100vw"
               />
-              {/* Gradasi gelap tipis di atas foto supaya kartu putih di bawah tetap terbaca */}
+              {/* Lapisan gelap tipis menjaga detail foto dan panel kaca tetap terbaca */}
               <div className="absolute inset-0 bg-gradient-to-t from-charcoal-950/70 via-transparent to-transparent" />
-              <div className="absolute bottom-5 left-5 right-5 rounded-xl bg-white/95 backdrop-blur px-5 py-4 flex items-center justify-between">
+              <div className="absolute bottom-5 left-5 right-5 flex items-center justify-between rounded-xl border border-white/30 bg-white/15 px-5 py-4 text-white shadow-2xl backdrop-blur-xl backdrop-saturate-150">
                 <div>
-                  <p className="text-xs font-semibold text-charcoal-400 uppercase tracking-wider">Kepuasan Klien</p>
-                  <p className="text-xl font-bold text-orange-500">{displayRating} / 5.0</p>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-white/70">Kepuasan Klien</p>
+                  <p className="text-xl font-bold text-orange-300">{displayRating} / 5.0</p>
                 </div>
-                <div className="h-10 w-px bg-charcoal-100" />
+                <div className="h-10 w-px bg-white/25" />
                 <div>
-                  <p className="text-xs font-semibold text-charcoal-400 uppercase tracking-wider">Prinsip</p>
-                  <p className="text-xl font-bold text-charcoal-950">Bebas Gharar</p>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-white/70">Prinsip</p>
+                  <p className="text-xl font-bold text-white">Bebas Gharar</p>
                 </div>
               </div>
             </div>
