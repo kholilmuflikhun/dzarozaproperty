@@ -1,7 +1,7 @@
-import Image from "next/image";
 import { ArrowRight, ShieldCheck, HandCoins, KeyRound } from "lucide-react";
 import { getTestimonials } from "@/lib/testimonials.server";
 import { computeTestimonialStats } from "@/lib/testimonialStats";
+import HeroCompare from "./HeroCompare";
 
 const QUICK_SERVICES = [
   { icon: HandCoins, title: "Cost and Fee 10%", desc: "Jasa bangun & renovasi, akad jelas sejak awal." },
@@ -72,33 +72,10 @@ export default async function Hero() {
           </div>
 
           <div className="relative hidden lg:block animate-fadeUp" style={{ animationDelay: "0.1s" }}>
-            {/* Gradasi transisi antara teks Hero dan placeholder di kanan,
-                supaya kedua sisi terasa menyatu, bukan terpotong tegas. */}
+            {/* Gradasi transisi antara teks Hero dan visual perbandingan. */}
             <div className="pointer-events-none absolute inset-y-0 -left-14 z-10 w-28 bg-gradient-to-r from-charcoal-950 via-charcoal-950/70 to-transparent" />
 
-            <div className="blueprint-frame relative rounded-xl2 overflow-hidden border border-white/10 h-[520px]">
-              <Image
-                src="/images/hero-property.png"
-                alt="Proyek properti Dzaroza Property"
-                fill
-                priority
-                className="object-cover"
-                sizes="(min-width: 1024px) 45vw, 100vw"
-              />
-              {/* Gradasi gelap tipis di atas foto supaya kartu putih di bawah tetap terbaca */}
-              <div className="absolute inset-0 bg-gradient-to-t from-charcoal-950/70 via-transparent to-transparent" />
-              <div className="absolute bottom-5 left-5 right-5 rounded-xl bg-white/95 backdrop-blur px-5 py-4 flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-semibold text-charcoal-400 uppercase tracking-wider">Kepuasan Klien</p>
-                  <p className="text-xl font-bold text-orange-500">{displayRating} / 5.0</p>
-                </div>
-                <div className="h-10 w-px bg-charcoal-100" />
-                <div>
-                  <p className="text-xs font-semibold text-charcoal-400 uppercase tracking-wider">Prinsip</p>
-                  <p className="text-xl font-bold text-charcoal-950">Bebas Gharar</p>
-                </div>
-              </div>
-            </div>
+            <HeroCompare rating={displayRating} />
           </div>
         </div>
       </div>
