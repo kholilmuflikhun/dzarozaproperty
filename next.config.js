@@ -34,6 +34,7 @@ const securityHeaders = [
 const nextConfig = {
   images: {
     dangerouslyAllowSVG: false,
+    formats: ["image/avif", "image/webp"],
     remotePatterns: [
       // Mengizinkan foto yang di-hosting di Google Drive dipakai lewat next/image.
       // Lihat lib/gdrive.ts untuk cara mendapatkan URL yang benar dari link share Drive.

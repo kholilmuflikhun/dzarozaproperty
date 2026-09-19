@@ -28,6 +28,7 @@ export default function HeroCompare({ rating }: HeroCompareProps) {
           src="/images/compare-before.png"
           alt="Konsep rumah dari Dzaroza Property"
           fill
+          loading="lazy"
           className="object-cover"
           sizes="(min-width: 1024px) 45vw, 100vw"
         />
