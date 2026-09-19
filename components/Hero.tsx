@@ -72,9 +72,6 @@ export default async function Hero() {
           </div>
 
           <div className="relative hidden lg:block animate-fadeUp" style={{ animationDelay: "0.1s" }}>
-            {/* Gradasi transisi antara teks Hero dan visual perbandingan. */}
-            <div className="pointer-events-none absolute inset-y-0 -left-14 z-10 w-28 bg-gradient-to-r from-charcoal-950 via-charcoal-950/70 to-transparent" />
-
             <HeroCompare rating={displayRating} />
           </div>
         </div>
