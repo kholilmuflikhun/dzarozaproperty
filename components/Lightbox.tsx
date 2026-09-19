@@ -69,7 +69,7 @@ export default function Lightbox({ images, alt, title, subtitle, onClose }: Prop
             fill
             unoptimized={images[index].endsWith(".svg")}
             sizes="(max-width: 768px) 100vw, 672px"
-            className="object-cover"
+            className="object-contain"
           />
 
           {hasMultiple && (
