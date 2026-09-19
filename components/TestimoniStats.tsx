@@ -14,8 +14,8 @@ export default function TestimoniStats({ items }: Props) {
       {/* Ringkasan rating asli, dihitung langsung dari data testimoni
           (bukan angka statis) — otomatis ikut berubah begitu ada testimoni
           baru masuk. */}
-      <div className="rounded-xl2 border border-charcoal-100 bg-charcoal-950 text-white p-6">
-        <p className="text-xs font-semibold uppercase tracking-widest text-white/50">Rating Klien</p>
+      <div className="rounded-xl2 border border-charcoal-100 bg-white p-6 text-charcoal-950">
+        <p className="text-xs font-semibold uppercase tracking-widest text-charcoal-400">Rating Klien</p>
 
         <div className="mt-3 flex items-end gap-3">
           <p className="text-5xl font-display font-bold text-orange-500">{displayAverage}</p>
@@ -29,7 +29,7 @@ export default function TestimoniStats({ items }: Props) {
                 />
               ))}
             </div>
-            <p className="mt-1 text-xs text-white/50">
+            <p className="mt-1 text-xs text-charcoal-400">
               {total > 0 ? `Dari ${total} testimoni klien` : "Belum ada testimoni"}
             </p>
           </div>
@@ -40,13 +40,13 @@ export default function TestimoniStats({ items }: Props) {
             {distribution.map(({ star, count }) => {
               const pct = Math.round((count / total) * 100);
               return (
-                <div key={star} className="flex items-center gap-2 text-xs text-white/60">
+                <div key={star} className="flex items-center gap-2 text-xs text-charcoal-600">
                   <span className="w-2.5 text-right">{star}</span>
                   <Star size={10} className="shrink-0 fill-orange-500 text-orange-500" />
-                  <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/10">
+                  <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-charcoal-100">
                     <div className="h-full rounded-full bg-orange-500" style={{ width: `${pct}%` }} />
                   </div>
-                  <span className="w-6 text-right text-white/40">{count}</span>
+                  <span className="w-6 text-right text-charcoal-400">{count}</span>
                 </div>
               );
             })}
