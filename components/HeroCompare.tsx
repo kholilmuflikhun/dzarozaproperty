@@ -33,11 +33,11 @@ export default function HeroCompare({ rating }: HeroCompareProps) {
         />
       </div>
 
-      <span className="absolute left-4 top-4 rounded-full border border-white/30 bg-white/15 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-white shadow-[0_8px_24px_rgba(0,0,0,0.18)] backdrop-blur-xl">
-        Konsep
+      <span className="absolute left-4 top-4 rounded-full border border-charcoal-600 bg-charcoal-950 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-white shadow-[0_8px_24px_rgba(0,0,0,0.18)]">
+        Before
       </span>
-      <span className="absolute right-4 top-4 rounded-full border border-white/35 bg-orange-500/35 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-white shadow-[0_8px_24px_rgba(0,0,0,0.18)] backdrop-blur-xl">
-        Hasil Proyek
+      <span className="absolute right-4 top-4 rounded-full border border-orange-600 bg-orange-500 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-white shadow-[0_8px_24px_rgba(0,0,0,0.18)]">
+        After
       </span>
 
       <div
@@ -45,7 +45,7 @@ export default function HeroCompare({ rating }: HeroCompareProps) {
         style={{ left: `${position}%` }}
         aria-hidden="true"
       >
-        <div className="absolute left-1/2 top-1/2 flex h-10 w-10 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-white/65 bg-white/20 text-white shadow-[0_8px_30px_rgba(0,0,0,0.3),inset_0_1px_1px_rgba(255,255,255,0.7)] backdrop-blur-xl">
+        <div className="absolute left-1/2 top-1/2 flex h-10 w-10 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-charcoal-600 bg-charcoal-950 text-white shadow-[0_8px_30px_rgba(0,0,0,0.3)]">
           <span className="text-base font-semibold leading-none tracking-[-0.18em]" aria-hidden="true">&lt;&gt;</span>
         </div>
       </div>
@@ -60,7 +60,7 @@ export default function HeroCompare({ rating }: HeroCompareProps) {
         className="absolute inset-0 z-20 h-full w-full cursor-ew-resize opacity-0"
       />
 
-      <div className="pointer-events-none absolute bottom-5 left-5 right-5 flex items-center justify-between rounded-xl border border-white/45 bg-white/20 px-5 py-4 text-white shadow-[0_12px_35px_rgba(0,0,0,0.28),inset_0_1px_1px_rgba(255,255,255,0.75)] backdrop-blur-xl">
+      <div className="pointer-events-none absolute bottom-5 left-5 right-5 flex items-center justify-between rounded-xl border border-charcoal-600 bg-charcoal-950 px-5 py-4 text-white shadow-[0_12px_35px_rgba(0,0,0,0.28)]">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wider text-white/75">Kepuasan Klien</p>
           <p className="text-xl font-bold text-orange-500">{rating} / 5.0</p>
