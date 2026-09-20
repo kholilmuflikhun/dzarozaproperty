@@ -63,7 +63,7 @@ export default function Navbar() {
               key={link.href}
               href={link.href}
               onClick={(e) => handleAnchorClick(e, link.href)}
-              className="text-sm font-medium text-charcoal-600 hover:text-orange-500 transition-colors"
+              className="text-sm font-medium text-charcoal-600 hover:text-orange-700 transition-colors"
             >
               {link.label}
             </a>
@@ -73,7 +73,7 @@ export default function Navbar() {
         <a
           href="#produk"
           onClick={(e) => handleAnchorClick(e, "#produk")}
-          className="hidden lg:inline-flex items-center rounded-full bg-orange-500 px-5 py-2.5 text-sm font-semibold text-white shadow-card hover:bg-orange-600 transition-colors"
+          className="hidden lg:inline-flex items-center rounded-full bg-orange-500 px-5 py-2.5 text-sm font-semibold text-charcoal-950 shadow-card hover:bg-orange-400 transition-colors"
         >
           Lihat Produk
         </a>
@@ -94,7 +94,7 @@ export default function Navbar() {
               key={link.href}
               href={link.href}
               onClick={(e) => handleAnchorClick(e, link.href)}
-              className="block rounded-lg px-3 py-3 text-sm font-medium text-charcoal-800 hover:bg-cream-soft hover:text-orange-500"
+              className="block rounded-lg px-3 py-3 text-sm font-medium text-charcoal-800 hover:bg-cream-soft hover:text-orange-700"
             >
               {link.label}
             </a>

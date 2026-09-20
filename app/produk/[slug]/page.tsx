@@ -188,7 +188,7 @@ export default async function ProductDetailPage({
           </div>
 
           <aside className="rounded-xl2 border border-charcoal-100 bg-white shadow-card p-6 h-fit sticky top-24">
-            <p className="text-xs font-semibold uppercase tracking-widest text-orange-500">Harga</p>
+            <p className="text-xs font-semibold uppercase tracking-widest text-orange-700">Harga</p>
             <p className="mt-1 text-3xl font-bold text-charcoal-950">{product.price}</p>
             <div className="mt-5">
               <PurchaseButton
@@ -219,13 +219,13 @@ export default async function ProductDetailPage({
                     className="group flex items-center justify-between gap-4 rounded-xl2 border border-charcoal-100 p-5 hover:border-orange-300 hover:shadow-card transition-all"
                   >
                     <div>
-                      <span className="inline-flex items-center gap-2 text-xs font-semibold text-orange-500">
+                      <span className="inline-flex items-center gap-2 text-xs font-semibold text-orange-700">
                         <OtherIcon size={14} />
                         {p.type}
                       </span>
                       <p className="mt-1 text-sm font-bold text-charcoal-950">{p.title}</p>
                     </div>
-                    <span className="text-sm font-bold text-charcoal-400 group-hover:text-orange-500">
+                    <span className="text-sm font-bold text-charcoal-400 group-hover:text-orange-700">
                       {p.price}
                     </span>
                   </Link>

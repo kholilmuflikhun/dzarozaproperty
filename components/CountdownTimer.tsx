@@ -39,7 +39,7 @@ export default function CountdownTimer({ releaseDate, className = "" }: Props) {
   }
 
   if (!time) {
-    return <p className={`text-sm font-semibold text-orange-500 ${className}`}>Segera dirilis!</p>;
+    return <p className={`text-sm font-semibold text-orange-700 ${className}`}>Segera dirilis!</p>;
   }
 
   const units = [

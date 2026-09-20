@@ -88,7 +88,7 @@ export default function TestimoniForm() {
         <button
           type="button"
           onClick={() => signIn("google")}
-          className="mt-5 inline-flex items-center gap-3 rounded-full border border-charcoal-200 bg-white px-5 py-3 text-sm font-semibold text-charcoal-800 hover:border-orange-500 hover:text-orange-600 transition-colors"
+          className="mt-5 inline-flex items-center gap-3 rounded-full border border-charcoal-200 bg-white px-5 py-3 text-sm font-semibold text-charcoal-800 hover:border-orange-500 hover:text-orange-700 transition-colors"
         >
           <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
             <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.6 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.6 6.1 29.6 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.7-.4-3.5z"/>
@@ -120,7 +120,7 @@ export default function TestimoniForm() {
           <button
             type="button"
             onClick={() => signOut()}
-            className="flex items-center gap-1 text-xs font-semibold text-charcoal-400 hover:text-orange-500"
+            className="flex items-center gap-1 text-xs font-semibold text-charcoal-400 hover:text-orange-700"
           >
             <LogOut size={13} />
             Keluar
@@ -179,7 +179,7 @@ export default function TestimoniForm() {
               >
                 <Star
                   size={22}
-                  className={value <= rating ? "fill-orange-500 text-orange-500" : "text-charcoal-100"}
+                  className={value <= rating ? "fill-orange-500 text-orange-500" : "text-charcoal-400"}
                 />
               </button>
             );
@@ -198,14 +198,14 @@ export default function TestimoniForm() {
         <button
           type="submit"
           disabled={status === "loading"}
-          className="inline-flex items-center gap-2 rounded-full bg-orange-500 px-6 py-2.5 text-sm font-semibold text-white hover:bg-orange-600 transition-colors disabled:opacity-60"
+          className="inline-flex items-center gap-2 rounded-full bg-orange-500 px-6 py-2.5 text-sm font-semibold text-charcoal-950 hover:bg-orange-400 transition-colors disabled:opacity-60"
         >
           {status === "loading" ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
           Kirim Review
         </button>
 
         {feedback && (
-          <p className={`flex items-center gap-2 text-sm ${status === "success" ? "text-green-600" : "text-red-600"}`}>
+          <p className={`flex items-center gap-2 text-sm ${status === "success" ? "text-green-700" : "text-red-600"}`}>
             {status === "success" && <CheckCircle2 size={16} />}
             {feedback}
           </p>

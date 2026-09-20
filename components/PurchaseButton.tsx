@@ -106,7 +106,7 @@ export default function PurchaseButton({
         className={`inline-flex w-full items-center justify-center gap-2 rounded-full py-3 text-sm font-semibold transition-colors disabled:opacity-70 ${
           isComingSoon
             ? "bg-charcoal-800 text-white hover:bg-charcoal-600"
-            : "bg-orange-500 text-white hover:bg-orange-600"
+            : "bg-orange-500 text-charcoal-950 hover:bg-orange-400"
         }`}
       >
         {loading ? (

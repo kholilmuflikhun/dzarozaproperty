@@ -42,14 +42,14 @@ export default function ComingSoonModal({ productTitle, releaseDate, onClose }: 
             <CountdownTimer releaseDate={releaseDate} />
           </div>
         ) : (
-          <p className="mt-4 text-sm font-semibold text-orange-500">
+          <p className="mt-4 text-sm font-semibold text-orange-700">
             Tanggal rilis akan diumumkan segera.
           </p>
         )}
 
         <button
           onClick={onClose}
-          className="mt-6 inline-flex w-full items-center justify-center rounded-full bg-charcoal-950 py-3 text-sm font-semibold text-white hover:bg-orange-500 transition-colors"
+          className="mt-6 inline-flex w-full items-center justify-center rounded-full bg-charcoal-950 py-3 text-sm font-semibold text-white hover:bg-orange-500 hover:text-charcoal-950 transition-colors"
         >
           Oke, Mengerti
         </button>

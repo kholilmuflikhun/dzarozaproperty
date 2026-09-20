@@ -14,7 +14,7 @@ export default function ConsultButton({ serviceTitle, className = "" }: Props) {
       )}`}
       target="_blank"
       rel="noopener noreferrer"
-      className={`inline-flex w-full items-center justify-center gap-2 rounded-full border border-white/20 py-2.5 text-sm font-semibold hover:bg-[#25D366] hover:border-[#25D366] transition-colors ${className}`}
+      className={`inline-flex w-full items-center justify-center gap-2 rounded-full border border-white/20 py-2.5 text-sm font-semibold hover:bg-[#167F3D] hover:border-[#167F3D] transition-colors ${className}`}
     >
       <WhatsAppIcon size={16} />
       Konsultasi Layanan Ini

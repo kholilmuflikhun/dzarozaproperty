@@ -135,7 +135,7 @@ export default function Products() {
                   <div className="flex flex-1 flex-col p-7">
                     <div className="flex items-start justify-between gap-3">
                       <h3 className="text-xl font-bold text-charcoal-950">{p.title}</h3>
-                      <span className="shrink-0 text-lg font-bold text-orange-500">{p.price}</span>
+                      <span className="shrink-0 text-lg font-bold text-orange-700">{p.price}</span>
                     </div>
                     <p className="mt-2 text-sm text-charcoal-400 leading-relaxed">{p.summary}</p>
 
@@ -151,7 +151,7 @@ export default function Products() {
                     <div className="mt-7 flex items-center gap-3">
                       <Link
                         href={`/produk/${p.slug}`}
-                        className="inline-flex items-center justify-center rounded-full border border-charcoal-100 px-5 py-3 text-sm font-semibold text-charcoal-800 hover:border-orange-500 hover:text-orange-500 transition-colors"
+                        className="inline-flex items-center justify-center rounded-full border border-charcoal-100 px-5 py-3 text-sm font-semibold text-charcoal-800 hover:border-orange-500 hover:text-orange-700 transition-colors"
                       >
                         Detail
                       </Link>

@@ -89,7 +89,7 @@ export default function AdminUploadPage() {
               accept="image/*,video/*,application/pdf"
               required
               onChange={handleFileChange}
-              className="mt-1.5 w-full text-sm text-charcoal-600 file:mr-3 file:rounded-full file:border-0 file:bg-charcoal-950 file:px-4 file:py-2 file:text-xs file:font-semibold file:text-white hover:file:bg-orange-500"
+              className="mt-1.5 w-full text-sm text-charcoal-600 file:mr-3 file:rounded-full file:border-0 file:bg-charcoal-950 file:px-4 file:py-2 file:text-xs file:font-semibold file:text-white hover:file:bg-orange-500 hover:file:text-charcoal-950"
             />
             {file && (
               <p className="mt-1.5 text-xs text-charcoal-400">
@@ -124,7 +124,7 @@ export default function AdminUploadPage() {
           <button
             type="submit"
             disabled={loading || !file}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-orange-500 py-3 text-sm font-semibold text-white hover:bg-orange-600 transition-colors disabled:opacity-60"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-orange-500 py-3 text-sm font-semibold text-charcoal-950 hover:bg-orange-400 transition-colors disabled:opacity-60"
           >
             {loading ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
             {loading ? `Mengupload... ${progress}%` : "Upload"}

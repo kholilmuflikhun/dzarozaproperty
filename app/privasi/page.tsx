@@ -26,12 +26,12 @@ export default function PrivacyPolicyPage() {
                 href={`https://wa.me/${primaryWhatsApp}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-orange-500 hover:underline"
+                className="text-orange-700 hover:underline"
               >
                 +{primaryWhatsApp}
               </a>{" "}
               atau email:{" "}
-              <a href={`mailto:${contactEmail}`} className="text-orange-500 hover:underline">
+              <a href={`mailto:${contactEmail}`} className="text-orange-700 hover:underline">
                 {contactEmail}
               </a>
               .

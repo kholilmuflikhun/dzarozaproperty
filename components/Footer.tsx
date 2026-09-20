@@ -26,7 +26,7 @@ export default function Footer() {
                 href={ig.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 w-fit rounded-full bg-white/10 pl-3 pr-4 py-2 text-sm font-medium hover:bg-orange-500 transition-colors"
+                className="inline-flex items-center gap-2 w-fit rounded-full bg-white/10 pl-3 pr-4 py-2 text-sm font-medium hover:bg-orange-500 hover:text-charcoal-950 transition-colors"
                 aria-label={`Instagram Dzaroza Property — ${ig.label}`}
               >
                 <Instagram size={16} className="shrink-0" />

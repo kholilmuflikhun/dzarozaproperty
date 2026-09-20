@@ -95,7 +95,7 @@ export default function Portfolio() {
                 onClick={() => setFilter(f)}
                 className={`shrink-0 whitespace-nowrap rounded-full px-4 py-2 text-xs font-semibold transition-colors ${
                   filter === f
-                    ? "bg-orange-500 text-white"
+                    ? "bg-orange-500 text-charcoal-950"
                     : "bg-white text-charcoal-600 border border-charcoal-100 hover:border-orange-400"
                 }`}
               >

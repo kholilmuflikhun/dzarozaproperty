@@ -43,7 +43,7 @@ export default async function Hero() {
             <div className="mt-8 flex flex-wrap items-center gap-4">
               <a
                 href="#layanan"
-                className="inline-flex items-center gap-2 rounded-full bg-orange-500 px-6 py-3.5 text-sm font-semibold text-white hover:bg-orange-600 transition-colors"
+                className="inline-flex items-center gap-2 rounded-full bg-orange-500 px-6 py-3.5 text-sm font-semibold text-charcoal-950 hover:bg-orange-400 transition-colors"
               >
                 Lihat Layanan Jasa
                 <ArrowRight size={16} />

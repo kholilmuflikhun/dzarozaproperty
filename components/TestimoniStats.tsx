@@ -25,7 +25,7 @@ export default function TestimoniStats({ items }: Props) {
                 <Star
                   key={i}
                   size={14}
-                  className={i < Math.round(average) ? "fill-orange-500 text-orange-500" : "text-white/20"}
+                  className={i < Math.round(average) ? "fill-orange-500 text-orange-500" : "text-charcoal-400"}
                 />
               ))}
             </div>
@@ -67,7 +67,7 @@ export default function TestimoniStats({ items }: Props) {
           )}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#25D366] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#1DA851]"
+          className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#167F3D] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#126A33]"
         >
           <WhatsAppIcon size={16} />
           Konsultasi via WhatsApp

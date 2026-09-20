@@ -37,7 +37,7 @@ export default function HeroCompare({ rating }: HeroCompareProps) {
       <span className="absolute left-4 top-4 rounded-full border border-charcoal-600 bg-charcoal-950 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-white shadow-[0_8px_24px_rgba(0,0,0,0.18)]">
         Before
       </span>
-      <span className="absolute right-4 top-4 rounded-full border border-orange-600 bg-orange-500 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-white shadow-[0_8px_24px_rgba(0,0,0,0.18)]">
+      <span className="absolute right-4 top-4 rounded-full border border-orange-600 bg-orange-500 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-charcoal-950 shadow-[0_8px_24px_rgba(0,0,0,0.18)]">
         After
       </span>
 

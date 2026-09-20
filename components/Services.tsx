@@ -46,7 +46,7 @@ export default function Services() {
 
                 <h3 className="mt-5 text-lg font-bold leading-snug">{s.title}</h3>
 
-                <span className="mt-3 inline-flex w-fit items-center rounded-full bg-orange-500 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-white">
+                <span className="mt-3 inline-flex w-fit items-center rounded-full bg-orange-500 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-charcoal-950">
                   {s.akad}
                 </span>
 

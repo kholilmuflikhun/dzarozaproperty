@@ -63,7 +63,7 @@ export default function CompanyProfile() {
                 href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(companyProfile.address)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-4 inline-flex items-center gap-2 rounded-full border border-white/20 px-4 py-2 text-xs font-semibold hover:bg-orange-500 hover:border-orange-500 transition-colors"
+                className="mt-4 inline-flex items-center gap-2 rounded-full border border-white/20 px-4 py-2 text-xs font-semibold hover:bg-orange-500 hover:border-orange-500 hover:text-charcoal-950 transition-colors"
               >
                 <MapPin size={14} />
                 Buka di Google Maps
