@@ -2,14 +2,12 @@
 
 > Dzaroza Property adalah penyedia jasa managerial property (bangun & renovasi bangunan, interior maupun eksterior) dan jasa titip-jual tanah/bangunan di Purbalingga, Jawa Tengah, Indonesia. Beroperasi sejak 2019 dengan prinsip akad yang jelas sejak awal, transparan, dan amanah — tanpa unsur gharar (ketidakpastian), sesuai syariat Islam.
 
+Selain jasa managerial property, Dzaroza Property juga menyediakan produk edukasi digital (E-Book, E-Class, dan Webinar) seputar investasi dan manajemen proyek property syariah.
+
 ## Layanan
 - Jasa Membangun Bangunan Baru (Interior & Eksterior) — akad Cost and Fee 10%
 - Jasa Renovasi Bangunan (Interior & Eksterior) — akad Cost and Fee 10%
 - Jasa Titip & Menjualkan Tanah/Bangunan — akad Salam
-
-## Produk Digital
-- E-Book: Panduan Cerdas Investasi Property Amanah
-- E-Class: Kelas Praktik Manajerial Proyek Property
 
 ## Tim
 - Arif Nurhidayat — CEO (Chief Executive Officer)
@@ -22,7 +20,15 @@
 - Email: dzaroza.properti@gmail.com
 - Instagram: instagram.com/dzarozaproperty
 
-## Halaman Penting
-- Beranda & semua layanan: /
-- Produk E-Book: /produk/e-book
-- Produk E-Class: /produk/e-class
+## Halaman
+- [Beranda — Profil, Layanan & Portofolio](https://dzarozaproperty.id/): Ringkasan lengkap perusahaan, seluruh layanan jasa, portofolio proyek, dan testimoni klien.
+- [Layanan Jasa Managerial Property](https://dzarozaproperty.id/#layanan): Detail 3 jasa managerial beserta skema akadnya.
+- [Profil Perusahaan](https://dzarozaproperty.id/#profil): Sejarah, visi-misi, dan susunan tim Dzaroza Property.
+- [Portofolio Proyek](https://dzarozaproperty.id/#portofolio): Contoh proyek bangun & renovasi yang telah dikerjakan.
+- [Testimoni Klien](https://dzarozaproperty.id/#testimoni): Ulasan dan rating asli dari klien yang telah menggunakan jasa.
+- [E-Book: Panduan Cerdas Investasi Property Amanah](https://dzarozaproperty.id/produk/e-book): Produk digital panduan investasi property syariah.
+- [E-Class: Kelas Praktik Manajerial Proyek Property](https://dzarozaproperty.id/produk/e-class): Kelas online manajerial proyek property (segera rilis).
+- [Webinar: Memulai Bisnis Property Syariah](https://dzarozaproperty.id/produk/webinar-property-syariah): Webinar live 2 jam seputar bisnis property tanpa riba dan gharar (segera rilis).
+
+## Optional
+- [Kebijakan Privasi](https://dzarozaproperty.id/privasi): Kebijakan privasi dan penggunaan data pengunjung situs.
