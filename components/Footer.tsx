@@ -15,7 +15,7 @@ export default function Footer() {
             width={180}
             height={38}
             className="h-8 w-auto" />
-          <p className="mt-4 text-sm text-charcoal-100/70 leading-relaxed max-w-sm">
+          <p className="mt-4 text-sm text-charcoal-100/85 leading-relaxed max-w-sm">
             Managerial property & titip-jual tanah/bangunan dengan akad jelas
             di awal — transparan dan amanah, tanpa unsur gharar.
           </p>
@@ -40,7 +40,7 @@ export default function Footer() {
         <h2 className="font-display text-sm font-semibold uppercase tracking-widest text-orange-500 mb-4">
           Navigasi
         </h2>
-        <ul className="space-y-2.5 text-sm text-charcoal-100/70">
+        <ul className="space-y-2.5 text-sm text-charcoal-100/85">
           <li><a href="#produk" className="hover:text-orange-400">Produk Digital</a></li>
           <li><a href="#layanan" className="hover:text-orange-400">Layanan Jasa</a></li>
           <li><a href="#portofolio" className="hover:text-orange-400">Portofolio</a></li>
@@ -54,7 +54,7 @@ export default function Footer() {
         <h2 className="font-display text-sm font-semibold uppercase tracking-widest text-orange-500 mb-4">
           Kontak
         </h2>
-        <ul className="space-y-3 text-sm text-charcoal-100/70">
+        <ul className="space-y-3 text-sm text-charcoal-100/85">
           <li className="flex items-start gap-2">
             <MapPin size={16} className="mt-0.5 shrink-0 text-orange-500" />
             Purbalingga, Jawa Tengah, Indonesia
@@ -67,7 +67,7 @@ export default function Footer() {
       </div>
 
     </div><div className="border-t border-white/10">
-        <div className="container-content px-6 sm:px-10 lg:px-16 py-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-charcoal-100/50">
+        <div className="container-content px-6 sm:px-10 lg:px-16 py-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-charcoal-100/75">
           <p>© {year} Dzaroza Property. Seluruh hak cipta dilindungi.</p>
           <div className="flex items-center gap-4">
             <a href="/privasi" className="hover:text-orange-400">Kebijakan Privasi</a>

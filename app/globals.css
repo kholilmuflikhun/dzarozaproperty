@@ -35,7 +35,7 @@ h1, h2, h3, h4 { @apply font-display; }
 }
 
 .eyebrow {
-  @apply inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-orange-500;
+  @apply inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-orange-700;
 }
 
 .section-pad { @apply px-6 sm:px-10 lg:px-16 py-20 lg:py-28; }
