@@ -7,7 +7,7 @@
 // atau fitur itu akan diblokir browser walau kodenya benar.
 const csp = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' https://app.sandbox.midtrans.com https://app.midtrans.com https://www.googletagmanager.com https://*.googletagmanager.com",
+  "script-src 'self' 'unsafe-inline' https://app.sandbox.midtrans.com https://app.midtrans.com https://*.midtrans.com https://www.googletagmanager.com https://*.googletagmanager.com",
   "script-src-elem 'self' 'unsafe-inline' https://app.sandbox.midtrans.com https://app.midtrans.com https://*.midtrans.com https://www.googletagmanager.com https://*.googletagmanager.com",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https://drive.google.com https://lh3.googleusercontent.com https://*.googleusercontent.com https://*.public.blob.vercel-storage.com https://www.googletagmanager.com",

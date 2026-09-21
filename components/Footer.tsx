@@ -37,9 +37,9 @@ export default function Footer() {
       </div>
 
       <div>
-        <h4 className="font-display text-sm font-semibold uppercase tracking-widest text-orange-500 mb-4">
+        <h2 className="font-display text-sm font-semibold uppercase tracking-widest text-orange-500 mb-4">
           Navigasi
-        </h4>
+        </h2>
         <ul className="space-y-2.5 text-sm text-charcoal-100/70">
           <li><a href="#produk" className="hover:text-orange-400">Produk Digital</a></li>
           <li><a href="#layanan" className="hover:text-orange-400">Layanan Jasa</a></li>
@@ -51,9 +51,9 @@ export default function Footer() {
       </div>
 
       <div>
-        <h4 className="font-display text-sm font-semibold uppercase tracking-widest text-orange-500 mb-4">
+        <h2 className="font-display text-sm font-semibold uppercase tracking-widest text-orange-500 mb-4">
           Kontak
-        </h4>
+        </h2>
         <ul className="space-y-3 text-sm text-charcoal-100/70">
           <li className="flex items-start gap-2">
             <MapPin size={16} className="mt-0.5 shrink-0 text-orange-500" />
