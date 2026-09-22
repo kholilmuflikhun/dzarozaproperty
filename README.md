@@ -10,11 +10,11 @@ cp .env.example .env.local   # isi kredensial (lihat bawah)
 npm run dev
 ```
 
-Buka http://localhost:3000
+Buka <http://localhost:3000>
 
 ## Struktur Proyek
 
-```
+```text
 dzaroza-property/
 ├── app/
 │   ├── layout.tsx                                  # Root layout: Providers (NextAuth), Navbar, Footer, Floating WA, GA script
@@ -91,7 +91,7 @@ dzaroza-property/
 ## Kredensial yang Perlu Diisi (`.env.local`)
 
 | Variabel | Untuk apa | Cara dapatkan |
-|---|---|---|
+| --- | --- | --- |
 | `NEXT_PUBLIC_SITE_URL` | URL situs (wajib valid) — dipakai `metadataBase`, sitemap, dan SEO | `http://localhost:3000` untuk dev; URL Vercel/domain kustom untuk produksi — **jangan dikosongkan** |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Login with Google di form testimoni | [Google Cloud Console → Credentials](https://console.cloud.google.com/apis/credentials), buat OAuth Client ID tipe "Web application", redirect URI: `http://localhost:3000/api/auth/callback/google` |
 | `NEXTAUTH_URL` | URL callback NextAuth | `http://localhost:3000` untuk dev; URL produksi untuk deployment |
@@ -133,10 +133,12 @@ dzaroza-property/
    - **Cara ganti status/tanggal rilis:** edit `status` dan `releaseDate` (format ISO, mis. `"2026-09-20T09:00:00+07:00"`) langsung di `lib/data.ts` untuk tiap produk.
 10. **Foto Portofolio Multi-Slide** — tiap project di `lib/data.ts` sekarang pakai field `images: string[]` (array, bukan satu foto lagi). Isi 1 atau lebih path foto per project — foto pertama otomatis jadi cover di grid, dan kalau lebih dari 1 foto, muncul badge "N foto" di pojok cover. Klik project untuk membuka `components/Lightbox.tsx` yang sekarang jadi carousel penuh: tombol panah kiri/kanan, indikator titik, navigasi keyboard (←/→/Esc), dan penghitung "1 / 3". Cara menambah foto: cukup tambahkan path baru ke array `images` project terkait, tidak perlu ubah komponen.
 11. **Foto dari Google Drive** — selain file lokal di `public/images/`, foto juga bisa langsung dari Google Drive lewat helper `lib/gdrive.ts`:
+
     ```ts
     import { driveImageUrl } from "@/lib/gdrive";
     images: [driveImageUrl("https://drive.google.com/file/d/FILE_ID/view?usp=sharing")],
     ```
+
     **Wajib:** file di Drive di-share dengan akses "Anyone with the link" (role Viewer), kalau tidak foto tidak akan muncul. Cocok untuk testing/demo — untuk produksi jangka panjang, gunakan Vercel Blob (poin 12) yang lebih stabil.
 12. **Upload Foto/Video via Vercel Blob (`/admin/upload`)** — cara paling praktis & stabil untuk menambah foto/video tanpa perlu redeploy kode, mendukung file besar (bukan cuma gambar kecil):
     - **Setup sekali saja:** buka dashboard Vercel → project ini → tab **Storage** → **Create Database** → pilih **Blob** → hubungkan ke project. Vercel otomatis mengisi env `BLOB_READ_WRITE_TOKEN`.
@@ -146,9 +148,11 @@ dzaroza-property/
     - **Cara kerja teknis:** memakai metode *client upload* Vercel Blob (`app/api/upload/route.ts` + `@vercel/blob/client`) — file dikirim **langsung dari browser ke Blob storage**, tidak lewat server kita. Ini yang membuatnya bisa menangani file sampai beberapa ratus MB/GB (bukan dibatasi 4.5 MB seperti upload lewat server biasa di Vercel). Batas default diset **500 MB** lewat `maximumSizeInBytes` di `app/api/upload/route.ts` — naikkan sendiri nilainya (maks. teoretis 5 TB) kalau perlu upload video yang lebih besar.
     - Tipe file yang diizinkan diatur di `allowedContentTypes` pada file yang sama (`app/api/upload/route.ts`) — saat ini: JPEG, PNG, WebP, SVG, MP4, MOV, WebM, PDF. Tambahkan tipe lain di array itu kalau perlu.
 13. **Video Promosi Produk (`videoUrl`)** — tiap produk di `lib/data.ts` punya field opsional `videoUrl`. Isi dengan URL video langsung (mp4/webm — hasil upload lewat `/admin/upload` cocok dipakai di sini), contoh:
+
     ```ts
     videoUrl: "https://xxxxx.public.blob.vercel-storage.com/promo-eclass-abc123.mp4",
     ```
+
     Kalau diisi, otomatis muncul pemutar video ("Video Preview") di halaman detail produk, plus badge kecil "Video" di card produk pada grid Produk Digital. Kalau dikosongkan, section video tidak ditampilkan sama sekali — tidak wajib diisi untuk semua produk. **Catatan:** hanya mendukung file video langsung (mp4/webm), bukan link YouTube/Vimeo (beda cara embed-nya — kabari kalau butuh dukungan itu juga).
 14. **Anggota Tim Baru** — daftar tim di `lib/data.ts` (array `team`) sekarang ada 4 orang, termasuk **Supriyatno (Site Analyst)**. Menambah anggota baru cukup tambahkan objek baru ke array ini (id unik, name, role, photo) — otomatis muncul di Footer, Floating WhatsApp Button, dropdown "Konsultasi Layanan Ini", dan grid Company Profile tanpa perlu ubah komponen lain.
 15. **Upstash Redis untuk Order Management** — `lib/redis.ts` menyimpan data order (status, customer, token Midtrans) di Upstash Redis dengan TTL 90 hari. `api/checkout/notification/route.ts` sudah memanggil `saveOrder`/`updateOrder` saat menerima webhook Midtrans — tidak perlu database eksternal. Jika `UPSTASH_REDIS_REST_URL`/`UPSTASH_REDIS_REST_TOKEN` tidak diisi, checkout tetap berjalan tapi status pesanan tidak tersimpan.
@@ -166,24 +170,28 @@ Jika build di Vercel gagal dengan error `TypeError: Invalid URL` saat "Generatin
 Deretan pesan `npm warn deprecated ...` (inflight, rimraf, glob, uuid, @humanwhocodes/*, eslint@8.57.1) yang muncul di log Vercel **hanyalah peringatan, bukan error** — build tetap lanjut dan sukses. Semua itu adalah dependency transitif dari `eslint`/`eslint-config-next` versi lama, aman diabaikan.
 
 Satu-satunya baris yang perlu ditindaklanjuti serius adalah:
-```
+
+```text
 npm warn deprecated next@14.2.5: This version has a security vulnerability...
 ```
+
 Ini **sudah diperbaiki** di proyek ini — `package.json` telah di-bump ke `next@16.3.5` (melampaui versi yang menambal CVE-2025-55183/55184/67779). `eslint-config-next` juga disamakan ke `16.3.5` agar kompatibel. Setelah upload ulang kode ini, warning tersebut tidak akan muncul lagi karena versi yang ter-install sudah versi aman.
 
-20. **Proteksi Akses Halaman Admin (`/admin/upload`)** — Menggunakan sistem keamanan ganda:
+ 1. **Proteksi Akses Halaman Admin (`/admin/upload`)** — Menggunakan sistem keamanan ganda:
     - **Lapisan 1 (Layout Guard):** `app/admin/layout.tsx` memverifikasi sesi login Google pengguna via `getAdminSession()` di `lib/auth.ts`. Hanya alamat email yang terdaftar di variabel lingkungan `ADMIN_EMAILS` yang diizinkan mengakses halaman. Pengguna yang belum login atau tidak terdaftar otomatis dialihkan ke halaman sign-in.
     - **Lapisan 2 (Upload Secret):** Saat mengunggah file, form meminta kata sandi `UPLOAD_SECRET`. Sistem juga mendukung `UPLOAD_SECRET_PREVIOUS` untuk rotasi kunci berkala tanpa downtime.
-21. **Content Security Policy (CSP) & Header Keamanan Ketat** — Dikonfigurasi di `next.config.js` untuk melindungi website dari serangan XSS, clickjacking, dan injection. CSP mengizinkan domain-domain yang diperlukan: Midtrans (sandbox & live), Google APIs (OAuth, Sheets, Maps), Google Analytics, Vercel Blob, dan Google Drive. Header keamanan tambahan mencakup `X-Frame-Options: SAMEORIGIN`, `X-Content-Type-Options: nosniff`, dan `Referrer-Policy: strict-origin-when-cross-origin`.
-22. **Accordion FAQ Interaktif (`components/FAQ.tsx`)** — Menampilkan daftar pertanyaan yang sering diajukan di halaman utama. Seluruh daftar pertanyaan dan jawaban dikelola terpusat di array `faqs` pada `lib/data.ts`, sehingga penambahan atau revisi konten FAQ dapat dilakukan dengan cepat tanpa perlu memodifikasi komponen tampilan.
-23. **Halaman Kebijakan Privasi (`app/privasi/page.tsx`)** — Menyediakan informasi kepatuhan perlindungan data pribadi dan transparansi layanan sesuai persyaratan verifikasi Google OAuth, mencakup identitas usaha, pengumpulan data testimoni/pemesanan, hak pengguna, dan kontak resmi.
+ 2. **Content Security Policy (CSP) & Header Keamanan Ketat** — Dikonfigurasi di `next.config.js` untuk melindungi website dari serangan XSS, clickjacking, dan injection. CSP mengizinkan domain-domain yang diperlukan: Midtrans (sandbox & live), Google APIs (OAuth, Sheets, Maps), Google Analytics, Vercel Blob, dan Google Drive. Header keamanan tambahan mencakup `X-Frame-Options: SAMEORIGIN`, `X-Content-Type-Options: nosniff`, dan `Referrer-Policy: strict-origin-when-cross-origin`.
+ 3. **Accordion FAQ Interaktif (`components/FAQ.tsx`)** — Menampilkan daftar pertanyaan yang sering diajukan di halaman utama. Seluruh daftar pertanyaan dan jawaban dikelola terpusat di array `faqs` pada `lib/data.ts`, sehingga penambahan atau revisi konten FAQ dapat dilakukan dengan cepat tanpa perlu memodifikasi komponen tampilan.
+ 4. **Halaman Kebijakan Privasi (`app/privasi/page.tsx`)** — Menyediakan informasi kepatuhan perlindungan data pribadi dan transparansi layanan sesuai persyaratan verifikasi Google OAuth, mencakup identitas usaha, pengumpulan data testimoni/pemesanan, hak pengguna, dan kontak resmi.
 
 ## Panduan Pengelolaan Konten (`lib/data.ts`)
 
 Seluruh data konten web berada di satu file terpusat: `lib/data.ts`. Berikut cara memperbaruinya:
 
 ### Menambah Proyek Portofolio Baru
+
 Tambahkan objek baru ke dalam array `portfolioProjects`:
+
 ```ts
 {
   id: "7", // ID unik
@@ -201,7 +209,9 @@ Tambahkan objek baru ke dalam array `portfolioProjects`:
 ```
 
 ### Menambah atau Mengubah FAQ
+
 Tambahkan objek pertanyaan & jawaban ke dalam array `faqs`:
+
 ```ts
 {
   question: "Pertanyaan baru?",
@@ -210,7 +220,9 @@ Tambahkan objek pertanyaan & jawaban ke dalam array `faqs`:
 ```
 
 ### Mengubah Kontak & Media Sosial
+
 Di bagian atas `lib/data.ts`:
+
 - `primaryWhatsApp`: Ubah nomor WhatsApp resmi (format internasional tanpa tanda `+`, contoh: `"62882008562999"`).
 - `instagramAccounts`: Daftar tautan akun Instagram resmi.
 - `contactEmail`: Alamat email kontak resmi Dzaroza Property.
@@ -240,9 +252,8 @@ Di bagian atas `lib/data.ts`:
 ## Daftar Perintah (Scripts)
 
 | Perintah | Fungsi |
-|---|---|
+| --- | --- |
 | `npm run dev` | Menjalankan server pengembangan lokal di `http://localhost:3000` |
 | `npm run build` | Menjalankan proses kompilasi dan build produksi Next.js |
 | `npm run start` | Menjalankan server produksi dari hasil build |
 | `npm run lint` | Menjalankan pemeriksaan kode dan gaya penulisan menggunakan ESLint |
-
