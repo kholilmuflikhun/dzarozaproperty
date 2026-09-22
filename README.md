@@ -35,7 +35,7 @@ dzaroza-property/
 │       ├── upload/route.ts                         # Client upload ke Vercel Blob (maks. 500 MB)
 │       └── checkout/
 │           ├── route.ts                            # Buat transaksi Midtrans Snap
-│           └── notification/route.ts              # Webhook Midtrans (verifikasi SHA-512)
+│           └── notification/route.ts               # Webhook Midtrans (verifikasi SHA-512)
 ├── components/
 │   ├── Navbar.tsx                                  # Smooth scroll anchor ("auto section jump")
 │   ├── Footer.tsx                                  # WA per anggota tim + IG + email
