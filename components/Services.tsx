@@ -39,7 +39,7 @@ export default function Services() {
                   <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-orange-500/15 text-orange-400">
                     <Icon size={20} />
                   </span>
-                  <span className="text-[11px] font-semibold uppercase tracking-wider text-white/40">
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-white/60">
                     {s.kategori}
                   </span>
                 </div>

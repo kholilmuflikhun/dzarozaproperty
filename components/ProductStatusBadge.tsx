@@ -10,12 +10,12 @@ const CONFIG: Record<ProductStatus, { label: string; icon: typeof Clock; classNa
   "new-release": {
     label: "New Release",
     icon: Sparkles,
-    className: "bg-green-600 text-white",
+    className: "bg-green-700 text-white",
   },
   published: {
     label: "Published",
     icon: CheckCircle2,
-    className: "bg-green-600 text-white",
+    className: "bg-green-700 text-white",
   },
 };
 
