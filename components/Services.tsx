@@ -1,4 +1,4 @@
-import { Hammer, Wrench, Handshake, ShieldCheck } from "lucide-react";
+import { Hammer, Wrench, Handshake, ShieldCheck, PackageCheck } from "lucide-react";
 import SectionHeading from "./SectionHeading";
 import ConsultButton from "./ConsultButton";
 import { services, syariahStatement } from "@/lib/data";
@@ -7,6 +7,7 @@ const ICONS: Record<string, any> = {
   "bangun-baru": Hammer,
   renovasi: Wrench,
   "titip-jual": Handshake,
+  "paket-all-in": PackageCheck,
 };
 
 export default function Services() {
@@ -16,7 +17,7 @@ export default function Services() {
       <div className="relative container-content">
         <SectionHeading
           eyebrow="Layanan Jasa"
-          title="Tiga Kategori Layanan Utama Kami"
+          title="Empat Kategori Layanan Utama Kami"
           light
         />
 
@@ -27,7 +28,7 @@ export default function Services() {
           </p>
         </div>
 
-        <div className="mt-10 grid lg:grid-cols-3 gap-6">
+        <div className="mt-10 grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {services.map((s) => {
             const Icon = ICONS[s.id] ?? Hammer;
             return (
@@ -46,9 +47,11 @@ export default function Services() {
 
                 <h3 className="mt-5 text-lg font-bold leading-snug">{s.title}</h3>
 
-                <span className="mt-3 inline-flex w-fit items-center rounded-full bg-orange-500 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-charcoal-950">
-                  {s.akad}
-                </span>
+                {s.akad && (
+                  <span className="mt-3 inline-flex w-fit items-center rounded-full bg-orange-500 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-charcoal-950">
+                    {s.akad}
+                  </span>
+                )}
 
                 <p className="mt-4 text-sm text-white/60 leading-relaxed">{s.description}</p>
 

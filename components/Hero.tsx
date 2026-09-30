@@ -5,7 +5,7 @@ import HeroCompare from "./HeroCompare";
 
 const QUICK_SERVICES = [
   { icon: HandCoins, title: "Cost and Fee 10%", desc: "Jasa bangun & renovasi, akad jelas sejak awal." },
-  { icon: KeyRound, title: "Akad Salam", desc: "Titip & jualkan tanah/bangunan tanpa gharar." },
+  { icon: KeyRound, title: "Titip & Jual Properti", desc: "Titip & jualkan tanah/bangunan tanpa gharar." },
   { icon: ShieldCheck, title: "Amanah & Transparan", desc: "Laporan biaya terbuka di setiap tahap." },
 ];
 
@@ -36,7 +36,7 @@ export default async function Hero() {
             <p className="mt-6 text-base sm:text-lg text-white/70 leading-relaxed max-w-xl">
               Dzaroza Property mengelola proyek bangun dan renovasi Anda
               dengan akad cost and fee 10% yang jelas sejak awal, serta
-              membantu memasarkan tanah dan bangunan lewat akad salam —
+              membantu memasarkan tanah dan bangunan Anda —
               transparan, tanpa gharar, sesuai syariat Islam.
             </p>
 

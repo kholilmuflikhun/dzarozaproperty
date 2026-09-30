@@ -26,12 +26,12 @@ export const metadata: Metadata = {
   ),
   title: "Dzaroza Property — Jasa Managerial Property, Bangun dan Renovasi Amanah",
   description:
-    "Dzaroza Property menyediakan jasa managerial property (bangun & renovasi) dengan akad cost and fee 10%, jasa titip-jual dengan akad salam, serta produk digital E-Book & E-Class — semua transparan tanpa gharar.",
+    "Dzaroza Property menyediakan jasa managerial property (bangun & renovasi) dengan akad cost and fee 10%, jasa titip-jual tanah dan bangunan, paket all-in bangun rumah dengan akad istishna, serta produk digital E-Book & E-Class — semua transparan tanpa gharar.",
   keywords: [
     "Dzaroza Property",
     "property syariah",
     "jasa bangun rumah amanah",
-    "akad salam property",
+    "akad istishna property",
     "managerial property islami",
   ],
   openGraph: {

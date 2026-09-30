@@ -15,7 +15,7 @@ export default function OrganizationSchema() {
     logo: `${baseUrl}/images/logo-1.svg`,
     foundingDate: "2019",
     description:
-      "Jasa managerial property (bangun & renovasi bangunan) dan titip-jual tanah/bangunan dengan akad cost and fee 10% dan akad salam — transparan, amanah, tanpa gharar.",
+      "Jasa managerial property (bangun & renovasi bangunan) dan titip-jual tanah/bangunan dengan akad cost and fee 10% dan akad istishna — transparan, amanah, tanpa gharar.",
     address: {
       "@type": "PostalAddress",
       addressLocality: "Purbalingga",

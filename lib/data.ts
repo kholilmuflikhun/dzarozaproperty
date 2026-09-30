@@ -73,7 +73,7 @@ export const products: Product[] = [
     summary:
       "Dasar-dasar investasi properti yang transparan dan bebas gharar, lengkap dengan simulasi cost & fee.",
     description:
-      "E-Book ini membahas dasar investasi properti secara syar'i — mulai dari memilih lokasi, memahami akad cost and fee, hingga skema akad salam untuk titip-jual tanah/bangunan. Disusun berdasarkan pengalaman nyata proyek Dzaroza Property agar pembaca terhindar dari ketidakjelasan (gharar) dalam bertransaksi properti.",
+      "E-Book ini membahas dasar investasi properti secara syar'i — mulai dari memilih lokasi, memahami akad cost and fee, hingga skema titip-jual tanah/bangunan. Disusun berdasarkan pengalaman nyata proyek Dzaroza Property agar pembaca terhindar dari ketidakjelasan (gharar) dalam bertransaksi properti.",
     price: "Rp 99.000",
     priceAmount: 99000,
     cover: "/images/products/ebook-cover.svg",
@@ -81,7 +81,7 @@ export const products: Product[] = [
       "120+ halaman materi terstruktur",
       "Studi kasus proyek nyata Dzaroza Property",
       "Template simulasi biaya (cost & fee)",
-      "Penjelasan akad salam untuk titip-jual",
+      "Penjelasan skema titip-jual tanah/bangunan",
       "Akses seumur hidup, format PDF",
     ],
     ctaLabel: "Pesan Sekarang",
@@ -173,15 +173,29 @@ export const services: Service[] = [
   {
     id: "titip-jual",
     kategori: "Kategori C",
-    akad: "Akad Salam",
-    title: "Jasa Titip & Menjualkan Bangunan / Tanah",
+    akad: "",
+    title: "Jasa Titip Jual Tanah dan Bangunan",
     description:
-      "Bagi Anda yang ingin menitipkan tanah atau bangunan untuk dipasarkan dan dijualkan, dengan skema akad salam yang menyepakati harga dan spesifikasi di awal.",
+      "Bagi Anda yang ingin menitipkan tanah atau bangunan untuk dipasarkan dan dijualkan — harga dan spesifikasi disepakati bersama sejak awal, transparan dan bebas gharar.",
     points: [
-      "Kesepakatan harga & spesifikasi di awal (akad salam)",
+      "Kesepakatan harga & spesifikasi di awal",
       "Pemasaran aktif ke jaringan calon pembeli",
       "Pendampingan dokumen & proses transaksi",
       "Update progres pemasaran secara berkala",
+    ],
+  },
+  {
+    id: "paket-all-in",
+    kategori: "Kategori D",
+    akad: "Akad Istishna",
+    title: "Paket All-In Membangun Bangunan Baru",
+    description:
+      "Solusi membangun rumah baru dengan satu harga total yang sudah ditentukan sejak awal — mencakup spesifikasi bangunan, RAB (Rencana Anggaran Biaya), dan seluruh biaya tukang, tanpa biaya tambahan di tengah jalan.",
+    points: [
+      "Spesifikasi bangunan disepakati di awal",
+      "RAB (Rencana Anggaran Biaya) lengkap dan rinci",
+      "Total biaya tukang & material sudah termasuk",
+      "Harga total pembangunan tetap, ditentukan sejak awal",
     ],
   },
 ];
@@ -352,7 +366,7 @@ export const testimonials: Testimonial[] = [
     name: "Ibu Sri Wahyuni",
     rating: 5,
     message:
-      "Tanah warisan keluarga akhirnya laku terjual lewat akad salam Dzaroza Property. Prosesnya amanah dan didampingi sampai tuntas.",
+      "Tanah warisan keluarga akhirnya laku terjual lewat jasa titip-jual Dzaroza Property. Prosesnya amanah dan didampingi sampai tuntas.",
   },
   {
     id: "3",
@@ -384,7 +398,7 @@ export const companyProfile = {
     "Menjadi mitra property terpercaya yang menghadirkan pengelolaan proyek transparan, kokoh, dan sesuai prinsip syariat Islam bagi setiap klien.",
   mission: [
     "Memberikan jasa managerial property dengan akad cost and fee yang jelas.",
-    "Menjalankan skema akad salam yang adil bagi pemilik dan calon pembeli.",
+    "Menjalankan skema titip-jual yang adil bagi pemilik dan calon pembeli.",
     "Meningkatkan literasi property syar'i lewat produk edukasi (E-Book & E-Class).",
     "Menjaga kualitas dan kejujuran (amanah) di setiap tahap pengerjaan proyek.",
   ],
@@ -407,9 +421,14 @@ export const faqs: FAQItem[] = [
       "Skema akad untuk jasa membangun dan renovasi bangunan (interior maupun eksterior), di mana Dzaroza Property mengelola seluruh biaya proyek (cost) secara transparan, dan mengenakan fee tetap sebesar 10% dari total biaya — dilaporkan secara berkala kepada pemilik proyek.",
   },
   {
-    question: "Apa itu akad Salam untuk titip-jual tanah/bangunan?",
+    question: "Apa itu Akad Istishna pada Paket All-In Membangun Bangunan Baru?",
     answer:
-      "Skema di mana harga dan spesifikasi disepakati bersama di awal sebelum proses pemasaran dimulai, sehingga tidak ada ketidakjelasan (gharar) antara pemilik dan calon pembeli selama proses berlangsung.",
+      "Skema akad pesan-bangun di mana spesifikasi bangunan, RAB (Rencana Anggaran Biaya), dan harga total pembangunan disepakati dan ditentukan sejak awal sebelum pekerjaan dimulai — sehingga pemilik tahu pasti total biaya yang harus dibayar tanpa risiko biaya membengkak di tengah jalan.",
+  },
+  {
+    question: "Bagaimana skema Jasa Titip Jual Tanah dan Bangunan?",
+    answer:
+      "Harga dan spesifikasi disepakati bersama di awal sebelum proses pemasaran dimulai, sehingga tidak ada ketidakjelasan (gharar) antara pemilik dan calon pembeli selama proses berlangsung.",
   },
   {
     question: "Bagaimana cara pembayaran produk digital (E-Book/E-Class)?",
