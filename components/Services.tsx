@@ -1,6 +1,7 @@
 import { Hammer, Wrench, Handshake, ShieldCheck, PackageCheck } from "lucide-react";
 import SectionHeading from "./SectionHeading";
 import ConsultButton from "./ConsultButton";
+import OrderForm from "./OrderForm";
 import { services, syariahStatement } from "@/lib/data";
 
 const ICONS: Record<string, any> = {
@@ -69,6 +70,8 @@ export default function Services() {
             );
           })}
         </div>
+
+        <OrderForm />
       </div>
     </section>
   );

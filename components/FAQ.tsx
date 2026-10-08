@@ -53,6 +53,8 @@ export default function FAQ() {
             );
           })}
         </div>
+
+        <OrderForm />
       </div>
     </section>
   );
