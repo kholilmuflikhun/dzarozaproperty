@@ -40,7 +40,7 @@ type ValidationResult<T> =
   | { data: T; error?: never }
   | { data?: never; error: ApiError };
 
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const EMAIL_REGEX = /^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+$/;
 
 function isValidEmail(value: string) {
   return EMAIL_REGEX.test(value.trim());
