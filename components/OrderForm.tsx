@@ -35,7 +35,7 @@ export default function OrderForm() {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<Status>("idle");
   const [feedback, setFeedback] = useState("");
-  const [stepError, setStepError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const selectedService = services.find((s) => s.id === serviceId) ?? null;
   const fieldConfig = serviceId ? orderFormFields[serviceId] ?? [] : [];
@@ -43,21 +43,77 @@ export default function OrderForm() {
   function selectCategory(id: string) {
     setServiceId(id);
     setValues({});
-    setStepError("");
+    setFieldErrors({});
     setStep(1);
   }
 
   function updateValue(name: string, value: string) {
     setValues((prev) => ({ ...prev, [name]: value }));
+    if (value.trim()) {
+      clearFieldError(name);
+    }
+  }
+
+  function clearFieldError(name: string) {
+    setFieldErrors((prev) => {
+      if (!(name in prev)) return prev;
+      const next = { ...prev };
+      delete next[name];
+      return next;
+    });
+  }
+
+  function setContactErrors(errors: Record<string, string>) {
+    setFieldErrors((prev) => {
+      const next = { ...prev };
+      delete next.name;
+      delete next.phone;
+      delete next.email;
+      return { ...next, ...errors };
+    });
+  }
+
+  function validateContactData() {
+    const trimmedName = name.trim();
+    const trimmedPhone = phone.trim();
+    const trimmedEmail = email.trim();
+    const errors: Record<string, string> = {};
+
+    if (!trimmedName) {
+      errors.name = "Nama lengkap wajib diisi.";
+    } else if (trimmedName.length > 100) {
+      errors.name = "Nama maksimal 100 karakter.";
+    }
+
+    if (!trimmedPhone) {
+      errors.phone = "No. WhatsApp wajib diisi.";
+    } else if (trimmedPhone.length > 20) {
+      errors.phone = "No. WhatsApp maksimal 20 karakter.";
+    }
+
+    if (
+      trimmedEmail &&
+      (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail) || trimmedEmail.length > 254)
+    ) {
+      errors.email =
+        trimmedEmail.length > 254
+          ? "Email maksimal 254 karakter."
+          : "Format email tidak valid.";
+    }
+
+    return errors;
   }
 
   function goToContact() {
-    const missing = fieldConfig.find((f) => f.required && !values[f.name]?.trim());
-    if (missing) {
-      setStepError(`Mohon lengkapi "${missing.label}" terlebih dahulu.`);
+    const errors = Object.fromEntries(
+      fieldConfig
+        .filter((field) => field.required && !values[field.name]?.trim())
+        .map((field) => [field.name, `${field.label} wajib diisi.`])
+    );
+    setFieldErrors((prev) => ({ ...prev, ...errors }));
+    if (Object.keys(errors).length > 0) {
       return;
     }
-    setStepError("");
     setStep(2);
   }
 
@@ -65,31 +121,37 @@ export default function OrderForm() {
     const lines = [
       `Halo Customer Service Dzaroza Property, saya ingin mengajukan order:`,
       ``,
-      `Kategori: ${selectedService?.kategori} — ${selectedService?.title}`,
+      `Kategori: ${selectedService?.kategori ?? "-"} — ${selectedService?.title ?? "-"}`,
       ``,
       ...fieldConfig
         .filter((f) => values[f.name]?.trim())
         .map((f) => `${f.label}: ${values[f.name].trim()}`),
       ``,
-      `Nama: ${name}`,
-      `No. WhatsApp: ${phone}`,
-      ...(email ? [`Email: ${email}`] : []),
+      `Nama: ${name.trim() || "-"}`,
+      `No. WhatsApp: ${phone.trim() || "-"}`,
+      ...(email.trim() ? [`Email: ${email.trim()}`] : []),
     ];
     return lines.join("\n");
   }
 
   function handleWhatsApp() {
+    const errors = validateContactData();
+    setContactErrors(errors);
+    if (Object.keys(errors).length > 0 || !selectedService) {
+      return;
+    }
+
     const text = encodeURIComponent(buildWhatsAppMessage());
     window.open(`https://wa.me/${primaryWhatsApp}?text=${text}`, "_blank", "noopener,noreferrer");
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!name.trim() || !phone.trim()) {
-      setStepError("Nama dan No. WhatsApp wajib diisi.");
+    const errors = validateContactData();
+    setContactErrors(errors);
+    if (Object.keys(errors).length > 0) {
       return;
     }
-    setStepError("");
     setStatus("loading");
     setFeedback("");
 
@@ -103,12 +165,16 @@ export default function OrderForm() {
 
       if (!res.ok) {
         setStatus("error");
-        setFeedback(json.message ?? "Gagal mengirim order.");
+        setFeedback(
+          typeof json.message === "string" ? json.message : "Gagal mengirim order."
+        );
         return;
       }
 
       setStatus("success");
-      setFeedback(json.message ?? "Order berhasil dikirim!");
+      setFeedback(
+        typeof json.message === "string" ? json.message : "Order berhasil dikirim!"
+      );
     } catch {
       setStatus("error");
       setFeedback("Terjadi kesalahan jaringan. Coba lagi.");
@@ -124,7 +190,7 @@ export default function OrderForm() {
     setEmail("");
     setStatus("idle");
     setFeedback("");
-    setStepError("");
+    setFieldErrors({});
   }
 
   return (
@@ -195,23 +261,38 @@ export default function OrderForm() {
           <div className="mt-4 grid sm:grid-cols-2 gap-4">
             {fieldConfig.map((f) => (
               <div key={f.name} className={f.type === "textarea" ? "sm:col-span-2" : ""}>
-                <label className="mb-1.5 block text-xs font-semibold text-charcoal-600">
+                <label htmlFor={`order-${f.name}`} className="mb-1.5 block text-xs font-semibold text-charcoal-600">
                   {f.label}
                   {f.required && <span className="text-orange-700"> *</span>}
                 </label>
                 {f.type === "textarea" ? (
                   <textarea
+                    id={`order-${f.name}`}
                     value={values[f.name] ?? ""}
                     onChange={(e) => updateValue(f.name, e.target.value)}
                     placeholder={f.placeholder}
                     rows={3}
-                    className="w-full rounded-lg border border-charcoal-100 bg-white px-4 py-2.5 text-sm resize-none focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20"
+                    maxLength={2000}
+                    aria-invalid={Boolean(fieldErrors[f.name])}
+                    aria-describedby={fieldErrors[f.name] ? `order-${f.name}-error` : undefined}
+                    className={`w-full rounded-lg border bg-white px-4 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 ${
+                      fieldErrors[f.name]
+                        ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
+                        : "border-charcoal-100 focus:border-orange-500 focus:ring-orange-500/20"
+                    }`}
                   />
                 ) : f.type === "select" ? (
                   <select
+                    id={`order-${f.name}`}
                     value={values[f.name] ?? ""}
                     onChange={(e) => updateValue(f.name, e.target.value)}
-                    className="w-full rounded-lg border border-charcoal-100 bg-white px-4 py-2.5 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20"
+                    aria-invalid={Boolean(fieldErrors[f.name])}
+                    aria-describedby={fieldErrors[f.name] ? `order-${f.name}-error` : undefined}
+                    className={`w-full rounded-lg border bg-white px-4 py-2.5 text-sm focus:outline-none focus:ring-2 ${
+                      fieldErrors[f.name]
+                        ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
+                        : "border-charcoal-100 focus:border-orange-500 focus:ring-orange-500/20"
+                    }`}
                   >
                     <option value="">Pilih {f.label.toLowerCase()}</option>
                     {f.options?.map((opt) => (
@@ -222,17 +303,28 @@ export default function OrderForm() {
                   </select>
                 ) : (
                   <input
+                    id={`order-${f.name}`}
                     value={values[f.name] ?? ""}
                     onChange={(e) => updateValue(f.name, e.target.value)}
                     placeholder={f.placeholder}
-                    className="w-full rounded-lg border border-charcoal-100 bg-white px-4 py-2.5 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20"
+                    maxLength={500}
+                    aria-invalid={Boolean(fieldErrors[f.name])}
+                    aria-describedby={fieldErrors[f.name] ? `order-${f.name}-error` : undefined}
+                    className={`w-full rounded-lg border bg-white px-4 py-2.5 text-sm focus:outline-none focus:ring-2 ${
+                      fieldErrors[f.name]
+                        ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
+                        : "border-charcoal-100 focus:border-orange-500 focus:ring-orange-500/20"
+                    }`}
                   />
+                )}
+                {fieldErrors[f.name] && (
+                  <p id={`order-${f.name}-error`} className="mt-1.5 text-xs text-red-600" role="alert">
+                    {fieldErrors[f.name]}
+                  </p>
                 )}
               </div>
             ))}
           </div>
-
-          {stepError && <p className="mt-3 text-sm text-red-600">{stepError}</p>}
 
           <div className="mt-6 flex items-center gap-3">
             <button
@@ -257,31 +349,100 @@ export default function OrderForm() {
 
       {/* --- Step 2: kontak, review & kirim --- */}
       {step === 2 && selectedService && status !== "success" && (
-        <form onSubmit={handleSubmit} className="mt-6">
+        <form onSubmit={handleSubmit} noValidate className="mt-6">
           <div className="grid sm:grid-cols-2 gap-4">
-            <input
-              required
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Nama Lengkap"
-              className="w-full rounded-lg border border-charcoal-100 bg-white px-4 py-2.5 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20"
-            />
-            <input
-              required
-              type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="No. HP (WhatsApp)"
-              className="w-full rounded-lg border border-charcoal-100 bg-white px-4 py-2.5 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20"
-            />
+            <div>
+              <label htmlFor="order-contact-name" className="mb-1.5 block text-xs font-semibold text-charcoal-600">
+                Nama Lengkap <span className="text-orange-700">*</span>
+              </label>
+              <input
+                id="order-contact-name"
+                required
+                value={name}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  if (e.target.value.trim()) {
+                    clearFieldError("name");
+                  }
+                }}
+                placeholder="Nama Lengkap"
+                maxLength={100}
+                aria-invalid={Boolean(fieldErrors.name)}
+                aria-describedby={fieldErrors.name ? "order-contact-name-error" : undefined}
+                className={`w-full rounded-lg border bg-white px-4 py-2.5 text-sm focus:outline-none focus:ring-2 ${
+                  fieldErrors.name
+                    ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
+                    : "border-charcoal-100 focus:border-orange-500 focus:ring-orange-500/20"
+                }`}
+              />
+              {fieldErrors.name && (
+                <p id="order-contact-name-error" className="mt-1.5 text-xs text-red-600" role="alert">
+                  {fieldErrors.name}
+                </p>
+              )}
+            </div>
+            <div>
+              <label htmlFor="order-contact-phone" className="mb-1.5 block text-xs font-semibold text-charcoal-600">
+                No. HP (WhatsApp) <span className="text-orange-700">*</span>
+              </label>
+              <input
+                id="order-contact-phone"
+                required
+                type="tel"
+                value={phone}
+                onChange={(e) => {
+                  setPhone(e.target.value);
+                  if (e.target.value.trim()) {
+                    clearFieldError("phone");
+                  }
+                }}
+                placeholder="No. HP (WhatsApp)"
+                maxLength={20}
+                aria-invalid={Boolean(fieldErrors.phone)}
+                aria-describedby={fieldErrors.phone ? "order-contact-phone-error" : undefined}
+                className={`w-full rounded-lg border bg-white px-4 py-2.5 text-sm focus:outline-none focus:ring-2 ${
+                  fieldErrors.phone
+                    ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
+                    : "border-charcoal-100 focus:border-orange-500 focus:ring-orange-500/20"
+                }`}
+              />
+              {fieldErrors.phone && (
+                <p id="order-contact-phone-error" className="mt-1.5 text-xs text-red-600" role="alert">
+                  {fieldErrors.phone}
+                </p>
+              )}
+            </div>
           </div>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Email (opsional)"
-            className="mt-4 w-full rounded-lg border border-charcoal-100 bg-white px-4 py-2.5 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20"
-          />
+          <div className="mt-4">
+            <label htmlFor="order-contact-email" className="mb-1.5 block text-xs font-semibold text-charcoal-600">
+              Email <span className="font-normal text-charcoal-400">(opsional)</span>
+            </label>
+            <input
+              id="order-contact-email"
+              type="email"
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (e.target.value.trim()) {
+                  clearFieldError("email");
+                }
+              }}
+              placeholder="nama@email.com"
+              maxLength={254}
+              aria-invalid={Boolean(fieldErrors.email)}
+              aria-describedby={fieldErrors.email ? "order-contact-email-error" : undefined}
+              className={`w-full rounded-lg border bg-white px-4 py-2.5 text-sm focus:outline-none focus:ring-2 ${
+                fieldErrors.email
+                  ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
+                  : "border-charcoal-100 focus:border-orange-500 focus:ring-orange-500/20"
+              }`}
+            />
+            {fieldErrors.email && (
+              <p id="order-contact-email-error" className="mt-1.5 text-xs text-red-600" role="alert">
+                {fieldErrors.email}
+              </p>
+            )}
+          </div>
 
           {/* --- Ringkasan sebelum dikirim --- */}
           <div className="mt-5 rounded-xl border border-charcoal-100 bg-cream-soft p-4">
@@ -301,8 +462,6 @@ export default function OrderForm() {
                 ))}
             </ul>
           </div>
-
-          {stepError && <p className="mt-3 text-sm text-red-600">{stepError}</p>}
 
           <div className="mt-6 flex flex-wrap items-center gap-3">
             <button

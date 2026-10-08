@@ -31,6 +31,98 @@ const MAX_LENGTHS = {
   textarea: 2000,
 } as const;
 
+type OrderFieldConfig = (typeof orderFormFields)[keyof typeof orderFormFields];
+type ApiError = { message: string; status: number };
+type OrderContext =
+  | { data: { service: (typeof services)[number]; fieldConfig: OrderFieldConfig }; error?: never }
+  | { data?: never; error: ApiError };
+type ValidationResult<T> =
+  | { data: T; error?: never }
+  | { data?: never; error: ApiError };
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function isValidEmail(value: string) {
+  return EMAIL_REGEX.test(value.trim());
+}
+
+function getOrderContext(serviceId: unknown): OrderContext {
+  const normalizedServiceId = typeof serviceId === "string" ? serviceId.trim() : "";
+  const service = services.find((s) => s.id === normalizedServiceId);
+  const fieldConfig = normalizedServiceId ? orderFormFields[normalizedServiceId] : undefined;
+
+  if (!service || !fieldConfig) {
+    return { error: { message: "Kategori layanan tidak valid.", status: 400 } };
+  }
+
+  return { data: { service, fieldConfig } };
+}
+
+function validateContactInput(
+  name: unknown,
+  phone: unknown,
+  email: unknown
+): ValidationResult<{ name: string; phone: string; email?: string }> {
+  const trimmedName = typeof name === "string" ? name.trim() : "";
+  const trimmedPhone = typeof phone === "string" ? phone.trim() : "";
+  const trimmedEmail = typeof email === "string" ? email.trim() : "";
+
+  if (!trimmedName || !trimmedPhone) {
+    return { error: { message: "Nama dan No. WhatsApp wajib diisi.", status: 400 } };
+  }
+
+  if (email !== undefined && email !== null && typeof email !== "string") {
+    return { error: { message: "Format email tidak valid.", status: 400 } };
+  }
+
+  if (
+    trimmedName.length > MAX_LENGTHS.name ||
+    trimmedPhone.length > MAX_LENGTHS.phone ||
+    (typeof email === "string" && trimmedEmail.length > MAX_LENGTHS.email)
+  ) {
+    return {
+      error: { message: "Salah satu field melebihi batas panjang yang diizinkan.", status: 400 },
+    };
+  }
+
+  if (trimmedEmail && !isValidEmail(trimmedEmail)) {
+    return { error: { message: "Format email tidak valid.", status: 400 } };
+  }
+
+  return {
+    data: { name: trimmedName, phone: trimmedPhone, email: trimmedEmail || undefined },
+  };
+}
+
+function buildOrderSummary(
+  fieldConfig: OrderFieldConfig,
+  fields: Record<string, unknown>
+): ValidationResult<{ summaryLines: string[] }> {
+  const summaryLines: string[] = [];
+
+  for (const field of fieldConfig) {
+    const raw = fields[field.name];
+    const value = typeof raw === "string" ? raw.trim() : "";
+
+      if (field.required && !value) {
+      return { error: { message: `Field "${field.label}" wajib diisi.`, status: 400 } };
+    }
+
+    const maxLen = field.type === "textarea" ? MAX_LENGTHS.textarea : MAX_LENGTHS.fieldValue;
+    if (value.length > maxLen) {
+      return { error: { message: `Field "${field.label}" terlalu panjang.`, status: 400 } };
+    }
+
+    if (field.type === "select" && value && !field.options?.includes(value)) {
+      return { error: { message: `Pilihan "${field.label}" tidak valid.`, status: 400 } };
+    }
+
+    if (value) summaryLines.push(`${field.label}: ${value}`);
+  }
+
+    return { data: { summaryLines } };
+}
+
 export async function POST(request: NextRequest) {
   try {
     cleanupRateLimitEntries();
@@ -50,70 +142,45 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, message: "Payload terlalu besar." }, { status: 413 });
     }
 
-    const body = await request.json();
-    const { serviceId, name, phone, email, fields } = body ?? {};
-
-    const service = services.find((s) => s.id === serviceId);
-    const fieldConfig = typeof serviceId === "string" ? orderFormFields[serviceId] : undefined;
-    if (!service || !fieldConfig) {
-      return NextResponse.json({ success: false, message: "Kategori layanan tidak valid." }, { status: 400 });
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ success: false, message: "Format data tidak valid." }, { status: 400 });
     }
 
-    if (!name || !phone || typeof name !== "string" || typeof phone !== "string") {
-      return NextResponse.json(
-        { success: false, message: "Nama dan No. WhatsApp wajib diisi." },
-        { status: 400 }
-      );
+    const bodyRecord = body && typeof body === "object" && !Array.isArray(body) ? (body as Record<string, unknown>) : null;
+    if (!bodyRecord) {
+      return NextResponse.json({ success: false, message: "Format data tidak valid." }, { status: 400 });
     }
-    if (email !== undefined && email !== null && typeof email !== "string") {
-      return NextResponse.json({ success: false, message: "Format email tidak valid." }, { status: 400 });
-    }
-    if (
-      name.length > MAX_LENGTHS.name ||
-      phone.length > MAX_LENGTHS.phone ||
-      (typeof email === "string" && email.length > MAX_LENGTHS.email)
-    ) {
+
+    const { serviceId, name, phone, email, fields } = bodyRecord;
+    const orderContext = getOrderContext(serviceId);
+    if (orderContext.error) {
       return NextResponse.json(
-        { success: false, message: "Salah satu field melebihi batas panjang yang diizinkan." },
-        { status: 400 }
+        { success: false, message: orderContext.error.message },
+        { status: orderContext.error.status }
       );
     }
 
-    if (!fields || typeof fields !== "object") {
+    const contact = validateContactInput(name, phone, email);
+    if (contact.error) {
+      return NextResponse.json(
+        { success: false, message: contact.error.message },
+        { status: contact.error.status }
+      );
+    }
+
+    if (!fields || typeof fields !== "object" || Array.isArray(fields)) {
       return NextResponse.json({ success: false, message: "Detail order tidak valid." }, { status: 400 });
     }
 
-    // Validasi tiap field dinamis sesuai konfigurasi kategori yang dipilih,
-    // sekaligus menyusun ringkasan "Label: nilai" untuk disimpan jadi satu
-    // kolom di Sheets.
-    const summaryLines: string[] = [];
-    for (const f of fieldConfig) {
-      const raw = (fields as Record<string, unknown>)[f.name];
-      const value = typeof raw === "string" ? raw.trim() : "";
-
-      if (f.required && !value) {
-        return NextResponse.json(
-          { success: false, message: `Field "${f.label}" wajib diisi.` },
-          { status: 400 }
-        );
-      }
-
-      const maxLen = f.type === "textarea" ? MAX_LENGTHS.textarea : MAX_LENGTHS.fieldValue;
-      if (value.length > maxLen) {
-        return NextResponse.json(
-          { success: false, message: `Field "${f.label}" terlalu panjang.` },
-          { status: 400 }
-        );
-      }
-
-      if (f.type === "select" && value && !f.options?.includes(value)) {
-        return NextResponse.json(
-          { success: false, message: `Pilihan "${f.label}" tidak valid.` },
-          { status: 400 }
-        );
-      }
-
-      if (value) summaryLines.push(`${f.label}: ${value}`);
+    const orderSummary = buildOrderSummary(orderContext.data.fieldConfig, fields as Record<string, unknown>);
+    if (orderSummary.error) {
+      return NextResponse.json(
+        { success: false, message: orderSummary.error.message },
+        { status: orderSummary.error.status }
+      );
     }
 
     const client = getSheetsClient();
@@ -147,12 +214,12 @@ export async function POST(request: NextRequest) {
         values: [
           [
             new Date().toISOString(),
-            sanitizeCell(service.kategori),
-            sanitizeCell(service.title),
-            sanitizeCell(name),
-            sanitizeCell(phone),
-            typeof email === "string" && email ? sanitizeCell(email) : "",
-            sanitizeCell(summaryLines.join("\n")),
+            sanitizeCell(orderContext.data.service.kategori),
+            sanitizeCell(orderContext.data.service.title),
+            sanitizeCell(contact.data.name),
+            sanitizeCell(contact.data.phone),
+            typeof contact.data.email === "string" && contact.data.email ? sanitizeCell(contact.data.email) : "",
+            sanitizeCell(orderSummary.data.summaryLines.join("\n")),
           ],
         ],
       },

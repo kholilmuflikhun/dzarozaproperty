@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import SectionHeading from "./SectionHeading";
+import OrderForm from "./OrderForm";
 import { faqs } from "@/lib/data";
 
 export default function FAQ() {
