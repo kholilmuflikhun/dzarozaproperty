@@ -24,7 +24,7 @@ export default async function Hero() {
 
       <div className="relative container-content px-6 sm:px-10 lg:px-16 pt-16 pb-24 lg:pt-24 lg:pb-32">
         <div className="grid lg:grid-cols-[1.1fr_0.9fr] gap-14 items-center">
-          <div className="animate-fadeUp">
+          <div className="animate-fade-up">
             <span className="eyebrow">
               <span className="h-px w-6 bg-orange-500" />
               Jasa Manageral Property Profesional & Amanah
@@ -61,7 +61,7 @@ export default async function Hero() {
                 <div
                   key={s.title}
                   style={{ animationDelay: `${0.15 + i * 0.1}s` }}
-                  className="animate-fadeUp rounded-xl2 border border-white/10 bg-white/5 p-4"
+                  className="animate-fade-up rounded-xl2 border border-white/10 bg-white/5 p-4"
                 >
                   <s.icon size={20} className="text-orange-500" />
                   <p className="mt-3 text-sm font-semibold">{s.title}</p>
@@ -71,7 +71,7 @@ export default async function Hero() {
             </div>
           </div>
 
-          <div className="relative hidden lg:block animate-fadeUp" style={{ animationDelay: "0.1s" }}>
+          <div className="relative hidden lg:block animate-fade-up" style={{ animationDelay: "0.1s" }}>
             <HeroCompare rating={displayRating} />
           </div>
         </div>

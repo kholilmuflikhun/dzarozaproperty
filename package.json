@@ -15,29 +15,32 @@
     "googleapis": "^181.0.0",
     "lucide-react": "^0.424.0",
     "midtrans-client": "^1.4.3",
-    "next": "16.3.5",
+    "next": "16.4.0",
     "next-auth": "^4.24.15",
     "react": "^19.3.0",
     "react-dom": "^19.3.0"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "@tailwindcss/postcss": "4.3.3",
     "@types/node": "^20.14.0",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
-    "autoprefixer": "^10.6.1",
     "eslint": "^9.39.5",
-    "eslint-config-next": "16.3.5",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
     "postcss": "^8.5.28",
-    "tailwindcss": "^3.4.7",
-    "typescript": "^5.5.4"
+    "tailwindcss": "4.3.3",
+    "typescript": "^5.5.4",
+    "typescript-eslint": "^8.70.0"
   },
   "browserslist": [
-    "chrome >= 90",
-    "edge >= 90",
-    "firefox >= 88",
-    "safari >= 14",
-    "ios_saf >= 14",
-    "not IE 11",
+    "chrome >= 111",
+    "edge >= 111",
+    "firefox >= 128",
+    "safari >= 16.4",
+    "ios_saf >= 16.4",
     "not dead"
   ]
 }

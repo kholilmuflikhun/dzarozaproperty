@@ -101,7 +101,7 @@ export default function Testimonials() {
           onTouchStart={() => setPaused(true)}
           onTouchEnd={() => setPaused(false)}
         >
-          <div key={safePage} className="grid animate-fadeIn sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div key={safePage} className="grid animate-fade-in sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {currentItems.map((t) => (
               <div key={t.id} className="rounded-xl2 border border-charcoal-100 bg-cream-soft p-6">
                 <Quote className="text-orange-500/40" size={26} />

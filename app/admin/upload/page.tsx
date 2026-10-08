@@ -102,7 +102,6 @@ export default function AdminUploadPage() {
             <video src={preview} controls className="h-40 w-full rounded-lg bg-charcoal-950 object-contain" />
           )}
           {preview && !isVideo && file?.type.startsWith("image/") && (
-            // eslint-disable-next-line @next/next/no-img-element
             <img src={preview} alt="Pratinjau" className="h-40 w-full rounded-lg object-cover" />
           )}
           {preview && file && !isVideo && !file.type.startsWith("image/") && (

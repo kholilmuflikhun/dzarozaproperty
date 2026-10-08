@@ -1,6 +1,64 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@theme {
+  --color-orange-50: #FFF4ED;
+  --color-orange-100: #FFE4D2;
+  --color-orange-200: #FFC49C;
+  --color-orange-300: #FFA166;
+  --color-orange-400: #FB8B3D;
+  --color-orange: #EA580C;
+  --color-orange-500: #EA580C;
+  --color-orange-600: #D14E08;
+  --color-orange-700: #B34206;
+  --color-orange-800: #8A3305;
+  --color-orange-900: #5C2203;
+
+  --color-charcoal: #0F0F10;
+  --color-charcoal-50: #F4F4F5;
+  --color-charcoal-100: #E4E4E7;
+  --color-charcoal-400: #6B6B70;
+  --color-charcoal-600: #3F3F42;
+  --color-charcoal-800: #1C1C1E;
+  --color-charcoal-900: #141415;
+  --color-charcoal-950: #0A0A0B;
+
+  --color-cream: #FFFFFF;
+  --color-cream-soft: #F7F6F4;
+  --color-cream-muted: #F0EFEC;
+
+  --font-display: var(--font-space-grotesk), sans-serif;
+  --font-body: var(--font-inter), sans-serif;
+  --background-size-blueprint: 32px 32px;
+  --shadow-card: 0 1px 2px rgba(15, 15, 16, 0.04), 0 8px 24px -8px rgba(15, 15, 16, 0.12);
+  --shadow-card-hover: 0 4px 8px rgba(15, 15, 16, 0.06), 0 16px 32px -12px rgba(234, 88, 12, 0.25);
+  --radius-xl2: 1.25rem;
+  --container-content: 1280px;
+
+  --animate-fade-up: fade-up 0.6s ease-out both;
+  --animate-fade-in: fade-in 0.5s ease-out both;
+
+  @keyframes fade-up {
+    0% {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes fade-in {
+    0% {
+      opacity: 0;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
+}
+
+@custom-variant dark (&:where(.dark, .dark *));
 
 html {
   scroll-behavior: smooth;
@@ -22,7 +80,7 @@ h1, h2, h3, h4 { @apply font-display; }
   position: absolute;
   width: 22px;
   height: 22px;
-  border-color: theme("colors.orange.DEFAULT");
+  border-color: var(--color-orange);
   z-index: 10;
 }
 .blueprint-frame::before { top: -10px; left: -10px; border-top: 3px solid; border-left: 3px solid; }
