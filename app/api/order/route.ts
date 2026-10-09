@@ -19,8 +19,15 @@ import { services } from "@/lib/data";
 // (Formula/CSV Injection) bila diawali salah satu dari ini. Endpoint ini bisa
 // diisi siapa saja tanpa login, jadi input harus dianggap tidak tepercaya.
 const FORMULA_PREFIX = /^[=+\-@\t\r]/;
-function sanitizeCell(value: string) {
-  return FORMULA_PREFIX.test(value) ? `'${value}` : value;
+function normalizeText(value: unknown): string {
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number" || typeof value === "boolean") return String(value).trim();
+  return "";
+}
+
+function sanitizeCell(value: string | number | boolean | null | undefined) {
+  const normalized = value === null || value === undefined ? "" : String(value);
+  return FORMULA_PREFIX.test(normalized) ? `'${normalized}` : normalized;
 }
 
 const MAX_LENGTHS = {
@@ -102,9 +109,9 @@ function buildOrderSummary(
 
   for (const field of fieldConfig) {
     const raw = fields[field.name];
-    const value = typeof raw === "string" ? raw.trim() : "";
+    const value = normalizeText(raw);
 
-      if (field.required && !value) {
+    if (field.required && !value) {
       return { error: { message: `Field "${field.label}" wajib diisi.`, status: 400 } };
     }
 
@@ -120,7 +127,7 @@ function buildOrderSummary(
     if (value) summaryLines.push(`${field.label}: ${value}`);
   }
 
-    return { data: { summaryLines } };
+  return { data: { summaryLines } };
 }
 
 export async function POST(request: NextRequest) {
