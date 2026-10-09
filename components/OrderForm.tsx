@@ -197,13 +197,13 @@ export default function OrderForm() {
 
   return (
     <div className="mt-14 rounded-xl2 border border-charcoal-100 bg-white p-6 sm:p-8">
-      <div className="flex items-center gap-3">
+      <div className="flex flex-col items-center gap-3 text-center">
         <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-orange-500/10 text-orange-700">
           <ClipboardList size={20} />
         </span>
         <div>
           <h3 className="text-base font-bold text-charcoal-950">Ajukan Order Layanan Jasa</h3>
-          <p className="text-sm text-charcoal-400">
+          <p className="mx-auto mt-1 max-w-md text-sm text-charcoal-400">
             Pilih kategori, isi detail kebutuhan Anda, tim kami akan segera menghubungi.
           </p>
         </div>
