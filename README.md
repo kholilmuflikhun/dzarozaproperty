@@ -69,7 +69,7 @@ dzaroza-property/
 │   ├── gdrive.ts                                   # Helper URL foto Google Drive → next/image
 │   ├── redis.ts                                    # Upstash Redis client + Order CRUD (saveOrder, getOrder, updateOrder)
 │   ├── rate-limit.ts                               # Rate limiter (Upstash sliding-window / in-memory fallback)
-│   ├── orderForm.ts                                 # Field form per kategori layanan
+│   ├── orderForm.ts                                # Field form per kategori layanan
 │   ├── testimonials.server.ts                      # Fetch testimoni dari Google Sheets (server-side)
 │   ├── testimonialStats.ts                         # Kalkulasi statistik rating agregat
 │   └── useColumns.ts                               # Custom hook jumlah kolom grid responsif
