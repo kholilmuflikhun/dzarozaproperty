@@ -4,7 +4,9 @@ import ConsultButton from "./ConsultButton";
 import OrderForm from "./OrderForm";
 import { services, syariahStatement } from "@/lib/data";
 
-const ICONS: Record<string, any> = {
+import type { LucideIcon } from "lucide-react";
+
+const ICONS: Record<string, LucideIcon> = {
   "bangun-baru": Hammer,
   renovasi: Wrench,
   "titip-jual": Handshake,

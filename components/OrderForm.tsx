@@ -17,7 +17,9 @@ import WhatsAppIcon from "./WhatsAppIcon";
 import { services, primaryWhatsApp } from "@/lib/data";
 import { orderFormFields } from "@/lib/orderForm";
 
-const ICONS: Record<string, any> = {
+import type { LucideIcon } from "lucide-react";
+
+const ICONS: Record<string, LucideIcon> = {
   "bangun-baru": Hammer,
   renovasi: Wrench,
   "titip-jual": Handshake,
@@ -208,18 +210,18 @@ export default function OrderForm() {
       </div>
 
       {/* --- Indikator langkah --- */}
-      <div className="mt-6 flex items-center gap-2 text-xs font-semibold text-charcoal-400">
+      <div className="mt-6 flex flex-wrap items-center justify-center gap-x-1.5 gap-y-2 text-[11px] font-semibold text-charcoal-400 sm:gap-x-2 sm:text-xs">
         {["Kategori", "Detail", "Kontak"].map((label, i) => (
-          <div key={label} className="flex items-center gap-2">
+          <div key={label} className="flex items-center gap-1.5 sm:gap-2">
             <span
-              className={`flex h-6 w-6 items-center justify-center rounded-full ${
+              className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${
                 step >= i ? "bg-orange-500 text-charcoal-950" : "bg-charcoal-50 text-charcoal-400"
               }`}
             >
               {i + 1}
             </span>
             <span className={step >= i ? "text-charcoal-800" : ""}>{label}</span>
-            {i < 2 && <span className="mx-1 h-px w-5 bg-charcoal-100" />}
+            {i < 2 && <span className="mx-0.5 h-px w-3 shrink-0 bg-charcoal-100 sm:mx-1 sm:w-5" />}
           </div>
         ))}
       </div>
