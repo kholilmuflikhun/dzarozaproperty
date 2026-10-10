@@ -136,7 +136,7 @@ export default function TestimoniForm() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Nama Lengkap"
-            className="w-full rounded-lg border border-charcoal-100 bg-white px-4 py-2.5 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20"
+            className="w-full rounded-lg border border-charcoal-100 bg-white px-4 py-2.5 text-sm text-charcoal-950 placeholder:text-charcoal-400 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20"
           />
           <input
             required
@@ -144,7 +144,7 @@ export default function TestimoniForm() {
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             placeholder="No. HP (WhatsApp)"
-            className="w-full rounded-lg border border-charcoal-100 bg-white px-4 py-2.5 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20"
+            className="w-full rounded-lg border border-charcoal-100 bg-white px-4 py-2.5 text-sm text-charcoal-950 placeholder:text-charcoal-400 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20"
           />
         </div>
 
@@ -155,14 +155,14 @@ export default function TestimoniForm() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="Email"
-            className="w-full rounded-lg border border-charcoal-100 bg-white px-4 py-2.5 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20"
+            className="w-full rounded-lg border border-charcoal-100 bg-white px-4 py-2.5 text-sm text-charcoal-950 placeholder:text-charcoal-400 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20"
           />
           <input
             required
             value={address}
             onChange={(e) => setAddress(e.target.value)}
             placeholder="Alamat"
-            className="w-full rounded-lg border border-charcoal-100 bg-white px-4 py-2.5 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20"
+            className="w-full rounded-lg border border-charcoal-100 bg-white px-4 py-2.5 text-sm text-charcoal-950 placeholder:text-charcoal-400 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20"
           />
         </div>
 
@@ -192,7 +192,7 @@ export default function TestimoniForm() {
           onChange={(e) => setMessage(e.target.value)}
           placeholder="Ceritakan pengalaman Anda menggunakan layanan Dzaroza Property..."
           rows={3}
-          className="w-full rounded-lg border border-charcoal-100 bg-white px-4 py-2.5 text-sm resize-none focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20"
+          className="w-full rounded-lg border border-charcoal-100 bg-white px-4 py-2.5 text-sm text-charcoal-950 placeholder:text-charcoal-400 resize-none focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20"
         />
 
         <button

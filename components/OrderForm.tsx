@@ -277,7 +277,7 @@ export default function OrderForm() {
                     maxLength={2000}
                     aria-invalid={Boolean(fieldErrors[f.name])}
                     aria-describedby={fieldErrors[f.name] ? `order-${f.name}-error` : undefined}
-                    className={`w-full rounded-lg border bg-white px-4 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 ${
+                    className={`w-full rounded-lg border bg-white px-4 py-2.5 text-sm text-charcoal-950 placeholder:text-charcoal-400 resize-none focus:outline-none focus:ring-2 ${
                       fieldErrors[f.name]
                         ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
                         : "border-charcoal-100 focus:border-orange-500 focus:ring-orange-500/20"
@@ -290,15 +290,17 @@ export default function OrderForm() {
                     onChange={(e) => updateValue(f.name, e.target.value)}
                     aria-invalid={Boolean(fieldErrors[f.name])}
                     aria-describedby={fieldErrors[f.name] ? `order-${f.name}-error` : undefined}
-                    className={`w-full rounded-lg border bg-white px-4 py-2.5 text-sm focus:outline-none focus:ring-2 ${
+                    className={`w-full rounded-lg border bg-white px-4 py-2.5 text-sm text-charcoal-950 placeholder:text-charcoal-400 focus:outline-none focus:ring-2 ${
                       fieldErrors[f.name]
                         ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
                         : "border-charcoal-100 focus:border-orange-500 focus:ring-orange-500/20"
                     }`}
                   >
-                    <option value="">Pilih {f.label.toLowerCase()}</option>
+                    <option value="" className="bg-white text-charcoal-950">
+                      Pilih {f.label.toLowerCase()}
+                    </option>
                     {f.options?.map((opt) => (
-                      <option key={opt} value={opt}>
+                      <option key={opt} value={opt} className="bg-white text-charcoal-950">
                         {opt}
                       </option>
                     ))}
@@ -312,7 +314,7 @@ export default function OrderForm() {
                     maxLength={500}
                     aria-invalid={Boolean(fieldErrors[f.name])}
                     aria-describedby={fieldErrors[f.name] ? `order-${f.name}-error` : undefined}
-                    className={`w-full rounded-lg border bg-white px-4 py-2.5 text-sm focus:outline-none focus:ring-2 ${
+                    className={`w-full rounded-lg border bg-white px-4 py-2.5 text-sm text-charcoal-950 placeholder:text-charcoal-400 focus:outline-none focus:ring-2 ${
                       fieldErrors[f.name]
                         ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
                         : "border-charcoal-100 focus:border-orange-500 focus:ring-orange-500/20"
@@ -371,7 +373,7 @@ export default function OrderForm() {
                 maxLength={100}
                 aria-invalid={Boolean(fieldErrors.name)}
                 aria-describedby={fieldErrors.name ? "order-contact-name-error" : undefined}
-                className={`w-full rounded-lg border bg-white px-4 py-2.5 text-sm focus:outline-none focus:ring-2 ${
+                className={`w-full rounded-lg border bg-white px-4 py-2.5 text-sm text-charcoal-950 placeholder:text-charcoal-400 focus:outline-none focus:ring-2 ${
                   fieldErrors.name
                     ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
                     : "border-charcoal-100 focus:border-orange-500 focus:ring-orange-500/20"
@@ -402,7 +404,7 @@ export default function OrderForm() {
                 maxLength={20}
                 aria-invalid={Boolean(fieldErrors.phone)}
                 aria-describedby={fieldErrors.phone ? "order-contact-phone-error" : undefined}
-                className={`w-full rounded-lg border bg-white px-4 py-2.5 text-sm focus:outline-none focus:ring-2 ${
+                className={`w-full rounded-lg border bg-white px-4 py-2.5 text-sm text-charcoal-950 placeholder:text-charcoal-400 focus:outline-none focus:ring-2 ${
                   fieldErrors.phone
                     ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
                     : "border-charcoal-100 focus:border-orange-500 focus:ring-orange-500/20"
@@ -433,7 +435,7 @@ export default function OrderForm() {
               maxLength={254}
               aria-invalid={Boolean(fieldErrors.email)}
               aria-describedby={fieldErrors.email ? "order-contact-email-error" : undefined}
-              className={`w-full rounded-lg border bg-white px-4 py-2.5 text-sm focus:outline-none focus:ring-2 ${
+              className={`w-full rounded-lg border bg-white px-4 py-2.5 text-sm text-charcoal-950 placeholder:text-charcoal-400 focus:outline-none focus:ring-2 ${
                 fieldErrors.email
                   ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
                   : "border-charcoal-100 focus:border-orange-500 focus:ring-orange-500/20"
