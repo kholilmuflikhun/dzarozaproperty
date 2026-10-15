@@ -99,6 +99,7 @@ export default function CompanyProfile() {
           <h3 className="text-lg font-bold mb-6">Tim Dzaroza Property</h3>
           <TeamSection />
         </div>
+      </div>
     </section>
   );
 }
