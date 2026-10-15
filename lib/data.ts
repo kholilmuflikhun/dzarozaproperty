@@ -4,9 +4,14 @@ export type TeamMember = {
   id: string;
   name: string;
   role: string;
-  photo: string;
+  photo?: string; // opsional — kalau kosong, kartu menampilkan inisial nama
 };
 
+// Daftar tim Dzaroza Property. Untuk menambah / mengganti anggota cukup
+// tambahkan atau ubah objek di array ini (id harus unik) — tampilan di section
+// Company Profile menyesuaikan otomatis: grid biasa untuk maksimal 4 orang,
+// dan carousel otomatis aktif bila anggota lebih dari 4 (lihat
+// components/TeamSection.tsx). Tidak perlu mengubah komponen apa pun.
 export const team: TeamMember[] = [
   {
     id: "arif",
@@ -19,12 +24,6 @@ export const team: TeamMember[] = [
     name: "Kholil Muflikhun",
     role: "Site Manager",
     photo: "/images/team/kholil.svg",
-  },
-  {
-    id: "kaiska",
-    name: "Kaiska Maymunah",
-    role: "Engineering Manager",
-    photo: "/images/team/kaiska.svg",
   },
   {
     id: "supriyatno",

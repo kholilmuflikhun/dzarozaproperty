@@ -82,7 +82,7 @@ dzaroza-property/
 │   │   │   ├── logo-navbar-1.svg                   # Logo versi gelap (Navbar)
 │   │   │   └── logo-footer-1.svg                   # Logo versi terang (Footer)
 │   │   ├── portfolio/{project}/*.{jpg,png}         # Foto portofolio per project
-│   │   ├── team/{arif,kholil,kaiska,supriyatno}.svg
+│   │   ├── team/{arif,kholil,supriyatno}.svg
 │   │   └── products/{ebook-cover,eclass-thumb,webinar-cover}.svg
 │   ├── llms.txt                                    # Panduan untuk AI/LLM crawler
 │   └── googlee83260135c75e4d1.html                 # Verifikasi Google Search Console
@@ -158,7 +158,7 @@ dzaroza-property/
     ```
 
     Kalau diisi, otomatis muncul pemutar video ("Video Preview") di halaman detail produk, plus badge kecil "Video" di card produk pada grid Produk Digital. Kalau dikosongkan, section video tidak ditampilkan sama sekali — tidak wajib diisi untuk semua produk. **Catatan:** hanya mendukung file video langsung (mp4/webm), bukan link YouTube/Vimeo (beda cara embed-nya — kabari kalau butuh dukungan itu juga).
-14. **Anggota Tim Baru** — daftar tim di `lib/data.ts` (array `team`) sekarang ada 4 orang, termasuk **Supriyatno (Site Analyst)**. Menambah anggota baru cukup tambahkan objek baru ke array ini (id unik, name, role, photo) — otomatis muncul di Footer, Floating WhatsApp Button, dropdown "Konsultasi Layanan Ini", dan grid Company Profile tanpa perlu ubah komponen lain.
+14. **Tim & Carousel Tim** — daftar tim di `lib/data.ts` (array `team`) sekarang ada 3 orang (Arif Nurhidayat, Kholil Muflikhun, Supriyatno). Menambah atau mengganti anggota cukup tambahkan/ubah objek di array ini (`id` unik, `name`, `role`, `photo` opsional — kalau `photo` kosong, kartu menampilkan inisial nama) tanpa mengubah komponen. Tampilan di section Company Profile (`components/TeamSection.tsx`) menyesuaikan otomatis: grid biasa untuk maksimal 4 orang, dan carousel (tombol panah, titik indikator, swipe) aktif otomatis jika anggota lebih dari 4. Catatan: `public/llms.txt` masih ditulis manual, jadi ikut diperbarui saat tim berubah.
 15. **Upstash Redis untuk Order Management** — `lib/redis.ts` menyimpan data order checkout (status, customer, token Midtrans) di Upstash Redis dengan TTL 90 hari. Checkout dan webhook memerlukan `UPSTASH_REDIS_REST_URL` serta `UPSTASH_REDIS_REST_TOKEN`; tanpa konfigurasi tersebut checkout mengembalikan error dan tidak membuat transaksi.
 16. **Rate Limiting** — `lib/rate-limit.ts` membatasi request ke API order, upload, testimoni, dan checkout. Jika Redis tersedia, digunakan sliding window via Upstash; jika tidak, digunakan penyimpanan in-memory yang tidak dibagikan antar-instance.
 17. **SEO: Sitemap, Robots & Structured Data** — `app/sitemap.ts` menghasilkan `/sitemap.xml` dinamis (termasuk URL detail produk). `app/robots.ts` mengizinkan semua crawler kecuali `/admin/`. `components/OrganizationSchema.tsx` menyisipkan JSON-LD schema.org `Organization` di root layout untuk rich results Google. `public/llms.txt` menyediakan panduan ringkas untuk AI/LLM crawler.

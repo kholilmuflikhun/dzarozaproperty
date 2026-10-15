@@ -1,15 +1,9 @@
-"use client";
-
-import { useState } from "react";
-import Image from "next/image";
 import { Target, Eye, HeartHandshake, MapPin } from "lucide-react";
 import SectionHeading from "./SectionHeading";
-import Lightbox from "./Lightbox";
-import { companyProfile, team, type TeamMember } from "@/lib/data";
+import TeamSection from "./TeamSection";
+import { companyProfile } from "@/lib/data";
 
 export default function CompanyProfile() {
-  const [active, setActive] = useState<TeamMember | null>(null);
-
   return (
     <section id="profil" className="section-pad bg-charcoal-950 text-white relative overflow-hidden">
       <div className="absolute inset-0 blueprint-bg opacity-15" />
@@ -103,44 +97,8 @@ export default function CompanyProfile() {
 
         <div className="mt-16">
           <h3 className="text-lg font-bold mb-6">Tim Dzaroza Property</h3>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {team.map((member) => (
-              <div
-                key={member.id}
-                className="rounded-xl2 overflow-hidden border border-white/10 bg-white/5 hover:border-orange-500/50 transition-colors"
-              >
-                <button
-                  onClick={() => setActive(member)}
-                  className="relative block aspect-square w-full"
-                >
-                  <Image
-                    src={member.photo}
-                    alt={member.name}
-                    fill
-                    unoptimized={member.photo.endsWith(".svg")}
-                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                    className="object-cover object-top"
-                  />
-                </button>
-                <div className="p-5">
-                  <p className="text-base font-bold">{member.name}</p>
-                  <p className="mt-1 text-xs text-white/60">{member.role}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+          <TeamSection />
         </div>
-      </div>
-
-      {active && (
-        <Lightbox
-          images={[active.photo]}
-          alt={active.name}
-          title={active.name}
-          subtitle={active.role}
-          onClose={() => setActive(null)}
-        />
-      )}
     </section>
   );
 }
