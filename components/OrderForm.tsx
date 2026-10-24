@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   Hammer,
   Wrench,
@@ -12,10 +12,13 @@ import {
   Loader2,
   CheckCircle2,
   ClipboardList,
+  MapPin,
+  ImagePlus,
+  X,
 } from "lucide-react";
 import WhatsAppIcon from "./WhatsAppIcon";
 import { services, primaryWhatsApp } from "@/lib/data";
-import { orderFormFields } from "@/lib/orderForm";
+import { orderFormFields, orderPhotoFields, ORDER_PHOTO_MAX_BYTES } from "@/lib/orderForm";
 
 import type { LucideIcon } from "lucide-react";
 
@@ -27,6 +30,27 @@ const ICONS: Record<string, LucideIcon> = {
 };
 
 type Status = "idle" | "loading" | "success" | "error";
+type GeoLocation = { lat: number; lng: number; accuracy?: number };
+type PhotoItem = { id: string; preview: string; url?: string; uploading: boolean; error?: string };
+
+// Kompres di browser (maks 1600px, JPEG 0.8) supaya muat batas upload server
+// dan hemat kuota klien yang memotret dengan kamera HP beresolusi tinggi.
+async function compressImage(file: File): Promise<File> {
+  const bitmap = await createImageBitmap(file);
+  const scale = Math.min(1, 1600 / Math.max(bitmap.width, bitmap.height));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(bitmap.width * scale);
+  canvas.height = Math.round(bitmap.height * scale);
+  canvas.getContext("2d")?.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  bitmap.close();
+  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.8));
+  if (!blob) throw new Error("compress");
+  return new File([blob], "foto.jpg", { type: "image/jpeg" });
+}
+
+function mapsLink(loc: GeoLocation) {
+  return `https://www.google.com/maps?q=${loc.lat.toFixed(6)},${loc.lng.toFixed(6)}`;
+}
 
 export default function OrderForm() {
   const [step, setStep] = useState(0); // 0: kategori, 1: detail, 2: kontak & review
@@ -38,14 +62,102 @@ export default function OrderForm() {
   const [status, setStatus] = useState<Status>("idle");
   const [feedback, setFeedback] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [photos, setPhotos] = useState<Record<string, PhotoItem[]>>({});
+  const [location, setLocation] = useState<GeoLocation | null>(null);
+  const [locStatus, setLocStatus] = useState<"idle" | "loading" | "error">("idle");
+  const [locError, setLocError] = useState("");
+  const photoInputs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const selectedService = services.find((s) => s.id === serviceId) ?? null;
   const fieldConfig = serviceId ? orderFormFields[serviceId] ?? [] : [];
+  const photoConfig = serviceId ? orderPhotoFields[serviceId] ?? [] : [];
+  const isUploading = Object.values(photos).some((list) => list.some((p) => p.uploading));
+
+  function shareLocation() {
+    if (!navigator.geolocation) {
+      setLocStatus("error");
+      setLocError("Browser Anda tidak mendukung berbagi lokasi.");
+      return;
+    }
+    setLocStatus("loading");
+    setLocError("");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy });
+        setLocStatus("idle");
+      },
+      (err) => {
+        setLocStatus("error");
+        setLocError(
+          err.code === err.PERMISSION_DENIED
+            ? "Izin lokasi ditolak. Aktifkan izin lokasi di browser, lalu coba lagi."
+            : "Lokasi tidak dapat diambil. Pastikan GPS/lokasi aktif lalu coba lagi."
+        );
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    );
+  }
+
+  function patchPhoto(field: string, id: string, patch: Partial<PhotoItem>) {
+    setPhotos((prev) => ({
+      ...prev,
+      [field]: (prev[field] ?? []).map((p) => (p.id === id ? { ...p, ...patch } : p)),
+    }));
+  }
+
+  async function addPhotos(field: string, max: number, files: FileList | null) {
+    if (!files) return;
+    const room = max - (photos[field]?.length ?? 0);
+    for (const original of Array.from(files).slice(0, Math.max(room, 0))) {
+      const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const preview = URL.createObjectURL(original);
+      setPhotos((prev) => ({
+        ...prev,
+        [field]: [...(prev[field] ?? []), { id, preview, uploading: true }],
+      }));
+      try {
+        const file = await compressImage(original);
+        if (file.size > ORDER_PHOTO_MAX_BYTES) {
+          patchPhoto(field, id, { uploading: false, error: "Foto terlalu besar (maks 3 MB)." });
+          continue;
+        }
+        const body = new FormData();
+        body.append("file", file);
+        const res = await fetch("/api/order/upload", { method: "POST", body });
+        const json = await res.json();
+        if (!res.ok || typeof json.url !== "string") {
+          patchPhoto(field, id, {
+            uploading: false,
+            error: typeof json.message === "string" ? json.message : "Gagal mengunggah.",
+          });
+          continue;
+        }
+        patchPhoto(field, id, { uploading: false, url: json.url });
+      } catch {
+        patchPhoto(field, id, { uploading: false, error: "Foto tidak dapat dibaca. Gunakan JPG/PNG." });
+      }
+    }
+    const input = photoInputs.current[field];
+    if (input) input.value = "";
+  }
+
+  function removePhoto(field: string, id: string) {
+    setPhotos((prev) => ({ ...prev, [field]: (prev[field] ?? []).filter((p) => p.id !== id) }));
+  }
+
+  function uploadedUrls() {
+    return Object.fromEntries(
+      Object.entries(photos)
+        .map(([field, list]) => [field, list.filter((p) => p.url).map((p) => p.url as string)])
+        .filter(([, urls]) => (urls as string[]).length > 0)
+    ) as Record<string, string[]>;
+  }
 
   function selectCategory(id: string) {
     setServiceId(id);
     setValues({});
     setFieldErrors({});
+    setPhotos({});
     setStep(1);
   }
 
@@ -116,6 +228,11 @@ export default function OrderForm() {
     if (Object.keys(errors).length > 0) {
       return;
     }
+    if (isUploading) {
+      setFeedback("Tunggu hingga unggahan foto selesai.");
+      return;
+    }
+    setFeedback("");
     setStep(2);
   }
 
@@ -128,6 +245,11 @@ export default function OrderForm() {
       ...fieldConfig
         .filter((f) => values[f.name]?.trim())
         .map((f) => `${f.label}: ${values[f.name].trim()}`),
+      ...(location ? [`Lokasi Dibagikan: ${mapsLink(location)}`] : []),
+      ...photoConfig.flatMap((f) => {
+        const urls = uploadedUrls()[f.name];
+        return urls?.length ? [`${f.label}:`, ...urls] : [];
+      }),
       ``,
       `Nama: ${name.trim() || "-"}`,
       `No. WhatsApp: ${phone.trim() || "-"}`,
@@ -161,7 +283,15 @@ export default function OrderForm() {
       const res = await fetch("/api/order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ serviceId, name, phone, email, fields: values }),
+        body: JSON.stringify({
+          serviceId,
+          name,
+          phone,
+          email,
+          fields: values,
+          photos: uploadedUrls(),
+          location,
+        }),
       });
       const json = await res.json();
 
@@ -193,6 +323,10 @@ export default function OrderForm() {
     setStatus("idle");
     setFeedback("");
     setFieldErrors({});
+    setPhotos({});
+    setLocation(null);
+    setLocStatus("idle");
+    setLocError("");
   }
 
   return (
@@ -329,6 +463,119 @@ export default function OrderForm() {
             ))}
           </div>
 
+          {/* --- Bagikan lokasi (semua kategori) --- */}
+          <div className="mt-5 rounded-xl border border-charcoal-100 p-4">
+            <p className="text-xs font-semibold text-charcoal-600">
+              Bagikan Lokasi <span className="font-normal text-charcoal-400">(opsional)</span>
+            </p>
+            <p className="mt-1 text-xs text-charcoal-400">
+              Memudahkan tim kami menemukan titik lokasi lahan/bangunan. Gunakan tombol ini saat Anda berada di lokasi.
+            </p>
+            {location ? (
+              <div className="mt-3 flex flex-wrap items-center gap-3 text-xs">
+                <a
+                  href={mapsLink(location)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 font-semibold text-orange-700 hover:underline"
+                >
+                  <MapPin size={14} />
+                  {location.lat.toFixed(5)}, {location.lng.toFixed(5)} — lihat di peta
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setLocation(null)}
+                  className="text-charcoal-400 hover:text-red-600"
+                >
+                  Hapus
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={shareLocation}
+                disabled={locStatus === "loading"}
+                className="mt-3 inline-flex items-center gap-2 rounded-full border border-charcoal-100 px-4 py-2 text-xs font-semibold text-charcoal-800 hover:border-orange-500 hover:text-orange-700 transition-colors disabled:opacity-60"
+              >
+                {locStatus === "loading" ? <Loader2 size={14} className="animate-spin" /> : <MapPin size={14} />}
+                Bagikan Lokasi Saya
+              </button>
+            )}
+            {locStatus === "error" && locError && (
+              <p className="mt-2 text-xs text-red-600" role="alert">{locError}</p>
+            )}
+          </div>
+
+          {/* --- Upload foto sesuai kategori --- */}
+          {photoConfig.length > 0 && (
+            <div className="mt-5 grid gap-5">
+              {photoConfig.map((pf) => {
+                const list = photos[pf.name] ?? [];
+                return (
+                  <div key={pf.name}>
+                    <p className="text-xs font-semibold text-charcoal-600">
+                      {pf.label} <span className="font-normal text-charcoal-400">(opsional, maks {pf.max} foto)</span>
+                    </p>
+                    {pf.hint && <p className="mt-0.5 text-xs text-charcoal-400">{pf.hint}</p>}
+                    <div className="mt-2 flex flex-wrap gap-3">
+                      {list.map((p) => (
+                        <div key={p.id} className="relative h-20 w-20">
+                          <img
+                            src={p.preview}
+                            alt=""
+                            className={`h-20 w-20 rounded-lg border object-cover ${p.error ? "border-red-500" : "border-charcoal-100"}`}
+                          />
+                          {p.uploading && (
+                            <span className="absolute inset-0 flex items-center justify-center rounded-lg bg-white/70">
+                              <Loader2 size={16} className="animate-spin text-orange-700" />
+                            </span>
+                          )}
+                          {p.error && (
+                            <span className="absolute inset-x-0 bottom-0 rounded-b-lg bg-red-600/90 px-1 py-0.5 text-center text-[9px] leading-tight text-white">
+                              {p.error}
+                            </span>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => removePhoto(pf.name, p.id)}
+                            aria-label="Hapus foto"
+                            className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-charcoal-950 text-white"
+                          >
+                            <X size={12} />
+                          </button>
+                        </div>
+                      ))}
+                      {list.length < pf.max && (
+                        <button
+                          type="button"
+                          onClick={() => photoInputs.current[pf.name]?.click()}
+                          className="flex h-20 w-20 flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-charcoal-200 text-[11px] font-semibold text-charcoal-400 hover:border-orange-500 hover:text-orange-700 transition-colors"
+                        >
+                          <ImagePlus size={18} />
+                          Tambah
+                        </button>
+                      )}
+                    </div>
+                    <input
+                      ref={(el) => {
+                        photoInputs.current[pf.name] = el;
+                      }}
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      onChange={(e) => addPhotos(pf.name, pf.max, e.target.files)}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {feedback && status !== "success" && step === 1 && (
+            <p className="mt-3 text-sm text-red-600" role="alert">{feedback}</p>
+          )}
+
           <div className="mt-6 flex items-center gap-3">
             <button
               type="button"
@@ -461,6 +708,18 @@ export default function OrderForm() {
                 .map((f) => (
                   <li key={f.name}>
                     <span className="font-semibold">{f.label}:</span> {values[f.name]}
+                  </li>
+                ))}
+              {location && (
+                <li>
+                  <span className="font-semibold">Lokasi dibagikan:</span> {location.lat.toFixed(5)}, {location.lng.toFixed(5)}
+                </li>
+              )}
+              {photoConfig
+                .filter((f) => (uploadedUrls()[f.name] ?? []).length > 0)
+                .map((f) => (
+                  <li key={f.name}>
+                    <span className="font-semibold">{f.label}:</span> {uploadedUrls()[f.name].length} foto
                   </li>
                 ))}
             </ul>
