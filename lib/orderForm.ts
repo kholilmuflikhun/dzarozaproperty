@@ -188,3 +188,36 @@ export const orderFormFields: Record<string, OrderField[]> = {
     },
   ],
 };
+
+// ---------------------------------------------------------------------------
+// Kolom upload foto per kategori. Semua opsional (calon klien tidak selalu
+// punya fotonya), tapi dipisah per jenis foto supaya tim langsung tahu mana
+// foto lahan, kondisi bangunan, referensi desain, atau dokumen legalitas.
+// ---------------------------------------------------------------------------
+export type OrderPhotoField = {
+  name: string;
+  label: string;
+  hint?: string;
+  max: number; // jumlah foto maksimal untuk kolom ini
+};
+
+export const ORDER_PHOTO_MAX_BYTES = 3 * 1024 * 1024; // 3 MB per foto (setelah dikompres di browser)
+
+export const orderPhotoFields: Record<string, OrderPhotoField[]> = {
+  "bangun-baru": [
+    { name: "fotoLahan", label: "Foto Lahan / Tanah", hint: "Tampak depan, samping, dan kondisi sekitar lahan.", max: 4 },
+    { name: "fotoReferensi", label: "Foto Referensi Desain", hint: "Contoh rumah/gaya yang Anda inginkan.", max: 4 },
+  ],
+  renovasi: [
+    { name: "fotoKondisi", label: "Foto Kondisi Bangunan Saat Ini", hint: "Bagian yang rusak atau ingin direnovasi.", max: 6 },
+    { name: "fotoReferensi", label: "Foto Referensi Hasil yang Diinginkan", hint: "Contoh desain/hasil akhir yang Anda inginkan.", max: 4 },
+  ],
+  "titip-jual": [
+    { name: "fotoProperti", label: "Foto Properti", hint: "Tampak depan, dalam, dan kondisi sekitar.", max: 6 },
+    { name: "fotoLegalitas", label: "Foto Dokumen Legalitas", hint: "SHM/HGB/Letter C. Tutup nomor KTP/NIK sebelum diunggah.", max: 2 },
+  ],
+  "paket-all-in": [
+    { name: "fotoLahan", label: "Foto Lahan / Tanah", hint: "Tampak depan, samping, dan kondisi sekitar lahan.", max: 4 },
+    { name: "fotoReferensi", label: "Foto Referensi Desain", hint: "Contoh rumah/gaya yang Anda inginkan.", max: 4 },
+  ],
+};

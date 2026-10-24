@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSheetsClient } from "@/lib/testimonials.server";
 import { checkRateLimit, cleanupRateLimitEntries, getClientAddress } from "@/lib/rate-limit";
-import { orderFormFields } from "@/lib/orderForm";
+import { orderFormFields, orderPhotoFields } from "@/lib/orderForm";
 import { services } from "@/lib/data";
 
 // ---------------------------------------------------------------------------
@@ -130,6 +130,61 @@ function buildOrderSummary(
   return { data: { summaryLines } };
 }
 
+// Foto hanya boleh berasal dari Vercel Blob kita (hasil /api/order/upload),
+// supaya endpoint publik ini tidak bisa dipakai menyisipkan URL sembarang.
+function isBlobUrl(value: string) {
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" && url.hostname.endsWith(".public.blob.vercel-storage.com");
+  } catch {
+    return false;
+  }
+}
+
+function buildPhotoLines(serviceId: string, photos: unknown): ValidationResult<{ lines: string[] }> {
+  const config = orderPhotoFields[serviceId] ?? [];
+  const lines: string[] = [];
+  if (photos === undefined || photos === null) return { data: { lines } };
+  if (typeof photos !== "object" || Array.isArray(photos)) {
+    return { error: { message: "Data foto tidak valid.", status: 400 } };
+  }
+
+  for (const field of config) {
+    const raw = (photos as Record<string, unknown>)[field.name];
+    if (raw === undefined || raw === null) continue;
+    if (!Array.isArray(raw) || raw.length > field.max) {
+      return { error: { message: `Foto "${field.label}" tidak valid.`, status: 400 } };
+    }
+    const urls = raw.filter((u): u is string => typeof u === "string" && u.length <= 500);
+    if (urls.length !== raw.length || !urls.every(isBlobUrl)) {
+      return { error: { message: `Foto "${field.label}" tidak valid.`, status: 400 } };
+    }
+    if (urls.length) lines.push(`${field.label}: ${urls.join(" , ")}`);
+  }
+  return { data: { lines } };
+}
+
+function buildLocationLine(location: unknown): ValidationResult<{ line?: string }> {
+  if (location === undefined || location === null) return { data: {} };
+  if (typeof location !== "object" || Array.isArray(location)) {
+    return { error: { message: "Data lokasi tidak valid.", status: 400 } };
+  }
+  const { lat, lng, accuracy } = location as Record<string, unknown>;
+  if (
+    typeof lat !== "number" || typeof lng !== "number" ||
+    !Number.isFinite(lat) || !Number.isFinite(lng) ||
+    lat < -90 || lat > 90 || lng < -180 || lng > 180
+  ) {
+    return { error: { message: "Koordinat lokasi tidak valid.", status: 400 } };
+  }
+  const acc = typeof accuracy === "number" && Number.isFinite(accuracy) ? ` (akurasi ±${Math.round(accuracy)} m)` : "";
+  return {
+    data: {
+      line: `Lokasi Dibagikan: https://www.google.com/maps?q=${lat.toFixed(6)},${lng.toFixed(6)}${acc}`,
+    },
+  };
+}
+
 export async function POST(request: NextRequest) {
   try {
     cleanupRateLimitEntries();
@@ -161,7 +216,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, message: "Format data tidak valid." }, { status: 400 });
     }
 
-    const { serviceId, name, phone, email, fields } = bodyRecord;
+    const { serviceId, name, phone, email, fields, photos, location } = bodyRecord;
     const orderContext = getOrderContext(serviceId);
     if (orderContext.error) {
       return NextResponse.json(
@@ -189,6 +244,28 @@ export async function POST(request: NextRequest) {
         { status: orderSummary.error.status }
       );
     }
+
+    const photoLines = buildPhotoLines(orderContext.data.service.id, photos);
+    if (photoLines.error) {
+      return NextResponse.json(
+        { success: false, message: photoLines.error.message },
+        { status: photoLines.error.status }
+      );
+    }
+
+    const locationLine = buildLocationLine(location);
+    if (locationLine.error) {
+      return NextResponse.json(
+        { success: false, message: locationLine.error.message },
+        { status: locationLine.error.status }
+      );
+    }
+
+    const summaryLines = [
+      ...orderSummary.data.summaryLines,
+      ...(locationLine.data.line ? [locationLine.data.line] : []),
+      ...photoLines.data.lines,
+    ];
 
     const client = getSheetsClient();
 
@@ -226,7 +303,7 @@ export async function POST(request: NextRequest) {
             sanitizeCell(contact.data.name),
             sanitizeCell(contact.data.phone),
             typeof contact.data.email === "string" && contact.data.email ? sanitizeCell(contact.data.email) : "",
-            sanitizeCell(orderSummary.data.summaryLines.join("\n")),
+            sanitizeCell(summaryLines.join("\n")),
           ],
         ],
       },
