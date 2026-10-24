@@ -59,6 +59,7 @@ export default function OrderForm() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
+  const [address, setAddress] = useState("");
   const [status, setStatus] = useState<Status>("idle");
   const [feedback, setFeedback] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -183,6 +184,7 @@ export default function OrderForm() {
       delete next.name;
       delete next.phone;
       delete next.email;
+      delete next.address;
       return { ...next, ...errors };
     });
   }
@@ -213,6 +215,10 @@ export default function OrderForm() {
         trimmedEmail.length > 254
           ? "Email maksimal 254 karakter."
           : "Format email tidak valid.";
+    }
+
+    if (address.trim().length > 500) {
+      errors.address = "Alamat maksimal 500 karakter.";
     }
 
     return errors;
@@ -254,6 +260,7 @@ export default function OrderForm() {
       `Nama: ${name.trim() || "-"}`,
       `No. WhatsApp: ${phone.trim() || "-"}`,
       ...(email.trim() ? [`Email: ${email.trim()}`] : []),
+      ...(address.trim() ? [`Alamat Lengkap: ${address.trim()}`] : []),
     ];
     return lines.join("\n");
   }
@@ -288,6 +295,7 @@ export default function OrderForm() {
           name,
           phone,
           email,
+          address,
           fields: values,
           photos: uploadedUrls(),
           location,
@@ -320,6 +328,7 @@ export default function OrderForm() {
     setName("");
     setPhone("");
     setEmail("");
+    setAddress("");
     setStatus("idle");
     setFeedback("");
     setFieldErrors({});
@@ -694,6 +703,37 @@ export default function OrderForm() {
             )}
           </div>
 
+          <div className="mt-4">
+            <label htmlFor="order-contact-address" className="mb-1.5 block text-xs font-semibold text-charcoal-600">
+              Alamat Lengkap <span className="font-normal text-charcoal-400">(opsional)</span>
+            </label>
+            <textarea
+              id="order-contact-address"
+              value={address}
+              onChange={(e) => {
+                setAddress(e.target.value);
+                if (e.target.value.trim().length <= 500) {
+                  clearFieldError("address");
+                }
+              }}
+              placeholder="Jalan, RT/RW, Desa/Kelurahan, Kecamatan, Kabupaten/Kota, Provinsi, Kode Pos"
+              rows={3}
+              maxLength={500}
+              aria-invalid={Boolean(fieldErrors.address)}
+              aria-describedby={fieldErrors.address ? "order-contact-address-error" : undefined}
+              className={`w-full resize-none rounded-lg border bg-white px-4 py-2.5 text-sm text-charcoal-950 placeholder:text-charcoal-400 focus:outline-none focus:ring-2 ${
+                fieldErrors.address
+                  ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
+                  : "border-charcoal-100 focus:border-orange-500 focus:ring-orange-500/20"
+              }`}
+            />
+            {fieldErrors.address && (
+              <p id="order-contact-address-error" className="mt-1.5 text-xs text-red-600" role="alert">
+                {fieldErrors.address}
+              </p>
+            )}
+          </div>
+
           {/* --- Ringkasan sebelum dikirim --- */}
           <div className="mt-5 rounded-xl border border-charcoal-100 bg-cream-soft p-4">
             <p className="text-xs font-semibold uppercase tracking-wider text-charcoal-400">
@@ -710,6 +750,11 @@ export default function OrderForm() {
                     <span className="font-semibold">{f.label}:</span> {values[f.name]}
                   </li>
                 ))}
+              {address.trim() && (
+                <li>
+                  <span className="font-semibold">Alamat:</span> {address.trim()}
+                </li>
+              )}
               {location && (
                 <li>
                   <span className="font-semibold">Lokasi dibagikan:</span> {location.lat.toFixed(5)}, {location.lng.toFixed(5)}
