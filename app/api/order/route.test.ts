@@ -29,8 +29,6 @@ function validPayload(overrides: Record<string, unknown> = {}) {
     email: "",
     fields: {
       lokasi: "Purbalingga",
-      luasTanah: "150",
-      luasBangunan: "100",
       jumlahLantai: "1 Lantai",
       jumlahKamar: "3 KT, 2 KM",
       budget: "Rp 300.000.000",
@@ -63,8 +61,8 @@ describe("POST /api/order", () => {
     const payload = validPayload({
       fields: {
         lokasi: 123,
-        luasTanah: true,
-        luasBangunan: false,
+        targetMulai: true,
+        catatan: false,
         jumlahLantai: "1 Lantai",
         jumlahKamar: 2,
         budget: 300000000,

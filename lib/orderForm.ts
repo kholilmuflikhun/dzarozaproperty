@@ -27,20 +27,6 @@ export const orderFormFields: Record<string, OrderField[]> = {
       required: true,
     },
     {
-      name: "luasTanah",
-      label: "Luas Tanah (m²)",
-      type: "text",
-      placeholder: "Contoh: 150",
-      required: true,
-    },
-    {
-      name: "luasBangunan",
-      label: "Luas Bangunan yang Diinginkan (m²)",
-      type: "text",
-      placeholder: "Contoh: 100",
-      required: true,
-    },
-    {
       name: "jumlahLantai",
       label: "Jumlah Lantai",
       type: "select",
@@ -99,13 +85,6 @@ export const orderFormFields: Record<string, OrderField[]> = {
       required: true,
     },
     {
-      name: "luasRenovasi",
-      label: "Perkiraan Luas Area Renovasi (m²)",
-      type: "text",
-      placeholder: "Contoh: 40",
-      required: true,
-    },
-    {
       name: "kondisiSaatIni",
       label: "Kondisi Bangunan Saat Ini",
       type: "textarea",
@@ -143,20 +122,6 @@ export const orderFormFields: Record<string, OrderField[]> = {
       required: true,
     },
     {
-      name: "luasTanah",
-      label: "Luas Tanah (m²)",
-      type: "text",
-      placeholder: "Contoh: 200",
-      required: true,
-    },
-    {
-      name: "luasBangunan",
-      label: "Luas Bangunan (m²) — jika ada",
-      type: "text",
-      placeholder: "Contoh: 80",
-      required: false,
-    },
-    {
       name: "legalitas",
       label: "Status Legalitas",
       type: "select",
@@ -184,20 +149,6 @@ export const orderFormFields: Record<string, OrderField[]> = {
       label: "Lokasi / Alamat Tanah",
       type: "text",
       placeholder: "Contoh: Jl. Raya Purbalingga No. 10, Kutasari",
-      required: true,
-    },
-    {
-      name: "luasTanah",
-      label: "Luas Tanah (m²)",
-      type: "text",
-      placeholder: "Contoh: 150",
-      required: true,
-    },
-    {
-      name: "luasBangunan",
-      label: "Luas Bangunan yang Diinginkan (m²)",
-      type: "text",
-      placeholder: "Contoh: 100",
       required: true,
     },
     {

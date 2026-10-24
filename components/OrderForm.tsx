@@ -265,7 +265,6 @@ export default function OrderForm() {
               <div key={f.name} className={f.type === "textarea" ? "sm:col-span-2" : ""}>
                 <label htmlFor={`order-${f.name}`} className="mb-1.5 block text-xs font-semibold text-charcoal-600">
                   {f.label}
-                  {f.required && <span className="text-orange-700"> *</span>}
                 </label>
                 {f.type === "textarea" ? (
                   <textarea
