@@ -1,5 +1,6 @@
 import Image from "next/image";
-import { Instagram, Mail, MapPin } from "lucide-react";
+import { Mail, MapPin } from "lucide-react";
+import InstagramIcon from "./InstagramIcon";
 import { instagramAccounts, contactEmail } from "@/lib/data";
 
 export default function Footer() {
@@ -29,7 +30,7 @@ export default function Footer() {
                 className="inline-flex items-center gap-2 w-fit rounded-full bg-white/10 pl-3 pr-4 py-2 text-sm font-medium hover:bg-orange-500 hover:text-charcoal-950 transition-colors"
                 aria-label={`Instagram Dzaroza Property — ${ig.label}`}
               >
-                <Instagram size={16} className="shrink-0" />
+                <InstagramIcon size={16} className="shrink-0" />
                 {ig.label}
               </a>
             ))}
