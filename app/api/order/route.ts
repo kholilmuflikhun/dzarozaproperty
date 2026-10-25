@@ -34,6 +34,7 @@ const MAX_LENGTHS = {
   name: 100,
   email: 254,
   phone: 20,
+  address: 500,
   fieldValue: 500,
   textarea: 2000,
 } as const;
@@ -216,7 +217,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, message: "Format data tidak valid." }, { status: 400 });
     }
 
-    const { serviceId, name, phone, email, fields, photos, location } = bodyRecord;
+    const { serviceId, name, phone, email, address, fields, photos, location } = bodyRecord;
     const orderContext = getOrderContext(serviceId);
     if (orderContext.error) {
       return NextResponse.json(
@@ -261,7 +262,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (address !== undefined && address !== null && typeof address !== "string") {
+      return NextResponse.json({ success: false, message: "Format alamat tidak valid." }, { status: 400 });
+    }
+    const trimmedAddress = typeof address === "string" ? address.trim() : "";
+    if (trimmedAddress.length > MAX_LENGTHS.address) {
+      return NextResponse.json({ success: false, message: "Alamat maksimal 500 karakter." }, { status: 400 });
+    }
+
     const summaryLines = [
+      ...(trimmedAddress ? [`Alamat Lengkap: ${trimmedAddress}`] : []),
       ...orderSummary.data.summaryLines,
       ...(locationLine.data.line ? [locationLine.data.line] : []),
       ...photoLines.data.lines,
