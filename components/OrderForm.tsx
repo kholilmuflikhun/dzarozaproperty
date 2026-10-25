@@ -15,8 +15,10 @@ import {
   MapPin,
   ImagePlus,
   X,
+  Eye,
 } from "lucide-react";
 import WhatsAppIcon from "./WhatsAppIcon";
+import OrderPreview from "./OrderPreview";
 import { services, primaryWhatsApp } from "@/lib/data";
 import { orderFormFields, orderPhotoFields, ORDER_PHOTO_MAX_BYTES } from "@/lib/orderForm";
 
@@ -67,12 +69,43 @@ export default function OrderForm() {
   const [location, setLocation] = useState<GeoLocation | null>(null);
   const [locStatus, setLocStatus] = useState<"idle" | "loading" | "error">("idle");
   const [locError, setLocError] = useState("");
+  const [showPreview, setShowPreview] = useState(false);
   const photoInputs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const selectedService = services.find((s) => s.id === serviceId) ?? null;
   const fieldConfig = serviceId ? orderFormFields[serviceId] ?? [] : [];
   const photoConfig = serviceId ? orderPhotoFields[serviceId] ?? [] : [];
   const isUploading = Object.values(photos).some((list) => list.some((p) => p.uploading));
+
+  function previewData() {
+    return {
+      kategori: selectedService?.kategori ?? "",
+      title: selectedService?.title ?? "",
+      rows: fieldConfig
+        .filter((f) => values[f.name]?.trim())
+        .map((f) => ({ label: f.label, value: values[f.name].trim() })),
+      contact: {
+        name: name.trim(),
+        phone: phone.trim(),
+        email: email.trim() || undefined,
+        address: address.trim() || undefined,
+      },
+      location,
+      photoGroups: photoConfig
+        .map((f) => ({
+          label: f.label,
+          images: (photos[f.name] ?? []).filter((p) => p.url).map((p) => p.preview),
+        }))
+        .filter((g) => g.images.length > 0),
+    };
+  }
+
+  function openPreview() {
+    const errors = validateContactData();
+    setContactErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+    setShowPreview(true);
+  }
 
   function shareLocation() {
     if (!navigator.geolocation) {
@@ -336,6 +369,7 @@ export default function OrderForm() {
     setLocation(null);
     setLocStatus("idle");
     setLocError("");
+    setShowPreview(false);
   }
 
   return (
@@ -789,6 +823,14 @@ export default function OrderForm() {
             </button>
             <button
               type="button"
+              onClick={openPreview}
+              className="inline-flex items-center gap-2 rounded-full border border-charcoal-200 px-5 py-2.5 text-sm font-semibold text-charcoal-800 hover:border-orange-500 hover:text-orange-700 transition-colors"
+            >
+              <Eye size={16} />
+              Pratinjau & Cetak PDF
+            </button>
+            <button
+              type="button"
               onClick={handleWhatsApp}
               className="inline-flex items-center gap-2 rounded-full border border-charcoal-200 px-5 py-2.5 text-sm font-semibold text-charcoal-800 hover:border-[#167F3D] hover:text-[#167F3D] transition-colors"
             >
@@ -800,6 +842,7 @@ export default function OrderForm() {
           {status === "error" && feedback && (
             <p className="mt-3 flex items-center gap-2 text-sm text-red-600">{feedback}</p>
           )}
+          {showPreview && <OrderPreview data={previewData()} onClose={() => setShowPreview(false)} />}
         </form>
       )}
 
