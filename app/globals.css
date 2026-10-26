@@ -101,3 +101,29 @@ h1, h2, h3, h4 { @apply font-display; }
 
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+
+/* --- Cetak / Simpan PDF pratinjau order (components/OrderPreview.tsx) --- */
+@media print {
+  @page { size: A4; margin: 14mm; }
+
+  body > *:not(.order-print-overlay) { display: none !important; }
+
+  .order-print-overlay {
+    position: static !important;
+    width: 100% !important;
+    overflow: visible !important;
+    background: #fff !important;
+    padding: 0 !important;
+  }
+  .order-print-toolbar { display: none !important; }
+  .order-print-area {
+    max-width: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+  }
+  .order-print-photos, .order-print-area header { break-inside: avoid; }
+  .order-print-area img { break-inside: avoid; }
+  .order-print-area { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}

@@ -15,8 +15,10 @@ import {
   MapPin,
   ImagePlus,
   X,
+  Eye,
 } from "lucide-react";
 import WhatsAppIcon from "./WhatsAppIcon";
+import OrderPreview from "./OrderPreview";
 import { services, primaryWhatsApp } from "@/lib/data";
 import { orderFormFields, orderPhotoFields, ORDER_PHOTO_MAX_BYTES } from "@/lib/orderForm";
 
@@ -59,6 +61,7 @@ export default function OrderForm() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
+  const [address, setAddress] = useState("");
   const [status, setStatus] = useState<Status>("idle");
   const [feedback, setFeedback] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -66,12 +69,43 @@ export default function OrderForm() {
   const [location, setLocation] = useState<GeoLocation | null>(null);
   const [locStatus, setLocStatus] = useState<"idle" | "loading" | "error">("idle");
   const [locError, setLocError] = useState("");
+  const [showPreview, setShowPreview] = useState(false);
   const photoInputs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const selectedService = services.find((s) => s.id === serviceId) ?? null;
   const fieldConfig = serviceId ? orderFormFields[serviceId] ?? [] : [];
   const photoConfig = serviceId ? orderPhotoFields[serviceId] ?? [] : [];
   const isUploading = Object.values(photos).some((list) => list.some((p) => p.uploading));
+
+  function previewData() {
+    return {
+      kategori: selectedService?.kategori ?? "",
+      title: selectedService?.title ?? "",
+      rows: fieldConfig
+        .filter((f) => values[f.name]?.trim())
+        .map((f) => ({ label: f.label, value: values[f.name].trim() })),
+      contact: {
+        name: name.trim(),
+        phone: phone.trim(),
+        email: email.trim() || undefined,
+        address: address.trim() || undefined,
+      },
+      location,
+      photoGroups: photoConfig
+        .map((f) => ({
+          label: f.label,
+          images: (photos[f.name] ?? []).filter((p) => p.url).map((p) => p.preview),
+        }))
+        .filter((g) => g.images.length > 0),
+    };
+  }
+
+  function openPreview() {
+    const errors = validateContactData();
+    setContactErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+    setShowPreview(true);
+  }
 
   function shareLocation() {
     if (!navigator.geolocation) {
@@ -183,6 +217,7 @@ export default function OrderForm() {
       delete next.name;
       delete next.phone;
       delete next.email;
+      delete next.address;
       return { ...next, ...errors };
     });
   }
@@ -213,6 +248,10 @@ export default function OrderForm() {
         trimmedEmail.length > 254
           ? "Email maksimal 254 karakter."
           : "Format email tidak valid.";
+    }
+
+    if (address.trim().length > 500) {
+      errors.address = "Alamat maksimal 500 karakter.";
     }
 
     return errors;
@@ -254,6 +293,7 @@ export default function OrderForm() {
       `Nama: ${name.trim() || "-"}`,
       `No. WhatsApp: ${phone.trim() || "-"}`,
       ...(email.trim() ? [`Email: ${email.trim()}`] : []),
+      ...(address.trim() ? [`Alamat Lengkap: ${address.trim()}`] : []),
     ];
     return lines.join("\n");
   }
@@ -288,6 +328,7 @@ export default function OrderForm() {
           name,
           phone,
           email,
+          address,
           fields: values,
           photos: uploadedUrls(),
           location,
@@ -320,6 +361,7 @@ export default function OrderForm() {
     setName("");
     setPhone("");
     setEmail("");
+    setAddress("");
     setStatus("idle");
     setFeedback("");
     setFieldErrors({});
@@ -327,6 +369,7 @@ export default function OrderForm() {
     setLocation(null);
     setLocStatus("idle");
     setLocError("");
+    setShowPreview(false);
   }
 
   return (
@@ -694,6 +737,37 @@ export default function OrderForm() {
             )}
           </div>
 
+          <div className="mt-4">
+            <label htmlFor="order-contact-address" className="mb-1.5 block text-xs font-semibold text-charcoal-600">
+              Alamat Lengkap <span className="font-normal text-charcoal-400">(opsional)</span>
+            </label>
+            <textarea
+              id="order-contact-address"
+              value={address}
+              onChange={(e) => {
+                setAddress(e.target.value);
+                if (e.target.value.trim().length <= 500) {
+                  clearFieldError("address");
+                }
+              }}
+              placeholder="Jalan, RT/RW, Desa/Kelurahan, Kecamatan, Kabupaten/Kota, Provinsi, Kode Pos"
+              rows={3}
+              maxLength={500}
+              aria-invalid={Boolean(fieldErrors.address)}
+              aria-describedby={fieldErrors.address ? "order-contact-address-error" : undefined}
+              className={`w-full resize-none rounded-lg border bg-white px-4 py-2.5 text-sm text-charcoal-950 placeholder:text-charcoal-400 focus:outline-none focus:ring-2 ${
+                fieldErrors.address
+                  ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
+                  : "border-charcoal-100 focus:border-orange-500 focus:ring-orange-500/20"
+              }`}
+            />
+            {fieldErrors.address && (
+              <p id="order-contact-address-error" className="mt-1.5 text-xs text-red-600" role="alert">
+                {fieldErrors.address}
+              </p>
+            )}
+          </div>
+
           {/* --- Ringkasan sebelum dikirim --- */}
           <div className="mt-5 rounded-xl border border-charcoal-100 bg-cream-soft p-4">
             <p className="text-xs font-semibold uppercase tracking-wider text-charcoal-400">
@@ -710,6 +784,11 @@ export default function OrderForm() {
                     <span className="font-semibold">{f.label}:</span> {values[f.name]}
                   </li>
                 ))}
+              {address.trim() && (
+                <li>
+                  <span className="font-semibold">Alamat:</span> {address.trim()}
+                </li>
+              )}
               {location && (
                 <li>
                   <span className="font-semibold">Lokasi dibagikan:</span> {location.lat.toFixed(5)}, {location.lng.toFixed(5)}
@@ -744,6 +823,14 @@ export default function OrderForm() {
             </button>
             <button
               type="button"
+              onClick={openPreview}
+              className="inline-flex items-center gap-2 rounded-full border border-charcoal-200 px-5 py-2.5 text-sm font-semibold text-charcoal-800 hover:border-orange-500 hover:text-orange-700 transition-colors"
+            >
+              <Eye size={16} />
+              Pratinjau & Cetak PDF
+            </button>
+            <button
+              type="button"
               onClick={handleWhatsApp}
               className="inline-flex items-center gap-2 rounded-full border border-charcoal-200 px-5 py-2.5 text-sm font-semibold text-charcoal-800 hover:border-[#167F3D] hover:text-[#167F3D] transition-colors"
             >
@@ -755,6 +842,7 @@ export default function OrderForm() {
           {status === "error" && feedback && (
             <p className="mt-3 flex items-center gap-2 text-sm text-red-600">{feedback}</p>
           )}
+          {showPreview && <OrderPreview data={previewData()} onClose={() => setShowPreview(false)} />}
         </form>
       )}
 
