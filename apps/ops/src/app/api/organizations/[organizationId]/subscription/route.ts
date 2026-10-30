@@ -22,17 +22,28 @@ export async function POST(request: NextRequest, context: { params: Promise<{ or
     const snap = getSnapClient();
     if (!snap) return NextResponse.json({ error: "Payment gateway belum dikonfigurasi." }, { status: 503 });
     if (Number(request.headers.get("content-length") ?? 0) > 8_192) return NextResponse.json({ error: "Payload terlalu besar." }, { status: 413 });
-    const parsed = schema.safeParse(await request.json());
+    const parsed = schema.safeParse(await request.json().catch(() => null));
     if (!parsed.success) return NextResponse.json({ error: "Paket atau siklus pembayaran tidak valid." }, { status: 400 });
 
+    const now = new Date();
     const [organization, plan, existing] = await Promise.all([
       prisma.organization.findUnique({ where: { id: organizationId }, select: { name: true } }),
       prisma.plan.findUnique({ where: { code: parsed.data.planCode } }),
-      prisma.subscription.findFirst({ where: { organizationId, status: { in: ["ACTIVE", "TRIALING", "PAST_DUE"] } } }),
+      prisma.subscription.findFirst({
+        where: {
+          organizationId,
+          OR: [
+            { status: "INCOMPLETE" },
+            { status: "PAST_DUE" },
+            { status: "ACTIVE", currentPeriodEnd: { gt: now } },
+            { status: "TRIALING", currentPeriodEnd: { gt: now } },
+          ],
+        },
+      }),
     ]);
     if (!organization) return NextResponse.json({ error: "Organisasi tidak ditemukan." }, { status: 404 });
     if (!plan || !plan.isActive) return NextResponse.json({ error: "Paket tidak tersedia." }, { status: 404 });
-    if (existing) return NextResponse.json({ error: "Organisasi masih memiliki langganan aktif atau perlu diselesaikan." }, { status: 409 });
+    if (existing) return NextResponse.json({ error: "Organisasi masih memiliki langganan aktif atau checkout yang belum selesai." }, { status: 409 });
 
     const price = parsed.data.billingCycle === "MONTHLY" ? plan.monthlyPrice : plan.yearlyPrice;
     if (!price.greaterThan(0) || !price.isInteger()) return NextResponse.json({ error: "Harga paket harus berupa nominal IDR bulat dan lebih besar dari nol." }, { status: 422 });

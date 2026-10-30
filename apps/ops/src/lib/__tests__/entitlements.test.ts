@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computeEntitlements } from "../licensing";
+import { computeEntitlements, isLicenseEntitled } from "../licensing";
 
 const plan = { code: "PRO", featureFlags: { crm: true, advancedReports: false }, maxUsers: 10, maxProjects: 50, maxStorageMb: 2048 };
 describe("subscription entitlements", () => {
@@ -21,5 +21,9 @@ describe("subscription entitlements", () => {
   it("does not grant access to incomplete subscriptions", () => {
     const result = computeEntitlements({ status: "INCOMPLETE", currentPeriodEnd: new Date("2026-11-30T00:00:00.000Z"), plan }, now);
     expect(result.active).toBe(false);
+  });
+  it("validates active license against its paid subscription and expiry", () => {
+    expect(isLicenseEntitled({ status: "ACTIVE", expiresAt: new Date("2026-11-30T00:00:00Z"), subscriptionStatus: "ACTIVE", periodEnd: new Date("2026-11-30T00:00:00Z") }, now)).toBe(true);
+    expect(isLicenseEntitled({ status: "REVOKED", expiresAt: null, subscriptionStatus: "ACTIVE", periodEnd: new Date("2026-11-30T00:00:00Z") }, now)).toBe(false);
   });
 });

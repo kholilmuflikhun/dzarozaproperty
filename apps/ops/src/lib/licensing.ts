@@ -4,23 +4,15 @@ export { createLicenseSecret, hashLicenseSecret, verifyLicenseSecret } from "@/l
 type EntitlementSource = {
   status: string;
   currentPeriodEnd: Date | null;
-  plan: {
-    code: string;
-    featureFlags: unknown;
-    maxUsers: number | null;
-    maxProjects: number | null;
-    maxStorageMb: number | null;
-  };
+  plan: { code: string; featureFlags: unknown; maxUsers: number | null; maxProjects: number | null; maxStorageMb: number | null };
 } | null;
 
 export function computeEntitlements(subscription: EntitlementSource, now = new Date()) {
   const inPeriod = Boolean(subscription?.currentPeriodEnd && subscription.currentPeriodEnd > now);
   const active = Boolean(subscription && ["ACTIVE", "TRIALING"].includes(subscription.status) && inPeriod);
   const rawFeatures = subscription?.plan.featureFlags;
-  const features: Record<string, boolean> =
-    active && rawFeatures && typeof rawFeatures === "object" && !Array.isArray(rawFeatures)
-      ? rawFeatures as Record<string, boolean>
-      : {};
+  const features: Record<string, boolean> = active && rawFeatures && typeof rawFeatures === "object" && !Array.isArray(rawFeatures)
+    ? rawFeatures as Record<string, boolean> : {};
   return {
     active,
     planCode: active ? subscription?.plan.code ?? null : null,
@@ -34,12 +26,11 @@ export function computeEntitlements(subscription: EntitlementSource, now = new D
     },
   };
 }
+export function isLicenseEntitled(input: { status: string; expiresAt: Date | null; subscriptionStatus: string; periodEnd: Date | null }, now = new Date()) {
+  return input.status === "ACTIVE" && input.subscriptionStatus === "ACTIVE" && Boolean(input.periodEnd && input.periodEnd > now) && (!input.expiresAt || input.expiresAt > now);
+}
 export async function getEntitlements(organizationId: string) {
-  const subscription = await prisma.subscription.findFirst({
-    where: { organizationId },
-    include: { plan: true },
-    orderBy: { createdAt: "desc" },
-  });
+  const subscription = await prisma.subscription.findFirst({ where: { organizationId }, include: { plan: true }, orderBy: { createdAt: "desc" } });
   return computeEntitlements(subscription);
 }
 export async function hasFeature(organizationId: string, feature: string) {

@@ -20,30 +20,56 @@ const planSchema = z.object({
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.isPlatformAdmin) return NextResponse.json({ error: "Akses platform admin diperlukan." }, { status: 403 });
+  if (!session?.user?.isPlatformAdmin || !session.user.id) {
+    return NextResponse.json({ error: "Akses platform admin diperlukan." }, { status: 403 });
+  }
   const parsed = planSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Konfigurasi paket tidak valid.", issues: parsed.error.flatten() }, { status: 400 });
   const input = parsed.data;
-  const plan = await prisma.plan.upsert({
-    where: { code: input.code },
-    create: {
-      ...input,
-      monthlyPrice: new Prisma.Decimal(input.monthlyPrice),
-      yearlyPrice: new Prisma.Decimal(input.yearlyPrice),
-      featureFlags: input.featureFlags,
-    },
-    update: {
-      name: input.name,
-      description: input.description,
-      monthlyPrice: new Prisma.Decimal(input.monthlyPrice),
-      yearlyPrice: new Prisma.Decimal(input.yearlyPrice),
-      currency: input.currency,
-      maxUsers: input.maxUsers,
-      maxProjects: input.maxProjects,
-      maxStorageMb: input.maxStorageMb,
-      maxActivations: input.maxActivations,
-      featureFlags: input.featureFlags,
-    },
+  const existing = await prisma.plan.findUnique({ where: { code: input.code } });
+  const plan = await prisma.$transaction(async (tx) => {
+    const saved = await tx.plan.upsert({
+      where: { code: input.code },
+      create: {
+        ...input,
+        monthlyPrice: new Prisma.Decimal(input.monthlyPrice),
+        yearlyPrice: new Prisma.Decimal(input.yearlyPrice),
+        featureFlags: input.featureFlags,
+      },
+      update: {
+        name: input.name,
+        description: input.description,
+        monthlyPrice: new Prisma.Decimal(input.monthlyPrice),
+        yearlyPrice: new Prisma.Decimal(input.yearlyPrice),
+        currency: input.currency,
+        maxUsers: input.maxUsers,
+        maxProjects: input.maxProjects,
+        maxStorageMb: input.maxStorageMb,
+        maxActivations: input.maxActivations,
+        featureFlags: input.featureFlags,
+      },
+    });
+    await tx.platformAuditLog.create({
+      data: {
+        actorId: session.user.id,
+        action: existing ? "plan.updated" : "plan.created",
+        entityType: "Plan",
+        entityId: saved.id,
+        beforeState: existing ? {
+          name: existing.name,
+          monthlyPrice: existing.monthlyPrice.toString(),
+          yearlyPrice: existing.yearlyPrice.toString(),
+          featureFlags: existing.featureFlags,
+        } : undefined,
+        afterState: {
+          name: saved.name,
+          monthlyPrice: saved.monthlyPrice.toString(),
+          yearlyPrice: saved.yearlyPrice.toString(),
+          featureFlags: saved.featureFlags,
+        },
+      },
+    });
+    return saved;
   });
   return NextResponse.json({ plan });
 }
