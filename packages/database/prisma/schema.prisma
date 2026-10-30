@@ -6,11 +6,50 @@ datasource db {
   url = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
-enum MembershipRole { OWNER ADMIN PROJECT_MANAGER FINANCE SALES STAFF CLIENT }
-enum SubscriptionStatus { INCOMPLETE TRIALING ACTIVE PAST_DUE PAUSED CANCELED EXPIRED }
-enum BillingCycle { MONTHLY YEARLY }
-enum LicenseStatus { ACTIVE SUSPENDED REVOKED EXPIRED }
-enum ProjectStatus { DRAFT QUOTATION WAITING_APPROVAL SCHEDULED IN_PROGRESS ON_HOLD HANDOVER COMPLETED CANCELED ARCHIVED }
+enum MembershipRole {
+  OWNER
+  ADMIN
+  PROJECT_MANAGER
+  FINANCE
+  SALES
+  STAFF
+  CLIENT
+}
+
+enum SubscriptionStatus {
+  INCOMPLETE
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  PAUSED
+  CANCELED
+  EXPIRED
+}
+
+enum BillingCycle {
+  MONTHLY
+  YEARLY
+}
+
+enum LicenseStatus {
+  ACTIVE
+  SUSPENDED
+  REVOKED
+  EXPIRED
+}
+
+enum ProjectStatus {
+  DRAFT
+  QUOTATION
+  WAITING_APPROVAL
+  SCHEDULED
+  IN_PROGRESS
+  ON_HOLD
+  HANDOVER
+  COMPLETED
+  CANCELED
+  ARCHIVED
+}
 
 model User {
   id String @id @default(cuid())
