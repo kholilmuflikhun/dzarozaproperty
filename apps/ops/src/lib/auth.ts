@@ -1,10 +1,8 @@
 import type { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import { prisma } from "@dzaroza/database";
+import { isPlatformAdminEmail } from "@/lib/platform-admin";
 
-function platformAdminEmails() {
-  return (process.env.PLATFORM_ADMIN_EMAILS ?? "").split(",").map((email) => email.trim().toLowerCase()).filter(Boolean);
-}
 export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
   session: { strategy: "jwt", maxAge: 60 * 60 * 8 },
@@ -19,7 +17,7 @@ export const authOptions: NextAuthOptions = {
       const googleProfile = profile as { email_verified?: boolean } | undefined;
       if (googleProfile?.email_verified !== true) return false;
       const email = user.email.toLowerCase();
-      const isPlatformAdmin = platformAdminEmails().includes(email);
+      const isPlatformAdmin = isPlatformAdminEmail(email);
       await prisma.user.upsert({
         where: { email },
         update: { name: user.name ?? undefined, isPlatformAdmin },
@@ -31,11 +29,14 @@ export const authOptions: NextAuthOptions = {
       if (typeof token.email === "string") {
         const dbUser = await prisma.user.findUnique({
           where: { email: token.email.toLowerCase() },
-          select: { id: true, isPlatformAdmin: true },
+          select: { id: true },
         });
         if (dbUser) {
           token.sub = dbUser.id;
-          token.isPlatformAdmin = dbUser.isPlatformAdmin;
+          // Re-evaluate the allowlist whenever NextAuth refreshes the JWT/session.
+          // Removing an address from PLATFORM_ADMIN_EMAILS therefore revokes the
+          // privilege without waiting for the user to sign out and back in.
+          token.isPlatformAdmin = isPlatformAdminEmail(token.email);
         } else {
           token.sub = undefined;
           token.isPlatformAdmin = false;
