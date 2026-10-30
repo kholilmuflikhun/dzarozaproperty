@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma, prisma } from "@dzaroza/database";
 import { z } from "zod";
-import { verifyMidtransSignature, isSuccessfulMidtransPayment } from "@/lib/midtrans";
+import { verifyMidtransSignature, isSuccessfulMidtransPayment, canApplyPaymentStatus } from "@/lib/midtrans";
 
 const payloadSchema = z.object({
   order_id: z.string().min(1).max(100),
@@ -46,20 +46,32 @@ export async function POST(request: NextRequest) {
       await tx.billingEvent.create({
         data: { subscriptionId: subscription.id, provider: "MIDTRANS", providerEventId: eventId, eventType: payload.transaction_status, payload: payload as Prisma.InputJsonValue, processedAt: now },
       });
-      await tx.paymentTransaction.upsert({
-        where: { providerRef: payload.transaction_id },
-        create: {
-          organizationId: subscription.organizationId,
-          subscriptionId: subscription.id,
-          provider: "MIDTRANS",
-          providerRef: payload.transaction_id,
-          amount: new Prisma.Decimal(payload.gross_amount),
-          currency: "IDR",
-          status: payload.transaction_status.toUpperCase(),
-          paidAt: successful ? now : null,
-        },
-        update: { status: payload.transaction_status.toUpperCase(), paidAt: successful ? now : undefined },
-      });
+      const existingPayment = await tx.paymentTransaction.findUnique({ where: { providerRef: payload.transaction_id } });
+      if (existingPayment && (existingPayment.subscriptionId !== subscription.id || existingPayment.organizationId !== subscription.organizationId)) {
+        throw new Error("PAYMENT_REFERENCE_CONFLICT");
+      }
+      if (!existingPayment) {
+        await tx.paymentTransaction.create({
+          data: {
+            organizationId: subscription.organizationId,
+            subscriptionId: subscription.id,
+            provider: "MIDTRANS",
+            providerRef: payload.transaction_id,
+            amount: new Prisma.Decimal(payload.gross_amount),
+            currency: "IDR",
+            status: payload.transaction_status.toUpperCase(),
+            paidAt: successful ? now : null,
+          },
+        });
+      } else if (canApplyPaymentStatus(existingPayment.status, payload.transaction_status, payload.fraud_status)) {
+        await tx.paymentTransaction.update({
+          where: { id: existingPayment.id },
+          data: {
+            status: payload.transaction_status.toUpperCase(),
+            paidAt: successful ? existingPayment.paidAt ?? now : existingPayment.paidAt,
+          },
+        });
+      }
       if (successful) {
         const periodEnd = addPeriod(now, subscription.billingCycle);
         const changed = await tx.subscription.updateMany({
@@ -82,6 +94,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") return NextResponse.json({ received: true, duplicate: true });
     if (error instanceof Error && error.message === "SUBSCRIPTION_STATE_CONFLICT") return NextResponse.json({ error: "Status langganan berubah sebelum pembayaran diproses." }, { status: 409 });
+    if (error instanceof Error && error.message === "PAYMENT_REFERENCE_CONFLICT") return NextResponse.json({ error: "Referensi pembayaran sudah digunakan pada order lain." }, { status: 409 });
     return NextResponse.json({ error: "Webhook belum dapat diproses." }, { status: 500 });
   }
   return NextResponse.json({ received: true });

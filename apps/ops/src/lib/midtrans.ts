@@ -26,3 +26,14 @@ export function isSuccessfulMidtransPayment(payload: MidtransNotification) {
   return payload.transaction_status === "settlement" ||
     (payload.transaction_status === "capture" && payload.fraud_status === "accept");
 }
+
+export function canApplyPaymentStatus(currentStatus: string, incomingStatus: string, incomingFraudStatus?: string) {
+  const current = currentStatus.toLowerCase();
+  const incoming = incomingStatus.toLowerCase();
+  const currentSuccessful = current === "settlement" || current === "capture";
+  const incomingSuccessful = incoming === "settlement" || (incoming === "capture" && incomingFraudStatus === "accept");
+  if (currentSuccessful && !incomingSuccessful) return false;
+  if (["expire", "deny", "cancel"].includes(current) && incoming === "pending") return false;
+  if (current === "settlement" && incoming === "capture") return false;
+  return true;
+}

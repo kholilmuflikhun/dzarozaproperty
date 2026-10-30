@@ -22,7 +22,7 @@ export const authOptions: NextAuthOptions = {
       const isPlatformAdmin = platformAdminEmails().includes(email);
       await prisma.user.upsert({
         where: { email },
-        update: { name: user.name ?? undefined, ...(isPlatformAdmin ? { isPlatformAdmin: true } : {}) },
+        update: { name: user.name ?? undefined, isPlatformAdmin },
         create: { email, name: user.name ?? null, isPlatformAdmin },
       });
       return true;
@@ -36,6 +36,9 @@ export const authOptions: NextAuthOptions = {
         if (dbUser) {
           token.sub = dbUser.id;
           token.isPlatformAdmin = dbUser.isPlatformAdmin;
+        } else {
+          token.sub = undefined;
+          token.isPlatformAdmin = false;
         }
       }
       return token;
