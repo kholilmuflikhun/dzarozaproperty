@@ -14,7 +14,7 @@ export async function requireUserId(): Promise<string> {
 export async function requireTenantContext(organizationId: string) {
   const userId = await requireUserId();
   const membership = await findTenantMembership(userId, organizationId);
-  if (!membershipMatchesTenant(membership, organizationId, userId)) throw new ForbiddenError();
+  if (!membership || !membershipMatchesTenant(membership, organizationId, userId)) throw new ForbiddenError();
   return membership;
 }
 export async function requireTenantRole(organizationId: string, allowedRoles: MembershipRole[]) {
