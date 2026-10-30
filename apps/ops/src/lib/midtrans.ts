@@ -27,6 +27,11 @@ export function isSuccessfulMidtransPayment(payload: MidtransNotification) {
     (payload.transaction_status === "capture" && payload.fraud_status === "accept");
 }
 
+export function storedMidtransPaymentStatus(payload: MidtransNotification) {
+  if (payload.transaction_status === "capture" && payload.fraud_status === "challenge") return "CAPTURE_CHALLENGE";
+  return payload.transaction_status.toUpperCase();
+}
+
 export function canApplyPaymentStatus(currentStatus: string, incomingStatus: string, incomingFraudStatus?: string) {
   const current = currentStatus.toLowerCase();
   const incoming = incomingStatus.toLowerCase();

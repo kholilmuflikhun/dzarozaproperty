@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma, prisma } from "@dzaroza/database";
 import { z } from "zod";
-import { verifyMidtransSignature, isSuccessfulMidtransPayment, canApplyPaymentStatus } from "@/lib/midtrans";
+import { verifyMidtransSignature, isSuccessfulMidtransPayment, canApplyPaymentStatus, storedMidtransPaymentStatus } from "@/lib/midtrans";
 
 const payloadSchema = z.object({
   order_id: z.string().min(1).max(100),
@@ -37,10 +37,13 @@ export async function POST(request: NextRequest) {
   const expectedAmount = subscription.billingCycle === "MONTHLY" ? subscription.plan.monthlyPrice : subscription.plan.yearlyPrice;
   if (!new Prisma.Decimal(payload.gross_amount).equals(expectedAmount)) return NextResponse.json({ error: "Nominal pembayaran tidak cocok." }, { status: 400 });
 
-  const eventId = `${payload.order_id}:${payload.transaction_id}:${payload.transaction_status}`;
+  // fraud_status is part of the event identity: Midtrans may re-notify the same
+  // capture transaction when a challenge is later accepted.
+  const eventId = `${payload.order_id}:${payload.transaction_id}:${payload.transaction_status}:${payload.fraud_status ?? "none"}`;
   const now = new Date();
   const successful = isSuccessfulMidtransPayment(payload);
   const terminalFailure = ["expire", "deny", "cancel"].includes(payload.transaction_status);
+  const paymentStatus = storedMidtransPaymentStatus(payload);
   try {
     await prisma.$transaction(async (tx) => {
       await tx.billingEvent.create({
@@ -59,7 +62,7 @@ export async function POST(request: NextRequest) {
             providerRef: payload.transaction_id,
             amount: new Prisma.Decimal(payload.gross_amount),
             currency: "IDR",
-            status: payload.transaction_status.toUpperCase(),
+            status: paymentStatus,
             paidAt: successful ? now : null,
           },
         });
@@ -67,7 +70,7 @@ export async function POST(request: NextRequest) {
         await tx.paymentTransaction.update({
           where: { id: existingPayment.id },
           data: {
-            status: payload.transaction_status.toUpperCase(),
+            status: paymentStatus,
             paidAt: successful ? existingPayment.paidAt ?? now : existingPayment.paidAt,
           },
         });

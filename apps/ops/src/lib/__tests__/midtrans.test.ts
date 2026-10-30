@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { canApplyPaymentStatus, isSuccessfulMidtransPayment, verifyMidtransSignature } from "../midtrans";
+import { canApplyPaymentStatus, isSuccessfulMidtransPayment, storedMidtransPaymentStatus, verifyMidtransSignature } from "../midtrans";
 
 describe("Midtrans webhook verification", () => {
   const serverKey = "test-server-secret";
@@ -17,6 +17,15 @@ describe("Midtrans webhook verification", () => {
     expect(isSuccessfulMidtransPayment({ ...base, transaction_status: "capture", fraud_status: "accept", signature_key })).toBe(true);
     expect(isSuccessfulMidtransPayment({ ...base, transaction_status: "capture", fraud_status: "challenge", signature_key })).toBe(false);
     expect(isSuccessfulMidtransPayment({ ...base, transaction_status: "pending", signature_key })).toBe(false);
+  });
+  it("keeps challenged capture distinct and allows a later accepted capture", () => {
+    const challenge = { ...base, transaction_status: "capture", fraud_status: "challenge" };
+    const accepted = { ...base, transaction_status: "capture", fraud_status: "accept" };
+    expect(storedMidtransPaymentStatus(challenge)).toBe("CAPTURE_CHALLENGE");
+    expect(storedMidtransPaymentStatus(accepted)).toBe("CAPTURE");
+    expect(canApplyPaymentStatus("CAPTURE_CHALLENGE", "capture", "accept")).toBe(true);
+    expect(isSuccessfulMidtransPayment(challenge)).toBe(false);
+    expect(isSuccessfulMidtransPayment(accepted)).toBe(true);
   });
   it("does not let delayed pending or failed notifications downgrade a successful payment", () => {
     expect(canApplyPaymentStatus("settlement", "pending")).toBe(false);
