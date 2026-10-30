@@ -69,6 +69,8 @@ jobs:
         run: pnpm db:generate
       - name: Apply database migrations
         run: pnpm db:deploy
+      - name: Verify tenant-scoped database constraints
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f packages/database/prisma/tests/tenant-integrity.sql
       - name: TypeScript checks
         run: pnpm typecheck
       - name: Unit tests
