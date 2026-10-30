@@ -8,7 +8,7 @@ on:
     branches: [main]
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   validate:
@@ -56,6 +56,13 @@ jobs:
             mkdir -p packages/database/prisma/migrations/20261031000000_init
             pnpm --filter @dzaroza/database exec prisma migrate diff --from-empty --to-schema-datamodel prisma/schema.prisma --script > packages/database/prisma/migrations/20261031000000_init/migration.sql
           fi
+      - name: Commit generated pnpm lockfile and Prisma migration
+        if: github.event_name == 'push' && github.ref_name == 'feat/monorepo-saas-foundation'
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: commit generated pnpm lockfile and initial migration"
+          branch: feat/monorepo-saas-foundation
+          file_pattern: pnpm-lock.yaml packages/database/prisma/migrations/**
       - name: Validate Prisma schema
         run: pnpm --filter @dzaroza/database exec prisma validate --schema prisma/schema.prisma
       - name: Generate Prisma client
