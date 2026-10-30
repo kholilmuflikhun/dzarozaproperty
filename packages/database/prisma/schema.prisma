@@ -116,6 +116,7 @@ model Plan {
   subscriptions Subscription[]
 }
 model Subscription {
+  @@unique([organizationId,id])
   id String @id @default(cuid())
   organizationId String
   planId String
@@ -152,7 +153,7 @@ model License {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   organization Organization @relation(fields:[organizationId],references:[id])
-  subscription Subscription? @relation(fields:[subscriptionId],references:[id])
+  subscription Subscription? @relation(fields:[organizationId,subscriptionId],references:[organizationId,id],onDelete:NoAction)
   activations LicenseActivation[]
   @@index([organizationId,status])
 }
@@ -201,6 +202,7 @@ model AuditLog {
   @@index([entityType,entityId])
 }
 model Client {
+  @@unique([organizationId,id])
   id String @id @default(cuid())
   organizationId String
   name String
@@ -230,11 +232,12 @@ model Lead {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   organization Organization @relation(fields:[organizationId],references:[id],onDelete:Cascade)
-  client Client? @relation(fields:[clientId],references:[id])
+  client Client? @relation(fields:[organizationId,clientId],references:[organizationId,id],onDelete:NoAction)
   @@index([organizationId,stage])
   @@index([organizationId,followUpAt])
 }
 model Project {
+  @@unique([organizationId,id])
   id String @id @default(cuid())
   organizationId String
   clientId String
@@ -248,7 +251,7 @@ model Project {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   organization Organization @relation(fields:[organizationId],references:[id],onDelete:Cascade)
-  client Client @relation(fields:[clientId],references:[id])
+  client Client @relation(fields:[organizationId,clientId],references:[organizationId,id],onDelete:NoAction)
   quotations Quotation[]
   invoices Invoice[]
   expenses Expense[]
@@ -269,12 +272,13 @@ model Quotation {
   issuedAt DateTime?
   createdAt DateTime @default(now())
   organization Organization @relation(fields:[organizationId],references:[id],onDelete:Cascade)
-  client Client @relation(fields:[clientId],references:[id])
-  project Project? @relation(fields:[projectId],references:[id])
+  client Client @relation(fields:[organizationId,clientId],references:[organizationId,id],onDelete:NoAction)
+  project Project? @relation(fields:[organizationId,projectId],references:[organizationId,id],onDelete:NoAction)
   @@unique([organizationId,number])
   @@index([organizationId,status])
 }
 model Invoice {
+  @@unique([organizationId,id])
   id String @id @default(cuid())
   organizationId String
   projectId String?
@@ -286,7 +290,7 @@ model Invoice {
   issuedAt DateTime?
   createdAt DateTime @default(now())
   organization Organization @relation(fields:[organizationId],references:[id],onDelete:Cascade)
-  project Project? @relation(fields:[projectId],references:[id])
+  project Project? @relation(fields:[organizationId,projectId],references:[organizationId,id],onDelete:NoAction)
   payments PaymentTransaction[]
   @@unique([organizationId,number])
   @@index([organizationId,status,dueAt])
@@ -304,8 +308,8 @@ model PaymentTransaction {
   paidAt DateTime?
   createdAt DateTime @default(now())
   organization Organization @relation(fields:[organizationId],references:[id],onDelete:Cascade)
-  invoice Invoice? @relation(fields:[invoiceId],references:[id])
-  subscription Subscription? @relation(fields:[subscriptionId],references:[id])
+  invoice Invoice? @relation(fields:[organizationId,invoiceId],references:[organizationId,id],onDelete:NoAction)
+  subscription Subscription? @relation(fields:[organizationId,subscriptionId],references:[organizationId,id],onDelete:NoAction)
   @@index([organizationId,status])
 }
 model Expense {
@@ -318,7 +322,7 @@ model Expense {
   incurredAt DateTime
   createdAt DateTime @default(now())
   organization Organization @relation(fields:[organizationId],references:[id],onDelete:Cascade)
-  project Project? @relation(fields:[projectId],references:[id])
+  project Project? @relation(fields:[organizationId,projectId],references:[organizationId,id],onDelete:NoAction)
   @@index([organizationId,incurredAt])
 }
 
