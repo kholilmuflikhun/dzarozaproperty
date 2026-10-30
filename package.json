@@ -15,8 +15,7 @@
     "db:generate": "pnpm --filter @dzaroza/database db:generate",
     "db:migrate": "pnpm --filter @dzaroza/database db:migrate",
     "db:deploy": "pnpm --filter @dzaroza/database db:deploy",
-    "db:studio": "pnpm --filter @dzaroza/database db:studio",
-    "postinstall": "pnpm db:generate"
+    "db:studio": "pnpm --filter @dzaroza/database db:studio"
   },
   "devDependencies": {
     "turbo": "^2.5.8",
