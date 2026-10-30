@@ -1,6 +1,7 @@
 name: Monorepo quality gates
 
 on:
+  workflow_dispatch:
   push:
     branches: [main, feat/monorepo-saas-foundation]
   pull_request:
@@ -67,6 +68,29 @@ jobs:
         run: pnpm test
       - name: Production builds
         run: pnpm build
+      - name: Smoke test migrated public website
+        run: |
+          NEXTAUTH_URL=http://localhost:3000 pnpm --filter @dzaroza/marketing start > /tmp/marketing.log 2>&1 &
+          PID=$!
+          trap 'kill $PID || true' EXIT
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:3000/ >/dev/null; then break; fi
+            sleep 2
+          done
+          curl --fail --silent http://127.0.0.1:3000/ >/dev/null
+          curl --fail --silent http://127.0.0.1:3000/privasi >/dev/null
+          curl --fail --silent http://127.0.0.1:3000/robots.txt >/dev/null
+          curl --fail --silent http://127.0.0.1:3000/sitemap.xml >/dev/null
+      - name: Smoke test Ops login page
+        run: |
+          NEXTAUTH_URL=http://localhost:3001 pnpm --filter @dzaroza/ops start > /tmp/ops.log 2>&1 &
+          PID=$!
+          trap 'kill $PID || true' EXIT
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:3001/login >/dev/null; then break; fi
+            sleep 2
+          done
+          curl --fail --silent http://127.0.0.1:3001/login >/dev/null
       - name: Upload generated lockfile and initial migration
         uses: actions/upload-artifact@v4
         with:
