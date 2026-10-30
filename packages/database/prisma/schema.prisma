@@ -108,6 +108,7 @@ model Plan {
   maxUsers Int?
   maxProjects Int?
   maxStorageMb Int?
+  maxActivations Int @default(1)
   featureFlags Json
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -122,6 +123,7 @@ model Subscription {
   provider String @default("MIDTRANS")
   providerCustomerId String?
   providerSubscriptionId String? @unique
+  providerOrderId String? @unique
   currentPeriodStart DateTime?
   currentPeriodEnd DateTime?
   cancelAtPeriodEnd Boolean @default(false)
@@ -132,6 +134,7 @@ model Subscription {
   plan Plan @relation(fields:[planId],references:[id])
   licenses License[]
   billingEvents BillingEvent[]
+  payments PaymentTransaction[]
   @@index([organizationId,status])
   @@index([currentPeriodEnd])
 }
@@ -291,6 +294,7 @@ model PaymentTransaction {
   id String @id @default(cuid())
   organizationId String
   invoiceId String?
+  subscriptionId String?
   provider String
   providerRef String? @unique
   amount Decimal @db.Decimal(14,2)
@@ -300,6 +304,7 @@ model PaymentTransaction {
   createdAt DateTime @default(now())
   organization Organization @relation(fields:[organizationId],references:[id],onDelete:Cascade)
   invoice Invoice? @relation(fields:[invoiceId],references:[id])
+  subscription Subscription? @relation(fields:[subscriptionId],references:[id])
   @@index([organizationId,status])
 }
 model Expense {

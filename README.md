@@ -1,31 +1,65 @@
 # Dzaroza Property Platform
 
-Monorepo untuk website publik, Project & Business Operating System, dan produk SaaS berlisensi.
+Monorepo untuk website publik Dzaroza Property, Project & Business Operating System, dan produk SaaS multi-tenant dengan subscription serta lisensi.
 
 ## Workspace
-- `apps/marketing`: website publik existing, katalog, portofolio, order, testimoni.
-- `apps/ops`: aplikasi Project & Business Operating System multi-tenant.
-- `apps/worker`: fondasi background worker.
-- `packages/database`: PostgreSQL + Prisma.
-- `packages/shared`: shared domain contracts.
 
-## Setup
-Node.js 22+, pnpm 10+, PostgreSQL.
+| Path | Fungsi |
+|---|---|
+| `apps/marketing` | Website publik existing, katalog, portofolio, order, testimoni dan SEO |
+| `apps/ops` | Aplikasi operasional dan SaaS multi-tenant |
+| `apps/worker` | Fondasi background processing |
+| `packages/database` | Prisma ORM dan PostgreSQL schema/migrations |
+| `packages/shared` | Shared domain contracts |
+
+## Prasyarat dan setup lokal
+
+- Node.js 22+
+- pnpm 10.18+
+- PostgreSQL 16+
 
 ```bash
 pnpm install
 cp .env.example .env
+cp apps/ops/.env.example apps/ops/.env.local
+cp apps/marketing/.env.example apps/marketing/.env.local
 pnpm db:generate
+pnpm db:deploy
 pnpm dev
 ```
 
-Jalankan satu aplikasi: `pnpm --filter @dzaroza/marketing dev` atau `pnpm --filter @dzaroza/ops dev`.
+Isi Google OAuth dan Midtrans credentials hanya di environment lokal/Vercel. Google OAuth callback untuk Ops adalah `/api/auth/callback/google` pada host port 3001. Tambahkan `PLATFORM_ADMIN_EMAILS` untuk bootstrap email operator platform; nilai tersebut tidak boleh berasal dari input pengguna.
 
-## Vercel
-Buat dua project: marketing dengan Root Directory `apps/marketing`, OS dengan Root Directory `apps/ops`. Gunakan workspace install root dan konfigurasi environment masing-masing. Worker harus berjalan pada runtime yang mendukung proses persisten.
+Jalankan aplikasi secara terpisah:
 
-## SaaS rules
-Tenant pelanggan dan Dzaroza internal memakai aturan keamanan yang sama. Plan, harga, limit, feature entitlement, masa berlangganan dan lisensi dikendalikan dari database. Siklus bulanan/tahunan didukung; nominal harga tidak di-hardcode. Subscription hanya aktif dari pembayaran terverifikasi atau tindakan admin yang diaudit. License key disimpan sebagai hash dan tidak menggantikan autentikasi.
+```bash
+pnpm --filter @dzaroza/marketing dev
+pnpm --filter @dzaroza/ops dev
+```
 
-## Status
-Ini adalah scaffold migrasi dan fondasi, bukan klaim bahwa seluruh Phase 0–8 telah selesai. Lihat `docs/IMPLEMENTATION.md` untuk arsitektur, model lisensi, roadmap, dan kriteria penyelesaian.
+## Deployment Vercel
+
+Buat project terpisah dari repository ini:
+- Public website: Root Directory `apps/marketing`
+- Business OS: Root Directory `apps/ops`
+
+Gunakan workspace install root, aktifkan akses ke file workspace di luar root directory bila diminta, dan set environment variables pada project yang tepat. Worker harus dideploy pada runtime yang mendukung proses persisten. Jangan ubah domain production sebelum preview build dan smoke test lulus.
+
+## Security and SaaS model
+
+- Setiap organisasi adalah tenant dan seluruh data bisnis harus di-scope dengan `organizationId`.
+- Keanggotaan dan role diperiksa di server; ID organisasi dari browser tidak pernah menjadi bukti akses.
+- Dzaroza internal menggunakan mekanisme tenant yang sama dengan pelanggan.
+- Plan, harga bulanan/tahunan, limit dan feature entitlements dikendalikan database.
+- Subscription hanya aktif dari webhook pembayaran tervalidasi atau tindakan admin yang diaudit.
+- Midtrans Snap pada tahap ini adalah checkout satu-periode; jangan menganggap auto-debit recurring sudah aktif.
+- License key dibuat acak, disimpan sebagai hash dan ditampilkan satu kali. License key bukan pengganti autentikasi.
+- Status langganan kedaluwarsa membatasi fitur sesuai entitlement; data pelanggan tidak otomatis dihapus.
+
+## Quality gates
+
+GitHub Actions menjalankan install, generate Prisma client, schema validation, database migration, typecheck, unit tests dan production builds. Workflow mengunggah lockfile pnpm dan initial migration yang dihasilkan sebagai artifact agar dapat ditinjau dan dikomit setelah hasil CI diverifikasi.
+
+Phase 0/1 belum dianggap selesai sampai workflow hijau, migration tercatat, website preview berhasil diuji, dan security/integration checks memenuhi kriteria pada `docs/IMPLEMENTATION.md`.
+
+Lihat `docs/IMPLEMENTATION.md` untuk arsitektur, migration plan, autentikasi, isolasi tenant, billing, lisensi, dan exit criteria.

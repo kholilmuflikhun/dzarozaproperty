@@ -1,0 +1,76 @@
+name: Monorepo quality gates
+
+on:
+  push:
+    branches: [main, feat/monorepo-saas-foundation]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/dzaroza?schema=public
+      DIRECT_URL: postgresql://postgres:postgres@localhost:5432/dzaroza?schema=public
+      NEXTAUTH_URL: http://localhost:3001
+      NEXTAUTH_SECRET: ci-only-not-a-production-secret
+      GOOGLE_CLIENT_ID: ci-placeholder
+      GOOGLE_CLIENT_SECRET: ci-placeholder
+      PLATFORM_ADMIN_EMAILS: ci-admin@example.com
+      NEXT_PUBLIC_SITE_URL: https://example.com
+      MIDTRANS_SERVER_KEY: ci-placeholder
+      MIDTRANS_CLIENT_KEY: ci-placeholder
+      MIDTRANS_IS_PRODUCTION: "false"
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: dzaroza
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d dzaroza"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.18.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install workspace dependencies
+        run: pnpm install --no-frozen-lockfile
+      - name: Generate initial Prisma migration when absent
+        run: |
+          if [ ! -f packages/database/prisma/migrations/20261031000000_init/migration.sql ]; then
+            mkdir -p packages/database/prisma/migrations/20261031000000_init
+            pnpm --filter @dzaroza/database exec prisma migrate diff --from-empty --to-schema-datamodel prisma/schema.prisma --script > packages/database/prisma/migrations/20261031000000_init/migration.sql
+          fi
+      - name: Validate Prisma schema
+        run: pnpm --filter @dzaroza/database exec prisma validate --schema prisma/schema.prisma
+      - name: Generate Prisma client
+        run: pnpm db:generate
+      - name: Apply database migrations
+        run: pnpm db:deploy
+      - name: TypeScript checks
+        run: pnpm typecheck
+      - name: Unit tests
+        run: pnpm test
+      - name: Production builds
+        run: pnpm build
+      - name: Upload generated lockfile and initial migration
+        uses: actions/upload-artifact@v4
+        with:
+          name: monorepo-lock-and-migration
+          path: |
+            pnpm-lock.yaml
+            packages/database/prisma/migrations/
