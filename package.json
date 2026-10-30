@@ -1,1 +1,24 @@
-{"name":"dzaroza-property-platform","version":"3.0.0","private":true,"packageManager":"pnpm@10.18.0","engines":{"node":">=22"},"scripts":{"dev":"turbo dev","build":"turbo build","lint":"turbo lint","typecheck":"turbo typecheck","test":"turbo test","db:generate":"pnpm --filter @dzaroza/database db:generate","db:migrate":"pnpm --filter @dzaroza/database db:migrate","db:deploy":"pnpm --filter @dzaroza/database db:deploy","db:studio":"pnpm --filter @dzaroza/database db:studio"},"devDependencies":{"turbo":"^2.5.8","typescript":"^5.9.3"}}
+{
+  "name": "dzaroza-property-platform",
+  "version": "3.0.0",
+  "private": true,
+  "packageManager": "pnpm@10.18.0",
+  "engines": {
+    "node": ">=22 <25"
+  },
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "typecheck": "turbo typecheck",
+    "test": "turbo test",
+    "db:generate": "pnpm --filter @dzaroza/database db:generate",
+    "db:migrate": "pnpm --filter @dzaroza/database db:migrate",
+    "db:deploy": "pnpm --filter @dzaroza/database db:deploy",
+    "db:studio": "pnpm --filter @dzaroza/database db:studio"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.8",
+    "typescript": "^5.9.3"
+  }
+}
