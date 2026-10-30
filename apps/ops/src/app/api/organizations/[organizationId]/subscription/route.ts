@@ -25,42 +25,55 @@ export async function POST(request: NextRequest, context: { params: Promise<{ or
     const parsed = schema.safeParse(await request.json().catch(() => null));
     if (!parsed.success) return NextResponse.json({ error: "Paket atau siklus pembayaran tidak valid." }, { status: 400 });
 
-    const now = new Date();
-    const [organization, plan, existing] = await Promise.all([
+    const [organization, plan] = await Promise.all([
       prisma.organization.findUnique({ where: { id: organizationId }, select: { name: true } }),
       prisma.plan.findUnique({ where: { code: parsed.data.planCode } }),
-      prisma.subscription.findFirst({
-        where: {
-          organizationId,
-          OR: [
-            { status: "INCOMPLETE" },
-            { status: "PAST_DUE" },
-            { status: "ACTIVE", currentPeriodEnd: { gt: now } },
-            { status: "TRIALING", currentPeriodEnd: { gt: now } },
-          ],
-        },
-      }),
     ]);
     if (!organization) return NextResponse.json({ error: "Organisasi tidak ditemukan." }, { status: 404 });
     if (!plan || !plan.isActive) return NextResponse.json({ error: "Paket tidak tersedia." }, { status: 404 });
-    if (existing) return NextResponse.json({ error: "Organisasi masih memiliki langganan aktif atau checkout yang belum selesai." }, { status: 409 });
 
     const price = parsed.data.billingCycle === "MONTHLY" ? plan.monthlyPrice : plan.yearlyPrice;
     if (!price.greaterThan(0) || !price.isInteger()) return NextResponse.json({ error: "Harga paket harus berupa nominal IDR bulat dan lebih besar dari nol." }, { status: 422 });
     const orderId = `DZOS-${randomUUID().replace(/-/g, "").slice(0, 24).toUpperCase()}`;
     const licenseKey = createLicenseSecret();
-    const subscription = await prisma.$transaction(async (tx) => {
-      const created = await tx.subscription.create({
-        data: { organizationId, planId: plan.id, billingCycle: parsed.data.billingCycle, provider: "MIDTRANS", providerOrderId: orderId },
-      });
-      await tx.license.create({
-        data: { organizationId, subscriptionId: created.id, keyHash: hashLicenseSecret(licenseKey), keyPrefix: licenseKey.slice(0, 14), maxActivations: plan.maxActivations },
-      });
-      await tx.auditLog.create({
-        data: { organizationId, actorId: membership.userId, action: "subscription.checkout_created", entityType: "Subscription", entityId: created.id, metadata: { planCode: plan.code, billingCycle: parsed.data.billingCycle, orderId } },
-      });
-      return created;
-    });
+    let subscription;
+    try {
+      subscription = await prisma.$transaction(async (tx) => {
+        const now = new Date();
+        const existing = await tx.subscription.findFirst({
+          where: {
+            organizationId,
+            OR: [
+              { status: "INCOMPLETE" },
+              { status: "PAST_DUE" },
+              { status: "ACTIVE", currentPeriodEnd: { gt: now } },
+              { status: "TRIALING", currentPeriodEnd: { gt: now } },
+            ],
+          },
+          select: { id: true },
+        });
+        if (existing) throw new Error("SUBSCRIPTION_ALREADY_EXISTS");
+
+        const created = await tx.subscription.create({
+          data: { organizationId, planId: plan.id, billingCycle: parsed.data.billingCycle, provider: "MIDTRANS", providerOrderId: orderId },
+        });
+        await tx.license.create({
+          data: { organizationId, subscriptionId: created.id, keyHash: hashLicenseSecret(licenseKey), keyPrefix: licenseKey.slice(0, 14), maxActivations: plan.maxActivations },
+        });
+        await tx.auditLog.create({
+          data: { organizationId, actorId: membership.userId, action: "subscription.checkout_created", entityType: "Subscription", entityId: created.id, metadata: { planCode: plan.code, billingCycle: parsed.data.billingCycle, orderId } },
+        });
+        return created;
+      }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+    } catch (error) {
+      if (error instanceof Error && error.message === "SUBSCRIPTION_ALREADY_EXISTS") {
+        return NextResponse.json({ error: "Organisasi masih memiliki langganan aktif atau checkout yang belum selesai." }, { status: 409 });
+      }
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034") {
+        return NextResponse.json({ error: "Checkout lain sedang diproses. Silakan periksa status langganan lalu coba kembali." }, { status: 409 });
+      }
+      throw error;
+    }
 
     try {
       const transaction = await snap.createTransaction({
