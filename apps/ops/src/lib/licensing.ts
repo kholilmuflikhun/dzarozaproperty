@@ -1,5 +1,5 @@
 import { prisma } from "@dzaroza/database";
-export { createLicenseSecret, hashLicenseSecret, verifyLicenseSecret } from "@/lib/license-crypto";
+export { createLicenseSecret, hashLicenseSecret, verifyLicenseSecret } from "./license-crypto";
 
 type EntitlementSource = {
   status: string;
