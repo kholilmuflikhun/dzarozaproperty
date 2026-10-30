@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 3001",
-    "build": "next build",
+    "build": "pnpm --filter @dzaroza/database db:generate && next build",
     "start": "next start -p 3001",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
