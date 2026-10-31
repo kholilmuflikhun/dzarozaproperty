@@ -2,6 +2,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { MembershipRole, Prisma, prisma } from "@dzaroza/database";
 import { requireTenantRole, toHttpError } from "@/lib/tenant";
+import { sendTransactionalEmail } from "@/lib/email";
 
 export const runtime = "nodejs";
 
@@ -11,6 +12,8 @@ export async function POST(_request: NextRequest, context: { params: Promise<{ o
     if (!organizationId || organizationId.length > 64 || !quotationId || quotationId.length > 64) {
       return NextResponse.json({ error: "ID organisasi atau quotation tidak valid." }, { status: 400 });
     }
+    const baseUrl = process.env.NEXTAUTH_URL ?? process.env.NEXT_PUBLIC_SITE_URL;
+    if (!baseUrl) return NextResponse.json({ error: "URL aplikasi belum dikonfigurasi." }, { status: 503 });
     const actor = await requireTenantRole(organizationId, [
       MembershipRole.OWNER, MembershipRole.ADMIN, MembershipRole.PROJECT_MANAGER, MembershipRole.SALES,
     ]);
@@ -39,18 +42,43 @@ export async function POST(_request: NextRequest, context: { params: Promise<{ o
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
     if (result.kind === "not-found") return NextResponse.json({ error: "Quotation tidak ditemukan." }, { status: 404 });
     if (result.kind === "invalid-status") return NextResponse.json({ error: "Link persetujuan hanya dapat dibuat untuk quotation berstatus SENT." }, { status: 409 });
-    const baseUrl = process.env.NEXTAUTH_URL ?? process.env.NEXT_PUBLIC_SITE_URL;
-    if (!baseUrl) return NextResponse.json({ error: "URL aplikasi belum dikonfigurasi." }, { status: 503 });
+    const approvalUrl = new URL(`/api/public/quotation-approvals/${rawToken}`, baseUrl).toString();
+    const emailConfigured = Boolean(process.env.RESEND_API_KEY && process.env.RESEND_FROM_EMAIL);
+    if (emailConfigured && result.clientEmail) {
+      const safeNumber = result.number.replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character] ?? character);
+      const delivery = await sendTransactionalEmail({
+        to: result.clientEmail,
+        subject: `Persetujuan penawaran ${result.number} — Dzaroza Property`,
+        text: `Halo, silakan tinjau dan berikan keputusan untuk penawaran ${result.number}: ${approvalUrl}. Tautan berlaku selama tujuh hari dan hanya dapat digunakan sekali.`,
+        html: `<p>Halo,</p><p>Penawaran <strong>${safeNumber}</strong> dari Dzaroza Property siap ditinjau.</p><p><a href="${approvalUrl}">Tinjau dan berikan keputusan</a></p><p>Tautan berlaku tujuh hari dan hanya dapat digunakan sekali. Jika Anda tidak mengharapkan email ini, abaikan pesan ini.</p>`,
+      });
+      if (!delivery.sent) {
+        await prisma.$transaction(async (tx) => {
+          await tx.quotation.updateMany({
+            where: { organizationId, id: quotationId, approvalTokenHash: tokenHash, status: "SENT" },
+            data: { approvalTokenHash: null, approvalTokenExpiresAt: null, approvalTokenUsedAt: null },
+          });
+          await tx.auditLog.create({
+            data: { organizationId, actorId: actor.userId, action: "quotation.approval_email.failed", entityType: "Quotation", entityId: quotationId, metadata: { reason: delivery.reason, providerStatus: "status" in delivery ? delivery.status : null } },
+          });
+        });
+        return NextResponse.json({ error: "Email persetujuan gagal dikirim. Token dibatalkan; silakan coba kembali setelah konfigurasi email diperiksa." }, { status: 502 });
+      }
+      return NextResponse.json({
+        approval: { quotationNumber: result.number, clientEmail: result.clientEmail, delivery: "email", expiresAt: expiresAt.toISOString() },
+        message: "Tautan persetujuan telah dikirim ke email klien.",
+      }, { status: 201, headers: { "cache-control": "no-store" } });
+    }
     return NextResponse.json({
       approval: {
         quotationNumber: result.number,
         clientEmail: result.clientEmail,
-        url: new URL(`/api/public/quotation-approvals/${rawToken}`, baseUrl).toString(),
+        url: approvalUrl,
         expiresAt: expiresAt.toISOString(),
         delivery: "manual",
       },
-      notice: "Kirim tautan ini kepada kontak klien melalui kanal terverifikasi. Tautan hanya ditampilkan sekali.",
-    }, { status: 201 });
+      notice: "Email otomatis belum dikonfigurasi atau email klien tidak tersedia. Kirim tautan ini secara manual melalui kanal terverifikasi; tautan hanya ditampilkan sekali.",
+    }, { status: 201, headers: { "cache-control": "no-store" } });
   } catch (error) {
     if (typeof error === "object" && error !== null && "code" in error && error.code === "P2034") {
       return NextResponse.json({ error: "Perubahan bersamaan terdeteksi. Silakan coba kembali." }, { status: 409 });
