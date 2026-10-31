@@ -6,8 +6,8 @@ import { requireTenantContext, requireTenantRole, toHttpError } from "@/lib/tena
 
 const itemSchema = z.object({
   description: z.string().trim().min(2).max(500),
-  quantity: z.number().finite().positive().max(10_000),
-  unitPrice: z.number().finite().min(0).max(100_000_000),
+  quantity: z.number().finite().positive().max(10_000).multipleOf(0.001),
+  unitPrice: z.number().finite().min(0).max(100_000_000).multipleOf(0.01),
 });
 const quotationSchema = z.object({
   clientId: z.string().trim().min(1).max(64),
@@ -123,6 +123,9 @@ export async function POST(request: NextRequest, context: { params: Promise<{ or
     const subtotal = items.reduce((sum, item) => sum.plus(item.lineTotal), new Prisma.Decimal(0)).toDecimalPlaces(2);
     const discount = new Prisma.Decimal(input.discount).toDecimalPlaces(2);
     const tax = new Prisma.Decimal(input.tax).toDecimalPlaces(2);
+    if (subtotal.greaterThan("999999999999.99") || discount.greaterThan("999999999999.99") || tax.greaterThan("999999999999.99")) {
+      return NextResponse.json({ error: "Nilai quotation melebihi kapasitas nominal yang diizinkan." }, { status: 400 });
+    }
     if (discount.greaterThan(subtotal)) {
       return NextResponse.json({ error: "Diskon tidak boleh melebihi subtotal." }, { status: 400 });
     }
