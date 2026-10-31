@@ -44,6 +44,26 @@ describe("organizations API authentication and ownership", () => {
     expect(prisma.membership.findMany).not.toHaveBeenCalled();
   });
 
+  it("lists only organizations linked to the authenticated user's memberships", async () => {
+    requireUserId.mockResolvedValue("user-a");
+    const memberships = [{
+      role: "OWNER",
+      organization: { id: "org-a", name: "Organization A", slug: "organization-a", currency: "IDR", timezone: "Asia/Jakarta" },
+    }];
+    prisma.membership.findMany.mockResolvedValue(memberships);
+
+    const response = await GET();
+
+    expect(response.status).toBe(200);
+    expect(prisma.membership.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { userId: "user-a" },
+      include: { organization: { select: { id: true, name: true, slug: true, currency: true, timezone: true } } },
+    }));
+    await expect(response.json()).resolves.toEqual({
+      organizations: [{ ...memberships[0].organization, role: "OWNER" }],
+    });
+  });
+
   it("creates an organization, OWNER membership, and audit record in one transaction", async () => {
     requireUserId.mockResolvedValue("user-a");
     const created = { id: "org-a", name: "Dzaroza Property", slug: "dzaroza-property-12345678" };
@@ -77,6 +97,28 @@ describe("organizations API authentication and ownership", () => {
     });
     expect(prisma.$transaction).toHaveBeenCalledTimes(1);
     await expect(response.json()).resolves.toEqual({ organization: created });
+  });
+
+  it("returns an error when membership creation fails so the database transaction can roll back", async () => {
+    requireUserId.mockResolvedValue("user-a");
+    const tx = {
+      organization: { create: vi.fn().mockResolvedValue({ id: "org-a" }) },
+      membership: { create: vi.fn().mockRejectedValue(new Error("membership write failed")) },
+      auditLog: { create: vi.fn() },
+    };
+    prisma.$transaction.mockImplementation(async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx));
+
+    const response = await POST(new Request("http://localhost/api/organizations", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name: "Dzaroza Property" }),
+    }) as never);
+
+    expect(response.status).toBe(500);
+    expect(tx.organization.create).toHaveBeenCalledTimes(1);
+    expect(tx.membership.create).toHaveBeenCalledTimes(1);
+    expect(tx.auditLog.create).not.toHaveBeenCalled();
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
   });
 
   it("rejects invalid organization input before opening a transaction", async () => {
