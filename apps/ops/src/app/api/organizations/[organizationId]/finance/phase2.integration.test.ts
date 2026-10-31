@@ -7,13 +7,13 @@ const { getServerSession } = vi.hoisted(() => ({ getServerSession: vi.fn() }));
 vi.mock("next-auth", () => ({ getServerSession }));
 
 import { prisma } from "@dzaroza/database";
-import { POST as convertQuotation } from "../../quotations/[quotationId]/convert/route";
-import { POST as createInvoice } from "../../invoices/route";
-import { GET as invoicePdf } from "../../invoices/[invoiceId]/pdf/route";
-import { PATCH as updateInvoice } from "../../invoices/[invoiceId]/route";
-import { POST as recordPayment } from "../../payments/route";
+import { POST as convertQuotation } from "../quotations/[quotationId]/convert/route";
+import { POST as createInvoice } from "../invoices/route";
+import { GET as invoicePdf } from "../invoices/[invoiceId]/pdf/route";
+import { PATCH as updateInvoice } from "../invoices/[invoiceId]/route";
+import { POST as recordPayment } from "../payments/route";
 import { GET as financeSummary } from "../summary/route";
-import { GET as publicApprovalGet, POST as publicApprovalPost } from "../../../../public/quotation-approvals/[token]/route";
+import { GET as publicApprovalGet, POST as publicApprovalPost } from "../../../public/quotation-approvals/[token]/route";
 import { POST as midtransWebhook } from "../../../webhooks/midtrans/route";
 
 const suffix = randomUUID();
