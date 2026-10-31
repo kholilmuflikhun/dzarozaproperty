@@ -102,6 +102,7 @@ export async function POST(request: NextRequest) {
       if (existingPayment && (existingPayment.subscriptionId !== subscription.id || existingPayment.organizationId !== subscription.organizationId)) {
         throw new Error("PAYMENT_REFERENCE_CONFLICT");
       }
+      const paymentAlreadySuccessful = Boolean(existingPayment && ["SETTLEMENT", "CAPTURE"].includes(existingPayment.status));
       if (!existingPayment) {
         await tx.paymentTransaction.create({
           data: {
@@ -124,7 +125,7 @@ export async function POST(request: NextRequest) {
           },
         });
       }
-      if (successful) {
+      if (successful && !paymentAlreadySuccessful) {
         const periodEnd = addPeriod(now, subscription.billingCycle);
         const changed = await tx.subscription.updateMany({
           where: { id: subscription.id, status: { in: ["INCOMPLETE", "PAST_DUE", "ACTIVE"] } },
@@ -135,7 +136,7 @@ export async function POST(request: NextRequest) {
         await tx.auditLog.create({
           data: { organizationId: subscription.organizationId, action: "subscription.payment_confirmed", entityType: "Subscription", entityId: subscription.id, metadata: { provider: "MIDTRANS", transactionId: payload.transaction_id, periodEnd: periodEnd.toISOString() } },
         });
-      } else if (terminalFailure) {
+      } else if (terminalFailure && !paymentAlreadySuccessful) {
         const closed = await tx.subscription.updateMany({
           where: { id: subscription.id, status: "INCOMPLETE" },
           data: { status: payload.transaction_status === "cancel" ? "CANCELED" : "EXPIRED" },

@@ -199,6 +199,32 @@ describe("Midtrans webhook", () => {
     expect(tx.auditLog.create).toHaveBeenCalledOnce();
   });
 
+  it("does not extend an already paid period when the same transaction advances from capture to settlement", async () => {
+    const paidAt = new Date("2026-10-30T00:00:00.000Z");
+    const tx = makeTx({
+      paymentTransaction: {
+        findUnique: vi.fn().mockResolvedValue({
+          id: "payment-a", subscriptionId: "sub-a", organizationId: "org-a",
+          status: "CAPTURE", paidAt,
+        }),
+        create: vi.fn(),
+        update: vi.fn().mockResolvedValue({ id: "payment-a" }),
+      },
+    });
+    prisma.$transaction.mockImplementation(async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx));
+
+    const response = await POST(makeRequest(makePayload({ transaction_status: "settlement" })));
+
+    expect(response.status).toBe(200);
+    expect(tx.paymentTransaction.update).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: "payment-a" },
+      data: expect.objectContaining({ status: "SETTLEMENT", paidAt }),
+    }));
+    expect(tx.subscription.updateMany).not.toHaveBeenCalled();
+    expect(tx.license.updateMany).not.toHaveBeenCalled();
+    expect(tx.auditLog.create).not.toHaveBeenCalled();
+  });
+
   it("expires an incomplete subscription and revokes active licenses on terminal payment failure", async () => {
     const tx = makeTx();
     prisma.$transaction.mockImplementation(async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx));
