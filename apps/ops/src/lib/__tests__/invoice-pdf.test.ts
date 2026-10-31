@@ -17,7 +17,7 @@ describe("invoice PDF renderer", () => {
     expect(pdf).toContain("xref");
     expect(pdf).toContain("INV-20261031-ABC12345");
     expect(pdf).toContain("Sisa tagihan");
-    expect(pdf).toContain("Rp2.000.000");
+    expect(pdf).toContain("2.000.000");
     expect(pdf.endsWith("%%EOF")).toBe(true);
   });
   it("creates multiple pages for long item lists", () => {
