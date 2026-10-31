@@ -270,8 +270,23 @@ model Quotation {
   organization Organization @relation(fields:[organizationId],references:[id],onDelete:Cascade)
   client Client @relation(fields:[organizationId,clientId],references:[organizationId,id],onDelete:NoAction)
   project Project? @relation(fields:[organizationId,projectId],references:[organizationId,id],onDelete:NoAction)
+  @@unique([organizationId,id])
   @@unique([organizationId,number])
   @@index([organizationId,status])
+  items QuotationItem[]
+}
+model QuotationItem {
+  id String @id @default(cuid())
+  organizationId String
+  quotationId String
+  description String
+  quantity Decimal @db.Decimal(14,3)
+  unitPrice Decimal @db.Decimal(14,2)
+  lineTotal Decimal @db.Decimal(14,2)
+  sortOrder Int @default(0)
+  createdAt DateTime @default(now())
+  quotation Quotation @relation(fields:[organizationId,quotationId],references:[organizationId,id],onDelete:Cascade)
+  @@index([organizationId,quotationId,sortOrder])
 }
 model Invoice {
   @@unique([organizationId,id])
