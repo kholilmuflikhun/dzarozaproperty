@@ -63,16 +63,22 @@ export async function GET(request: NextRequest, context: { params: Promise<{ org
     if (stage && !["NEW", "CONTACTED", "QUALIFIED", "PROPOSAL", "WON", "LOST"].includes(stage)) {
       return NextResponse.json({ error: "Tahap lead tidak valid." }, { status: 400 });
     }
+    const cursor = url.searchParams.get("cursor");
+    if (cursor && (cursor.length < 1 || cursor.length > 64)) {
+      return NextResponse.json({ error: "Cursor lead tidak valid." }, { status: 400 });
+    }
     const leads = await prisma.lead.findMany({
       where: { organizationId, ...(stage ? { stage } : {}) },
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
       include: { client: { select: { id: true, name: true } } },
       orderBy: [{ createdAt: "desc" }, { id: "desc" }],
       take: requestedLimit + 1,
     });
     const hasMore = leads.length > requestedLimit;
+    const page = hasMore ? leads.slice(0, requestedLimit) : leads;
     return NextResponse.json({
-      leads: hasMore ? leads.slice(0, requestedLimit) : leads,
-      pagination: { limit: requestedLimit, hasMore },
+      leads: page,
+      pagination: { limit: requestedLimit, hasMore, nextCursor: hasMore ? page[page.length - 1]?.id ?? null : null },
     });
   } catch (error) {
     const result = toHttpError(error);
