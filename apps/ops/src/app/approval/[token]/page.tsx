@@ -4,6 +4,7 @@ import ApprovalClient from "./approval-client";
 export const metadata: Metadata = {
   title: "Persetujuan Penawaran | Dzaroza Property",
   robots: { index: false, follow: false },
+  referrer: "no-referrer",
 };
 
 export default async function QuotationApprovalPage({ params }: { params: Promise<{ token: string }> }) {
