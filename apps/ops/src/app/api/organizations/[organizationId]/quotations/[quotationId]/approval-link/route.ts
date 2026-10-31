@@ -14,6 +14,7 @@ export async function POST(_request: NextRequest, context: { params: Promise<{ o
     }
     const baseUrl = process.env.NEXTAUTH_URL ?? process.env.NEXT_PUBLIC_SITE_URL;
     if (!baseUrl) return NextResponse.json({ error: "URL aplikasi belum dikonfigurasi." }, { status: 503 });
+    const emailConfigured = Boolean(process.env.RESEND_API_KEY && process.env.RESEND_FROM_EMAIL);
     const actor = await requireTenantRole(organizationId, [
       MembershipRole.OWNER, MembershipRole.ADMIN, MembershipRole.PROJECT_MANAGER, MembershipRole.SALES,
     ]);
@@ -27,15 +28,16 @@ export async function POST(_request: NextRequest, context: { params: Promise<{ o
       });
       if (!quotation) return { kind: "not-found" as const };
       if (quotation.status !== "SENT") return { kind: "invalid-status" as const };
-      await tx.quotation.updateMany({
+      const changed = await tx.quotation.updateMany({
         where: { organizationId, id: quotationId, status: "SENT" },
         data: { approvalTokenHash: tokenHash, approvalTokenExpiresAt: expiresAt, approvalTokenUsedAt: null },
       });
+      if (changed.count !== 1) return { kind: "invalid-status" as const };
       await tx.auditLog.create({
         data: {
           organizationId, actorId: actor.userId, action: "quotation.approval_link.created",
           entityType: "Quotation", entityId: quotationId,
-          metadata: { expiresAt: expiresAt.toISOString(), delivery: "manual" },
+          metadata: { expiresAt: expiresAt.toISOString(), delivery: emailConfigured && quotation.client.email ? "email" : "manual" },
         },
       });
       return { kind: "created" as const, number: quotation.number, clientEmail: quotation.client.email };
@@ -43,7 +45,6 @@ export async function POST(_request: NextRequest, context: { params: Promise<{ o
     if (result.kind === "not-found") return NextResponse.json({ error: "Quotation tidak ditemukan." }, { status: 404 });
     if (result.kind === "invalid-status") return NextResponse.json({ error: "Link persetujuan hanya dapat dibuat untuk quotation berstatus SENT." }, { status: 409 });
     const approvalUrl = new URL(`/api/public/quotation-approvals/${rawToken}`, baseUrl).toString();
-    const emailConfigured = Boolean(process.env.RESEND_API_KEY && process.env.RESEND_FROM_EMAIL);
     if (emailConfigured && result.clientEmail) {
       const safeNumber = result.number.replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character] ?? character);
       const delivery = await sendTransactionalEmail({
