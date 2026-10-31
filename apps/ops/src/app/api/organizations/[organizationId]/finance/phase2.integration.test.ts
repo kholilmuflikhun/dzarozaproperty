@@ -49,7 +49,7 @@ beforeAll(async () => {
     data: {
       organizationId, clientId, number: `QT-P2-${suffix.slice(0, 8)}`, status: "ACCEPTED",
       subtotal: 1000000, discount: 0, tax: 0, total: 1000000,
-      items: { create: [{ organizationId, description: "Jasa konsultasi", quantity: 1, unitPrice: 1000000, lineTotal: 1000000, sortOrder: 0 }] },
+      items: { create: [{ description: "Jasa konsultasi", quantity: 1, unitPrice: 1000000, lineTotal: 1000000, sortOrder: 0 }] },
     },
   });
   quotationId = quotation.id;
