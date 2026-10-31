@@ -338,6 +338,9 @@ model PaymentTransaction {
   subscriptionId String?
   provider String
   providerRef String? @unique
+  providerOrderId String? @unique
+  checkoutToken String?
+  checkoutUrl String?
   amount Decimal @db.Decimal(14,2)
   currency String @default("IDR")
   status String @default("PENDING")
@@ -374,4 +377,12 @@ model PlatformAuditLog {
   actor User @relation(fields:[actorId],references:[id],onDelete:Restrict)
   @@index([actorId,createdAt])
   @@index([entityType,entityId])
+}
+
+model PublicRateLimitBucket {
+  key String @id
+  count Int @default(0)
+  windowStartedAt DateTime
+  resetAt DateTime
+  @@index([resetAt])
 }
