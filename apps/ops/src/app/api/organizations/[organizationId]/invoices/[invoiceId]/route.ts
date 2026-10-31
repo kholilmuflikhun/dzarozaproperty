@@ -44,10 +44,12 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ o
       if (!invoice) return { kind: "not-found" as const };
       if (parsed.data.action === "issue") {
         if (invoice.status !== "DRAFT") return { kind: "conflict" as const };
-        await tx.invoice.updateMany({ where: { organizationId, id: invoiceId, status: "DRAFT" }, data: { status: "SENT", issuedAt: new Date() } });
+        const changed = await tx.invoice.updateMany({ where: { organizationId, id: invoiceId, status: "DRAFT" }, data: { status: "SENT", issuedAt: new Date() } });
+        if (changed.count !== 1) return { kind: "conflict" as const };
       } else {
         if (invoice.status === "PAID" || invoice.status === "PARTIALLY_PAID" || invoice.paidAmount.greaterThan(0) || invoice.status === "VOID") return { kind: "conflict" as const };
-        await tx.invoice.updateMany({ where: { organizationId, id: invoiceId, status: invoice.status, paidAmount: new Prisma.Decimal(0) }, data: { status: "VOID" } });
+        const changed = await tx.invoice.updateMany({ where: { organizationId, id: invoiceId, status: invoice.status, paidAmount: new Prisma.Decimal(0) }, data: { status: "VOID" } });
+        if (changed.count !== 1) return { kind: "conflict" as const };
       }
       const updated = await tx.invoice.findFirst({ where: { organizationId, id: invoiceId } });
       if (!updated) return { kind: "not-found" as const };
