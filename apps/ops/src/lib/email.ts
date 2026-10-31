@@ -1,4 +1,4 @@
-type SendEmailInput = { to: string; subject: string; html: string; text: string };
+type SendEmailInput = { to: string; subject: string; html: string; text: string; attachments?: Array<{ filename: string; content: string }> };
 
 export async function sendTransactionalEmail(input: SendEmailInput) {
   const apiKey = process.env.RESEND_API_KEY;
@@ -10,7 +10,7 @@ export async function sendTransactionalEmail(input: SendEmailInput) {
       authorization: `Bearer ${apiKey}`,
       "content-type": "application/json",
     },
-    body: JSON.stringify({ from, to: [input.to], subject: input.subject, html: input.html, text: input.text }),
+    body: JSON.stringify({ from, to: [input.to], subject: input.subject, html: input.html, text: input.text, ...(input.attachments?.length ? { attachments: input.attachments } : {}) }),
     signal: AbortSignal.timeout(10_000),
   });
   if (!response.ok) {
