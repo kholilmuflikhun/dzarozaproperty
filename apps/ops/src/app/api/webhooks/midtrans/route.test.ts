@@ -77,6 +77,29 @@ describe("Midtrans webhook", () => {
     expect(prisma.subscription.findUnique).not.toHaveBeenCalled();
   });
 
+  it("rejects an oversized streamed body even when Content-Length is absent", async () => {
+    const oversized = " ".repeat(16_385);
+    const request = new NextRequest("http://localhost/api/webhooks/midtrans", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: oversized,
+    });
+    const response = await POST(request);
+    expect(response.status).toBe(413);
+    expect(prisma.subscription.findUnique).not.toHaveBeenCalled();
+  });
+
+  it("rejects malformed JSON without looking up an order", async () => {
+    const request = new NextRequest("http://localhost/api/webhooks/midtrans", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: "{invalid-json",
+    });
+    const response = await POST(request);
+    expect(response.status).toBe(400);
+    expect(prisma.subscription.findUnique).not.toHaveBeenCalled();
+  });
+
   it("rejects an invalid signature before looking up an order", async () => {
     const response = await POST(makeRequest({ ...makePayload(), signature_key: "0".repeat(128) }));
     expect(response.status).toBe(401);

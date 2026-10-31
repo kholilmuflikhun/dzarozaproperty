@@ -14,6 +14,55 @@ const payloadSchema = z.object({
   currency: z.string().optional(),
 });
 
+const MAX_WEBHOOK_BODY_BYTES = 16_384;
+
+type LimitedJsonResult =
+  | { kind: "ok"; value: unknown }
+  | { kind: "too-large" }
+  | { kind: "invalid" };
+
+async function readLimitedJson(request: NextRequest): Promise<LimitedJsonResult> {
+  const declaredLength = request.headers.get("content-length");
+  if (declaredLength && Number(declaredLength) > MAX_WEBHOOK_BODY_BYTES) {
+    return { kind: "too-large" };
+  }
+
+  const reader = request.body?.getReader();
+  if (!reader) return { kind: "invalid" };
+
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (!value) continue;
+
+      totalBytes += value.byteLength;
+      if (totalBytes > MAX_WEBHOOK_BODY_BYTES) {
+        await reader.cancel();
+        return { kind: "too-large" };
+      }
+      chunks.push(value);
+    }
+
+    const body = new Uint8Array(totalBytes);
+    let offset = 0;
+    for (const chunk of chunks) {
+      body.set(chunk, offset);
+      offset += chunk.byteLength;
+    }
+
+    const text = new TextDecoder("utf-8", { fatal: true }).decode(body);
+    return { kind: "ok", value: JSON.parse(text) as unknown };
+  } catch {
+    return { kind: "invalid" };
+  } finally {
+    reader.releaseLock();
+  }
+}
+
 function addPeriod(start: Date, cycle: "MONTHLY" | "YEARLY") {
   const end = new Date(start);
   if (cycle === "MONTHLY") end.setUTCMonth(end.getUTCMonth() + 1);
@@ -24,8 +73,10 @@ function addPeriod(start: Date, cycle: "MONTHLY" | "YEARLY") {
 export async function POST(request: NextRequest) {
   const serverKey = process.env.MIDTRANS_SERVER_KEY;
   if (!serverKey) return NextResponse.json({ error: "Webhook belum dikonfigurasi." }, { status: 503 });
-  if (Number(request.headers.get("content-length") ?? 0) > 16_384) return NextResponse.json({ error: "Payload terlalu besar." }, { status: 413 });
-  const parsed = payloadSchema.safeParse(await request.json().catch(() => null));
+  const body = await readLimitedJson(request);
+  if (body.kind === "too-large") return NextResponse.json({ error: "Payload terlalu besar." }, { status: 413 });
+  if (body.kind === "invalid") return NextResponse.json({ error: "Payload webhook tidak valid." }, { status: 400 });
+  const parsed = payloadSchema.safeParse(body.value);
   if (!parsed.success) return NextResponse.json({ error: "Payload webhook tidak valid." }, { status: 400 });
   const payload = parsed.data;
   if (!verifyMidtransSignature(payload, serverKey)) return NextResponse.json({ error: "Signature tidak valid." }, { status: 401 });
