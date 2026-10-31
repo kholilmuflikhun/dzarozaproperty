@@ -10,15 +10,15 @@ Verify the Phase 2 Ops application against a dedicated Vercel Preview deployment
 |---|---|---|
 | GitHub CI for Phase 2 head | PASS | Run #41166368300 passed on `5b431f612325a8e4bb37b23beede1ae10b6df3b3`. |
 | Vercel Preview for Phase 2 head | BLOCKED | Latest deployment for this branch/SHA was canceled with Vercel's `skipping-unaffected-projects` explanation. No READY Preview URL exists for this SHA. |
-| Dedicated Ops Vercel project | REQUIRED | Repository deployment guidance requires separate projects for `apps/marketing` and `apps/ops`. Do not repurpose the existing `dzarozaproperty` project or its production domains for Ops. |
-| Preview database | NOT VERIFIED | A dedicated non-production PostgreSQL database and its `DATABASE_URL` / `DIRECT_URL` must be configured and migrations applied. |
-| Provider sandbox | NOT VERIFIED | Midtrans sandbox and Resend credentials must be configured in Preview before external payment/email flows can be exercised. |
+| Dedicated Ops Vercel project | CREATED / CONFIGURED | `dzaroza-ops-preview` (`prj_7HKMftXhAyBkVuKlc2qKtmKQoxbv`) is linked to the repository, configured for Next.js / Node 24, workspace install/build commands, and Preview-only SSO protection. No deployment was triggered. |
+| Preview database | BLOCKED | Neon connection is pending. A dedicated non-production PostgreSQL branch/database and its `DATABASE_URL` / `DIRECT_URL` still need to be provisioned and added to Preview. |
+| Provider sandbox | PARTIALLY PREPARED | `MIDTRANS_IS_PRODUCTION=false` has been set for Preview on `feat/phase-2-business-finance-workflows`. Sandbox keys, OAuth credentials, and Resend credentials are not yet configured. |
 
 The canceled Vercel deployment is not a failed application build and is not evidence that the application works in Preview. The GitHub CI result is also not a substitute for a deployed Preview smoke test.
 
 ## Dedicated Vercel project configuration
 
-Create or select a dedicated non-production Vercel project for Ops (suggested project name: `dzaroza-ops-preview`) linked to `kholilmuflikhun/dzarozaproperty`.
+The dedicated non-production Vercel project `dzaroza-ops-preview` has been created and linked to `kholilmuflikhun/dzarozaproperty`. Project ID: `prj_7HKMftXhAyBkVuKlc2qKtmKQoxbv`.
 
 - Root Directory: `apps/ops`.
 - Framework: Next.js.
@@ -27,10 +27,13 @@ Create or select a dedicated non-production Vercel project for Ops (suggested pr
 - Enable access to workspace files outside the root directory / monorepo source files.
 - Install command: `pnpm install --frozen-lockfile` from the repository root.
 - Build command: `pnpm --filter @dzaroza/ops build`.
-- Preview deployments only; do not assign production domains or change the production project.
-- Ensure the deployment is tied to the exact Phase 2 branch and commit SHA.
+- Preview deployments remain enabled; no production domain is assigned. Preview deployment protection is set to Vercel Authentication (SSO).
+- Project uses Node 24.x. Workspace install and Ops build commands were configured.
+- `enableAffectedProjectsDeployments` was disabled for this project to avoid silently skipping Ops deployments when Vercel judges a root-level change as unaffected.
+- Project creation was performed link-only; no deployment was triggered. The actual root-directory value was submitted as `apps/ops` but is not echoed by the project-read response, so verify it in Vercel Project Settings before deploying.
+- Ensure the eventual deployment is tied to the exact Phase 2 branch and commit SHA.
 
-Do not create a new Vercel project or change project settings as part of this runbook without explicit project-owner approval.
+Do not add production domains or modify the existing `dzarozaproperty` project.
 
 ## Preview environment variables
 
@@ -45,6 +48,7 @@ Required application/database configuration:
 - `PLATFORM_ADMIN_EMAILS`: explicit allowlist for platform administration; never accept this from browser input.
 
 Phase 2 integrations:
+- `MIDTRANS_IS_PRODUCTION=false` is already configured in Preview, scoped to branch `feat/phase-2-business-finance-workflows`.
 - `MIDTRANS_SERVER_KEY`: Midtrans sandbox server key.
 - `MIDTRANS_CLIENT_KEY` and `NEXT_PUBLIC_MIDTRANS_CLIENT_KEY`: matching sandbox client key if both are used by the app.
 - `MIDTRANS_IS_PRODUCTION=false` and `NEXT_PUBLIC_MIDTRANS_IS_PRODUCTION=false`.
@@ -105,3 +109,23 @@ Stop Preview sign-off if the deployment is canceled, the commit SHA does not mat
 - PR #9 must then be reviewed and resolved against the approved PR #8 base.
 - PR #10 remains Draft and unmerged until both dependencies are reviewed and the stack is retargeted/rebased as needed.
 - No merge to `main`, production deployment, production domain change, or production credential change is authorized by this runbook.
+
+
+## Execution update — 2026-10-31
+
+### Vercel project prepared
+- Created dedicated project `dzaroza-ops-preview`, ID `prj_7HKMftXhAyBkVuKlc2qKtmKQoxbv`, in the existing Vercel team.
+- Linked repository `kholilmuflikhun/dzarozaproperty`.
+- Submitted root directory `apps/ops`; confirm this exact value in Project Settings because the normalized project-read response does not expose it.
+- Configured Next.js, Node 24.x, `pnpm install --frozen-lockfile`, `pnpm --filter @dzaroza/ops build`, workspace files outside root, Preview deployments enabled, affected-project skipping disabled, and Vercel Authentication for Preview.
+- No deployment was triggered. No production domain was attached and the existing production project was not changed.
+- Set `MIDTRANS_IS_PRODUCTION=false` as a Preview-only variable for branch `feat/phase-2-business-finance-workflows`.
+
+### Remaining actions requiring connected provider/account credentials
+1. Connect the Neon service to provision an isolated PostgreSQL Preview branch/database. Add its pooled `DATABASE_URL` and direct `DIRECT_URL` to the Vercel Preview environment. Do not reuse production data.
+2. Create a Google OAuth client for the eventual Ops Preview hostname and add `https://<preview-host>/api/auth/callback/google` as an authorized redirect URI. Add `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, and `PLATFORM_ADMIN_EMAILS` to Preview only.
+3. Add Midtrans Sandbox `MIDTRANS_SERVER_KEY`, `MIDTRANS_CLIENT_KEY`, and matching public client configuration if required by the client code. Keep production mode false.
+4. Add Resend test `RESEND_API_KEY` and `RESEND_FROM_EMAIL`; otherwise explicitly test the manual approval-link fallback and the invoice-email unavailable response.
+5. After database and minimum auth variables are present, deploy the exact Phase 2 branch as Preview, confirm the deployment is READY and run the verification checklist above.
+
+Secrets must be entered through the provider's secure settings, never committed to Git or pasted into PR comments/chat. Do not start Preview acceptance tests until the dedicated database and OAuth callback are configured.
