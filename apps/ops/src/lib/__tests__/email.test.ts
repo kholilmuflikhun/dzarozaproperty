@@ -23,6 +23,13 @@ describe("transactional email adapter", () => {
       headers: expect.objectContaining({ authorization: "Bearer test-key" }),
     }));
   });
+  it("converts network errors into a safe provider failure result", async () => {
+    process.env.RESEND_API_KEY = "test-key";
+    process.env.RESEND_FROM_EMAIL = "Dzaroza <noreply@example.test>";
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("socket timeout")));
+    const result = await sendTransactionalEmail({ to: "client@example.test", subject: "Approval", html: "<p>Review</p>", text: "Review" });
+    expect(result).toEqual({ sent: false, reason: "provider-error", status: null });
+  });
   it("reports provider failure without exposing credentials", async () => {
     process.env.RESEND_API_KEY = "test-key";
     process.env.RESEND_FROM_EMAIL = "Dzaroza <noreply@example.test>";
