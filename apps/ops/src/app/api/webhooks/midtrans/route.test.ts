@@ -1,0 +1,154 @@
+import { createHash } from "node:crypto";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { NextRequest } from "next/server";
+
+const { prisma, PrismaClientKnownRequestError } = vi.hoisted(() => {
+  class PrismaClientKnownRequestError extends Error {
+    code: string;
+    constructor(code: string) { super(code); this.code = code; }
+  }
+  return {
+    prisma: { subscription: { findUnique: vi.fn() }, $transaction: vi.fn() },
+    PrismaClientKnownRequestError,
+  };
+});
+
+vi.mock("@dzaroza/database", () => {
+  class Decimal {
+    value: string;
+    constructor(value: string) { this.value = String(value); }
+    equals(other: unknown) { return Number(this.value) === Number(other); }
+  }
+  return { prisma, Prisma: { Decimal, PrismaClientKnownRequestError } };
+});
+
+import { POST } from "./route";
+
+const serverKey = "midtrans-test-server-key";
+const subscription = {
+  id: "sub-a", organizationId: "org-a", status: "INCOMPLETE",
+  billingCycle: "MONTHLY", plan: { monthlyPrice: "100000", yearlyPrice: "1000000" },
+};
+
+function makePayload(overrides: Record<string, string> = {}) {
+  const payload = {
+    order_id: "order-a", status_code: "200", gross_amount: "100000.00",
+    transaction_id: "transaction-a", transaction_status: "settlement", currency: "IDR",
+    ...overrides,
+  };
+  const signature_key = createHash("sha512")
+    .update(payload.order_id + payload.status_code + payload.gross_amount + serverKey)
+    .digest("hex");
+  return { ...payload, signature_key };
+}
+
+function makeRequest(payload: Record<string, string>) {
+  return new NextRequest("http://localhost/api/webhooks/midtrans", {
+    method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload),
+  });
+}
+
+function makeTx(overrides: Record<string, unknown> = {}) {
+  return {
+    billingEvent: { create: vi.fn().mockResolvedValue({ id: "event-a" }) },
+    paymentTransaction: {
+      findUnique: vi.fn().mockResolvedValue(null),
+      create: vi.fn().mockResolvedValue({ id: "payment-a" }),
+      update: vi.fn().mockResolvedValue({ id: "payment-a" }),
+    },
+    subscription: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
+    license: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
+    auditLog: { create: vi.fn().mockResolvedValue({ id: "audit-a" }) },
+    ...overrides,
+  };
+}
+
+describe("Midtrans webhook", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    process.env.MIDTRANS_SERVER_KEY = serverKey;
+    prisma.subscription.findUnique.mockResolvedValue(subscription);
+  });
+
+  it("returns 503 when the server key is not configured", async () => {
+    delete process.env.MIDTRANS_SERVER_KEY;
+    const response = await POST(makeRequest(makePayload()));
+    expect(response.status).toBe(503);
+    expect(prisma.subscription.findUnique).not.toHaveBeenCalled();
+  });
+
+  it("rejects an invalid signature before looking up an order", async () => {
+    const response = await POST(makeRequest({ ...makePayload(), signature_key: "0".repeat(128) }));
+    expect(response.status).toBe(401);
+    expect(prisma.subscription.findUnique).not.toHaveBeenCalled();
+  });
+
+  it("returns 404 for an unknown order", async () => {
+    prisma.subscription.findUnique.mockResolvedValue(null);
+    const response = await POST(makeRequest(makePayload()));
+    expect(response.status).toBe(404);
+  });
+
+  it("rejects a payment amount that differs from the subscribed plan", async () => {
+    const response = await POST(makeRequest(makePayload({ gross_amount: "99000.00" })));
+    expect(response.status).toBe(400);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it("records settlement and activates the subscription and its licenses", async () => {
+    const tx = makeTx();
+    prisma.$transaction.mockImplementation(async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx));
+    const response = await POST(makeRequest(makePayload()));
+    expect(response.status).toBe(200);
+    expect(tx.billingEvent.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ subscriptionId: "sub-a", provider: "MIDTRANS", providerEventId: "order-a:transaction-a:settlement:none" }),
+    }));
+    expect(tx.paymentTransaction.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ organizationId: "org-a", subscriptionId: "sub-a", providerRef: "transaction-a", status: "SETTLEMENT", currency: "IDR", paidAt: expect.any(Date) }),
+    }));
+    expect(tx.subscription.updateMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: "sub-a", status: { in: ["INCOMPLETE", "PAST_DUE", "ACTIVE"] } },
+      data: expect.objectContaining({ status: "ACTIVE", currentPeriodEnd: expect.any(Date) }),
+    }));
+    expect(tx.license.updateMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { subscriptionId: "sub-a", status: "ACTIVE" }, data: { expiresAt: expect.any(Date) },
+    }));
+    expect(tx.auditLog.create).toHaveBeenCalledOnce();
+  });
+
+  it("returns an idempotent duplicate response for an existing event key", async () => {
+    const tx = makeTx();
+    tx.billingEvent.create.mockRejectedValue(new PrismaClientKnownRequestError("P2002"));
+    prisma.$transaction.mockImplementation(async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx));
+    const response = await POST(makeRequest(makePayload()));
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ received: true, duplicate: true });
+    expect(tx.paymentTransaction.create).not.toHaveBeenCalled();
+  });
+
+  it("rejects a transaction reference owned by another subscription", async () => {
+    const tx = makeTx({
+      paymentTransaction: {
+        findUnique: vi.fn().mockResolvedValue({ id: "payment-other", subscriptionId: "sub-other", organizationId: "org-other", status: "PENDING" }),
+        create: vi.fn(), update: vi.fn(),
+      },
+    });
+    prisma.$transaction.mockImplementation(async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx));
+    const response = await POST(makeRequest(makePayload()));
+    expect(response.status).toBe(409);
+    expect(tx.paymentTransaction.create).not.toHaveBeenCalled();
+    expect(tx.subscription.updateMany).not.toHaveBeenCalled();
+  });
+
+  it("stores a challenged capture without activating the subscription", async () => {
+    const tx = makeTx();
+    prisma.$transaction.mockImplementation(async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx));
+    const response = await POST(makeRequest(makePayload({ transaction_status: "capture", fraud_status: "challenge" })));
+    expect(response.status).toBe(200);
+    expect(tx.paymentTransaction.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ status: "CAPTURE_CHALLENGE", paidAt: null }),
+    }));
+    expect(tx.subscription.updateMany).not.toHaveBeenCalled();
+    expect(tx.auditLog.create).not.toHaveBeenCalled();
+  });
+});
