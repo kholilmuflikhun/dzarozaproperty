@@ -32,7 +32,8 @@ import { POST } from "./route";
 const serverKey = "midtrans-test-server-key";
 const subscription = {
   id: "sub-a", organizationId: "org-a", status: "INCOMPLETE",
-  billingCycle: "MONTHLY", plan: { monthlyPrice: "100000", yearlyPrice: "1000000" },
+  billingCycle: "MONTHLY", checkoutAmount: "100000",
+  plan: { monthlyPrice: "100000", yearlyPrice: "1000000" },
 };
 
 function makePayload(overrides: Record<string, string> = {}) {
@@ -121,6 +122,18 @@ describe("Midtrans webhook", () => {
     const response = await POST(makeRequest(makePayload({ gross_amount: "99000.00" })));
     expect(response.status).toBe(400);
     expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it("validates against the checkout snapshot even after the plan price changes", async () => {
+    prisma.subscription.findUnique.mockResolvedValue({
+      ...subscription,
+      plan: { monthlyPrice: "125000", yearlyPrice: "1250000" },
+    });
+    const tx = makeTx();
+    prisma.$transaction.mockImplementation(async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx));
+    const response = await POST(makeRequest(makePayload()));
+    expect(response.status).toBe(200);
+    expect(prisma.$transaction).toHaveBeenCalledOnce();
   });
 
   it("records settlement and activates the subscription and its licenses", async () => {

@@ -55,13 +55,13 @@ export async function POST(request: NextRequest, context: { params: Promise<{ or
         if (existing) throw new Error("SUBSCRIPTION_ALREADY_EXISTS");
 
         const created = await tx.subscription.create({
-          data: { organizationId, planId: plan.id, billingCycle: parsed.data.billingCycle, provider: "MIDTRANS", providerOrderId: orderId },
+          data: { organizationId, planId: plan.id, billingCycle: parsed.data.billingCycle, checkoutAmount: price, provider: "MIDTRANS", providerOrderId: orderId },
         });
         await tx.license.create({
           data: { organizationId, subscriptionId: created.id, keyHash: hashLicenseSecret(licenseKey), keyPrefix: licenseKey.slice(0, 14), maxActivations: plan.maxActivations },
         });
         await tx.auditLog.create({
-          data: { organizationId, actorId: membership.userId, action: "subscription.checkout_created", entityType: "Subscription", entityId: created.id, metadata: { planCode: plan.code, billingCycle: parsed.data.billingCycle, orderId } },
+          data: { organizationId, actorId: membership.userId, action: "subscription.checkout_created", entityType: "Subscription", entityId: created.id, metadata: { planCode: plan.code, billingCycle: parsed.data.billingCycle, orderId, checkoutAmount: price.toString() } },
         });
         return created;
       }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });

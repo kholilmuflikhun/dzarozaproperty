@@ -85,7 +85,9 @@ export async function POST(request: NextRequest) {
   const subscription = await prisma.subscription.findUnique({ where: { providerOrderId: payload.order_id }, include: { plan: true } });
   if (!subscription) return NextResponse.json({ error: "Order tidak ditemukan." }, { status: 404 });
   if (subscription.status === "CANCELED" || subscription.status === "EXPIRED") return NextResponse.json({ error: "Langganan ini sudah ditutup." }, { status: 409 });
-  const expectedAmount = subscription.billingCycle === "MONTHLY" ? subscription.plan.monthlyPrice : subscription.plan.yearlyPrice;
+  // Prefer the immutable checkout snapshot. The plan-price fallback is only
+  // for historical subscriptions created before checkoutAmount was introduced.
+  const expectedAmount = subscription.checkoutAmount ?? (subscription.billingCycle === "MONTHLY" ? subscription.plan.monthlyPrice : subscription.plan.yearlyPrice);
   if (!new Prisma.Decimal(payload.gross_amount).equals(expectedAmount)) return NextResponse.json({ error: "Nominal pembayaran tidak cocok." }, { status: 400 });
 
   const eventId = `${payload.order_id}:${payload.transaction_id}:${payload.transaction_status}:${payload.fraud_status ?? "none"}`;
@@ -141,8 +143,6 @@ export async function POST(request: NextRequest) {
           where: { id: subscription.id, status: "INCOMPLETE" },
           data: { status: payload.transaction_status === "cancel" ? "CANCELED" : "EXPIRED" },
         });
-        // A failed/expired notification may arrive late. Revoke licenses only
-        // when this event actually closes the still-incomplete subscription.
         if (closed.count === 1) {
           await tx.license.updateMany({
             where: { subscriptionId: subscription.id, status: "ACTIVE" },

@@ -15,7 +15,6 @@ enum MembershipRole {
   STAFF
   CLIENT
 }
-
 enum SubscriptionStatus {
   INCOMPLETE
   TRIALING
@@ -25,19 +24,16 @@ enum SubscriptionStatus {
   CANCELED
   EXPIRED
 }
-
 enum BillingCycle {
   MONTHLY
   YEARLY
 }
-
 enum LicenseStatus {
   ACTIVE
   SUSPENDED
   REVOKED
   EXPIRED
 }
-
 enum ProjectStatus {
   DRAFT
   QUOTATION
@@ -50,7 +46,6 @@ enum ProjectStatus {
   CANCELED
   ARCHIVED
 }
-
 model User {
   id String @id @default(cuid())
   email String @unique
@@ -122,6 +117,7 @@ model Subscription {
   planId String
   status SubscriptionStatus @default(INCOMPLETE)
   billingCycle BillingCycle
+  checkoutAmount Decimal? @db.Decimal(14,2)
   provider String @default("MIDTRANS")
   providerCustomerId String?
   providerSubscriptionId String? @unique
@@ -325,8 +321,6 @@ model Expense {
   project Project? @relation(fields:[organizationId,projectId],references:[organizationId,id],onDelete:NoAction)
   @@index([organizationId,incurredAt])
 }
-
-
 model PlatformAuditLog {
   id String @id @default(cuid())
   actorId String
