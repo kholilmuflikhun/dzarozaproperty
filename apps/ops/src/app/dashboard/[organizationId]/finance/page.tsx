@@ -82,7 +82,7 @@ export default async function FinanceDashboard({ params }: { params: Promise<{ o
       <Link href={`/dashboard/${organizationId}`} className="text-sm font-semibold text-blue-700">← Kembali ke workspace</Link>
       <header className="mt-5 flex flex-wrap items-end justify-between gap-4">
         <div><p className="text-xs font-bold uppercase tracking-[.18em] text-blue-700">Dzaroza Property OS · Finance</p><h1 className="mt-2 text-3xl font-bold">Dashboard Keuangan</h1><p className="mt-1 text-sm text-slate-600">{organization.name} · {new Intl.DateTimeFormat("id-ID", { month: "long", year: "numeric" }).format(now)}</p></div>
-        <span className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600">Role: {membership.role}</span>
+        <div className="flex flex-wrap gap-2"><Link href={`/dashboard/${organizationId}/quotations`} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700">Penawaran</Link><Link href={`/dashboard/${organizationId}/invoices`} className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white">Manajemen Invoice</Link></div>
       </header>
       <section className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {cards.map((card) => <article key={card.label} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><p className="text-sm text-slate-500">{card.label}</p><p className="mt-3 text-2xl font-bold tracking-tight">{card.value}</p><p className="mt-2 text-xs text-slate-500">{card.note}</p></article>)}
