@@ -134,3 +134,12 @@ License secrets use cryptographically secure random bytes. Only SHA-256 hashes a
 - Unit tests cover approval token validation/replay/rate-limit behavior, durable rate-limit decisions, email provider success/failure, PDF structure/multi-page output and Midtrans checkout creation/reuse.
 - PostgreSQL-backed integration tests cover real approval token issuance/expiry/replay, accepted quotation conversion idempotency, invoice creation/issue, partial/full/manual payment, overpayment rejection, PDF download, financial summary aggregates and Midtrans invoice settlement/replay.
 - CI remains the authority for the final result. A successful run on an older commit does not certify later changes; review the run matching the current PR head SHA.
+
+
+### Phase 2 operational UI
+
+- Client approval link now opens the no-index client decision page at `/approval/[token]`, which loads the quotation snapshot and provides explicit accept/reject actions. It uses the same one-time token API and does not require a client account.
+- Organization workspace now links to the quotation manager, invoice manager and finance dashboard.
+- Quotation manager supports manual quotation creation, issuing, sending/rotating approval links, copying manual links, accepted quotation conversion and invoice creation.
+- Invoice manager supports manual invoice creation, issuing, PDF download, email delivery, Midtrans checkout and manual payment recording. Role enforcement remains on the API; UI visibility is not treated as authorization.
+- These UI pages are part of the same Phase 2 feature branch and must pass the full CI suite before the phase is considered ready for review.
