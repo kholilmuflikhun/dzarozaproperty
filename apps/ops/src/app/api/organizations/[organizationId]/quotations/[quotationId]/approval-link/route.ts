@@ -44,7 +44,7 @@ export async function POST(_request: NextRequest, context: { params: Promise<{ o
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
     if (result.kind === "not-found") return NextResponse.json({ error: "Quotation tidak ditemukan." }, { status: 404 });
     if (result.kind === "invalid-status") return NextResponse.json({ error: "Link persetujuan hanya dapat dibuat untuk quotation berstatus SENT." }, { status: 409 });
-    const approvalUrl = new URL(`/api/public/quotation-approvals/${rawToken}`, baseUrl).toString();
+    const approvalUrl = new URL(`/approval/${rawToken}`, baseUrl).toString();
     if (emailConfigured && result.clientEmail) {
       const safeNumber = result.number.replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character] ?? character);
       const delivery = await sendTransactionalEmail({
