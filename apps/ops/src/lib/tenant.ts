@@ -3,8 +3,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { ForbiddenError, UnauthorizedError } from "@/lib/errors";
 import { findTenantMembership } from "@/lib/tenant-data";
-import { membershipMatchesTenant } from "@/lib/tenant-policy";
-export { membershipMatchesTenant } from "@/lib/tenant-policy";
+import { membershipHasAllowedRole, membershipMatchesTenant } from "@/lib/tenant-policy";
+export { membershipHasAllowedRole, membershipMatchesTenant } from "@/lib/tenant-policy";
 
 export async function requireUserId(): Promise<string> {
   const session = await getServerSession(authOptions);
@@ -19,7 +19,7 @@ export async function requireTenantContext(organizationId: string) {
 }
 export async function requireTenantRole(organizationId: string, allowedRoles: MembershipRole[]) {
   const membership = await requireTenantContext(organizationId);
-  if (!allowedRoles.includes(membership.role)) throw new ForbiddenError();
+  if (!membershipHasAllowedRole(membership, allowedRoles)) throw new ForbiddenError();
   return membership;
 }
 export function toHttpError(error: unknown) {
