@@ -14,7 +14,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ org
     const currentMonth = startOfMonth(now);
     const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
     const [invoiceTotals, paymentTotals, expenseTotals, outstanding, monthlyPayments, monthlyExpenses] = await Promise.all([
-      prisma.invoice.aggregate({ where: { organizationId, createdAt: { gte: currentMonth }, status: { not: "VOID" } }, _sum: { total: true, paidAmount: true }, _count: { _all: true } }),
+      prisma.invoice.aggregate({ where: { organizationId, createdAt: { gte: currentMonth }, status: { in: ["SENT", "PARTIALLY_PAID", "PAID", "OVERDUE"] } }, _sum: { total: true, paidAmount: true }, _count: { _all: true } }),
       prisma.paymentTransaction.aggregate({ where: { organizationId, invoiceId: { not: null }, status: "SETTLEMENT", paidAt: { gte: currentMonth } }, _sum: { amount: true }, _count: { _all: true } }),
       prisma.expense.aggregate({ where: { organizationId, incurredAt: { gte: currentMonth } }, _sum: { amount: true }, _count: { _all: true } }),
       prisma.invoice.aggregate({ where: { organizationId, status: { in: ["SENT", "PARTIALLY_PAID", "OVERDUE"] } }, _sum: { total: true, paidAmount: true }, _count: { _all: true } }),
