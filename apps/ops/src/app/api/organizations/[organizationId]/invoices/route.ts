@@ -78,6 +78,12 @@ export async function POST(request: NextRequest, context: { params: Promise<{ or
         if (quotation.projectId) {
           if (projectId && projectId !== quotation.projectId) return { kind: "project-mismatch" as const };
           projectId = quotation.projectId;
+        } else if (projectId) {
+          const project = await tx.project.findFirst({
+            where: { organizationId, id: projectId, clientId: quotation.clientId },
+            select: { id: true },
+          });
+          if (!project) return { kind: "project-mismatch" as const };
         }
         items = quotation.items.map((item) => ({
           description: item.description, quantity: item.quantity, unitPrice: item.unitPrice,
