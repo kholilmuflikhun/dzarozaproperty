@@ -80,3 +80,66 @@ License secrets use cryptographically secure random bytes. Only SHA-256 hashes a
 - CI-hardening changes are on draft PR #7 targeting `feat/monorepo-saas-foundation`; they have not been merged. Commit `56c6945` completed all quality gates successfully, including type checks, unit tests, production builds and both smoke tests. CRM Leads API is on draft PR #8 and its latest quality-gate run was still in progress at the last check. Quotation Management is being developed on a separate feature branch with its own CI trigger.
 
 **Not yet verified:** Google OAuth callback in preview; Midtrans sandbox callback; live HTTP-level cross-tenant E2E tests; PostgreSQL backup/restore; Vercel deployment and environment configuration for the current baseline. Do not merge to `main` or switch production until all required exit criteria pass.
+
+
+## Phase 2 — business and finance workflows
+
+### Quotation approval and project conversion
+
+- Internal users can generate a single-use client approval link for a quotation in `SENT` state. The raw bearer token is generated with cryptographic randomness, only its SHA-256 hash is persisted, and the link expires after seven days. Creating a new link rotates and invalidates the prior token. Delivery is manual; email/SMS sending is not claimed.
+- The public approval endpoint exposes the quotation snapshot to the bearer-link holder and accepts one decision (`ACCEPTED` or `REJECTED`). The token is consumed atomically, expiry and status are checked at write time, and the action is audit logged. The link is a bearer credential: anyone possessing it can decide on behalf of the recipient, so it must be sent only to the verified client contact.
+- Only an accepted quotation can be converted. Conversion creates a tenant-scoped project, carries over the accepted contract total and client, enforces the active subscription project quota, and writes audit events. Repeated requests return the already-created project rather than creating duplicates.
+
+### Invoice management
+
+- Tenant-scoped invoice listing and creation support manually itemized invoices or invoice creation from an accepted/converted quotation. Amounts are recalculated from item quantity and unit price on the server. One invoice per quotation is enforced by a composite unique constraint.
+- Invoice detail supports issue (`DRAFT` → `SENT`) and void actions. Invoices with any recorded payment cannot be voided. Invoice line items are stored separately with composite tenant ownership constraints.
+- This phase does not yet implement PDF rendering, invoice email delivery, tax jurisdiction rules, credit notes, or automatic recurring invoices.
+
+### Payment tracking
+
+- Finance/owner/admin users can record a manually verified payment against an issued invoice. The transaction, invoice paid balance/status update and audit entries are committed atomically. Partial payments are supported; overpayments, payments against drafts/void/paid invoices and cross-tenant invoice references are rejected.
+- Manual entries are explicitly marked `MANUAL` / `SETTLEMENT`. This is an operator-confirmed accounting entry, not a bank reconciliation or gateway webhook. Refunds, payment allocation across multiple invoices and automated Midtrans invoice collection are not included.
+
+### Financial dashboard
+
+- Tenant-scoped summary endpoint and organization finance dashboard UI report current-month invoiced value, settled invoice collections, expenses, net cash flow, outstanding receivables and a six-month collection/expense trend. The workspace links to `/dashboard/[organizationId]/finance`.
+- Operational income is based on settled invoice payments, not merely issued invoice value. Subscription payments are excluded from tenant operating revenue. Expenses use their recorded `incurredAt` date.
+
+### Phase 2 — remaining validation and exit criteria
+
+1. Prisma migration applies cleanly to a fresh PostgreSQL database and Prisma Client generation succeeds.
+2. Unit and PostgreSQL-backed route-handler integration tests cover approval token expiry/replay, tenant boundaries, accepted-quotation conversion idempotency, invoice totals/uniqueness, partial/full payments, overpayment rejection and financial aggregates.
+3. TypeScript, unit tests, production builds and smoke tests pass in CI.
+4. Security review verifies token-link delivery and disclosure, rate limiting/abuse protection, audit retention and operational role policy.
+5. Preview verification is completed for real client approval flows, invoice delivery and finance reconciliation.
+6. PDF invoice output, email delivery, tax configuration, refunds, payment gateway collection and bank reconciliation remain separate follow-up scope.
+
+**Phase 2 status:** implementation has been opened on the feature branch and is awaiting CI plus the test/security hardening above. It is not production-ready until all exit criteria pass.
+
+
+### Phase 2 hardening additions
+
+- **Durable public rate limiting:** approval-link reads are limited to 30 requests per 15 minutes per client address; decisions are limited to 8 per 15 minutes. Buckets are atomically incremented in PostgreSQL, so limits are shared across app instances. The reverse proxy must overwrite trusted client-IP headers; do not trust arbitrary client-supplied forwarding headers on a directly exposed origin.
+- **Approval email delivery:** when `RESEND_API_KEY` and `RESEND_FROM_EMAIL` are configured, approval links are sent through Resend to the client's stored email address. If email is not configured or the client has no email, the API explicitly returns a one-time manual link. Failed email delivery invalidates the generated token and writes an audit event. The approval URL is not written to logs.
+- **Invoice PDF:** `GET /api/organizations/[organizationId]/invoices/[invoiceId]/pdf` returns a tenant-protected PDF attachment with line items, totals, paid amount and balance.
+- **Invoice email:** `POST /api/organizations/[organizationId]/invoices/[invoiceId]/send` sends the PDF attachment to the verified client contact through Resend and records success/failure in AuditLog.
+- **Invoice online payment:** `POST /api/organizations/[organizationId]/invoices/[invoiceId]/checkout` creates or reuses a pending Midtrans Snap checkout for the remaining invoice balance. Abandoned checkout sessions older than 30 minutes are no longer reused.
+- **Midtrans invoice webhook:** signed Midtrans notifications are matched to the invoice payment order, amount-checked, deduplicated through BillingEvent, and applied atomically to the payment transaction and invoice paid balance. Replays do not double-apply settlement.
+- **Payment configuration:** configure `MIDTRANS_SERVER_KEY`, `MIDTRANS_CLIENT_KEY`, and `MIDTRANS_IS_PRODUCTION` for checkout/webhook use. Configure `RESEND_API_KEY` and `RESEND_FROM_EMAIL` for automatic approval and invoice email. Without Resend, approval links remain explicitly manual and invoice email returns 503.
+- **PDF limitation:** invoice PDF uses a built-in Helvetica renderer without external PDF runtime dependencies. It supports multi-page line items; non-ASCII glyphs outside the basic Latin range are substituted. If full Unicode typography or a branded template is required, use a font-embedded renderer in a later UI/document-design pass.
+
+### Phase 2 verification coverage
+
+- Unit tests cover approval token validation/replay/rate-limit behavior, durable rate-limit decisions, email provider success/failure, PDF structure/multi-page output and Midtrans checkout creation/reuse.
+- PostgreSQL-backed integration tests cover real approval token issuance/expiry/replay, accepted quotation conversion idempotency, invoice creation/issue, partial/full/manual payment, overpayment rejection, PDF download, financial summary aggregates and Midtrans invoice settlement/replay.
+- CI remains the authority for the final result. A successful run on an older commit does not certify later changes; review the run matching the current PR head SHA.
+
+
+### Phase 2 operational UI
+
+- Client approval link now opens the no-index client decision page at `/approval/[token]`, which loads the quotation snapshot and provides explicit accept/reject actions. It uses the same one-time token API and does not require a client account.
+- Organization workspace now links to the quotation manager, invoice manager and finance dashboard.
+- Quotation manager supports manual quotation creation, issuing, sending/rotating approval links, copying manual links, accepted quotation conversion and invoice creation.
+- Invoice manager supports manual invoice creation, issuing, PDF download, email delivery, Midtrans checkout and manual payment recording. Role enforcement remains on the API; UI visibility is not treated as authorization.
+- These UI pages are part of the same Phase 2 feature branch and must pass the full CI suite before the phase is considered ready for review.

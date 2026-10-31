@@ -3,9 +3,13 @@ name: Monorepo quality gates
 on:
   workflow_dispatch:
   push:
-    branches: [main, feat/monorepo-saas-foundation, chore/ci-hardening-phase0-1, feat/crm-leads-api, feat/quotation-management-api]
+    branches: [main, feat/monorepo-saas-foundation, chore/ci-hardening-phase0-1, feat/crm-leads-api, feat/quotation-management-api, feat/phase-2-business-finance-workflows]
   pull_request:
-    branches: [main, feat/monorepo-saas-foundation, feat/crm-leads-api]
+    branches: [main, feat/monorepo-saas-foundation, feat/crm-leads-api, feat/quotation-management-api, feat/phase-2-business-finance-workflows]
+
+concurrency:
+  group: quality-gates-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read

@@ -83,7 +83,85 @@ export async function POST(request: NextRequest) {
   if (payload.currency && payload.currency !== "IDR") return NextResponse.json({ error: "Mata uang tidak didukung." }, { status: 400 });
 
   const subscription = await prisma.subscription.findUnique({ where: { providerOrderId: payload.order_id }, include: { plan: true } });
-  if (!subscription) return NextResponse.json({ error: "Order tidak ditemukan." }, { status: 404 });
+  if (!subscription) {
+    const invoicePayment = await prisma.paymentTransaction.findFirst({
+      where: { providerOrderId: payload.order_id, invoiceId: { not: null }, provider: "MIDTRANS" },
+    });
+    if (!invoicePayment || !invoicePayment.invoiceId) return NextResponse.json({ error: "Order tidak ditemukan." }, { status: 404 });
+    const invoiceId = invoicePayment.invoiceId;
+    if (!new Prisma.Decimal(payload.gross_amount).equals(invoicePayment.amount)) {
+      return NextResponse.json({ error: "Nominal pembayaran tidak cocok." }, { status: 400 });
+    }
+    const invoiceEventId = `${payload.order_id}:${payload.transaction_id}:${payload.transaction_status}:${payload.fraud_status ?? "none"}`;
+    const invoiceSuccessful = isSuccessfulMidtransPayment(payload);
+    const invoicePaymentStatus = storedMidtransPaymentStatus(payload);
+    try {
+      await prisma.$transaction(async (tx) => {
+        await tx.billingEvent.create({
+          data: { subscriptionId: null, provider: "MIDTRANS", providerEventId: invoiceEventId, eventType: payload.transaction_status, payload: payload as Prisma.InputJsonValue, processedAt: new Date() },
+        });
+        const payment = await tx.paymentTransaction.findUnique({ where: { id: invoicePayment.id } });
+        if (!payment || payment.invoiceId !== invoiceId || payment.organizationId !== invoicePayment.organizationId) {
+          throw new Error("INVOICE_PAYMENT_NOT_FOUND");
+        }
+        const referenceOwner = await tx.paymentTransaction.findUnique({ where: { providerRef: payload.transaction_id } });
+        if (referenceOwner && referenceOwner.id !== payment.id) throw new Error("PAYMENT_REFERENCE_CONFLICT");
+        const alreadySuccessful = ["SETTLEMENT", "CAPTURE"].includes(payment.status);
+        if (canApplyPaymentStatus(payment.status, payload.transaction_status, payload.fraud_status)) {
+          await tx.paymentTransaction.update({
+            where: { id: payment.id },
+            data: {
+              status: invoicePaymentStatus,
+              providerRef: payload.transaction_id,
+              paidAt: invoiceSuccessful ? payment.paidAt ?? new Date() : payment.paidAt,
+            },
+          });
+        }
+        if (invoiceSuccessful && !alreadySuccessful) {
+          const invoice = await tx.invoice.findFirst({
+            where: { organizationId: payment.organizationId, id: invoiceId },
+          });
+          if (!invoice || !["SENT", "PARTIALLY_PAID", "OVERDUE"].includes(invoice.status)) {
+            throw new Error("INVOICE_STATE_CONFLICT");
+          }
+          const amount = payment.amount;
+          const newPaidAmount = invoice.paidAmount.plus(amount).toDecimalPlaces(2);
+          if (newPaidAmount.greaterThan(invoice.total)) throw new Error("INVOICE_OVERPAYMENT");
+          const nextStatus = newPaidAmount.greaterThanOrEqualTo(invoice.total) ? "PAID" : "PARTIALLY_PAID";
+          const changed = await tx.invoice.updateMany({
+            where: { organizationId: payment.organizationId, id: invoice.id, status: invoice.status, paidAmount: invoice.paidAmount },
+            data: { paidAmount: newPaidAmount, status: nextStatus },
+          });
+          if (changed.count !== 1) throw new Error("INVOICE_STATE_CONFLICT");
+          await tx.auditLog.create({
+            data: {
+              organizationId: payment.organizationId, action: "invoice.gateway_payment_applied",
+              entityType: "Invoice", entityId: invoice.id,
+              beforeState: { paidAmount: invoice.paidAmount.toString(), status: invoice.status },
+              afterState: { paidAmount: newPaidAmount.toString(), status: nextStatus },
+              metadata: { provider: "MIDTRANS", orderId: payload.order_id, transactionId: payload.transaction_id },
+            },
+          });
+        }
+      }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+        const target = error.meta?.target;
+        const fields = Array.isArray(target) ? target : typeof target === "string" ? [target] : [];
+        if (fields.some((field) => String(field).includes("providerEventId"))) {
+          return NextResponse.json({ received: true, duplicate: true });
+        }
+      }
+      if (error instanceof Error && error.message === "PAYMENT_REFERENCE_CONFLICT") {
+        return NextResponse.json({ error: "Referensi pembayaran sudah digunakan pada transaksi lain." }, { status: 409 });
+      }
+      if (error instanceof Error && ["INVOICE_STATE_CONFLICT", "INVOICE_OVERPAYMENT"].includes(error.message)) {
+        return NextResponse.json({ error: "Status invoice berubah atau pembayaran melebihi sisa tagihan." }, { status: 409 });
+      }
+      return NextResponse.json({ error: "Pembayaran invoice belum dapat diproses." }, { status: 500 });
+    }
+    return NextResponse.json({ received: true });
+  }
   if (subscription.status === "CANCELED" || subscription.status === "EXPIRED") return NextResponse.json({ error: "Langganan ini sudah ditutup." }, { status: 409 });
   // Prefer the immutable checkout snapshot. The plan-price fallback is only
   // for historical subscriptions created before checkoutAmount was introduced.

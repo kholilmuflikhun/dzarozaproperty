@@ -13,7 +13,7 @@ const { prisma, PrismaClientKnownRequestError } = vi.hoisted(() => {
     }
   }
   return {
-    prisma: { subscription: { findUnique: vi.fn() }, $transaction: vi.fn() },
+    prisma: { subscription: { findUnique: vi.fn() }, paymentTransaction: { findFirst: vi.fn() }, $transaction: vi.fn() },
     PrismaClientKnownRequestError,
   };
 });
