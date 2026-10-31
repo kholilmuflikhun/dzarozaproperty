@@ -19,7 +19,7 @@ The original marketing Next.js configuration, app routes, components, libraries,
 5. Existing Midtrans, Google Sheets, Redis, Blob and OAuth environment variables are configured in the marketing Vercel project.
 6. Vercel preview is healthy before production domain/DNS changes.
 
-Source relocation and repository workspace files are committed. CI checks are being validated on the CI-hardening pull request. Vercel environment configuration and a healthy preview have not been independently verified. Do not mark Phase 0 complete based on file relocation or CI alone.
+Source relocation and repository workspace files are committed. CI validates the repository build and smoke-test surface, but Vercel environment configuration and a healthy deployed preview have not been independently verified. Do not mark Phase 0 complete based on file relocation or CI alone.
 
 ## Phase 1 — database and identity
 
@@ -38,7 +38,9 @@ Ops uses NextAuth Google OAuth with JWT sessions. Google email must be verified.
 - `requireTenantRole` applies role authorization for owner/admin operations.
 - Organization creation, membership owner assignment and audit record are one database transaction.
 - Organization summary queries are scoped by the authorized organization ID.
-- A pure tenant-policy unit test rejects a different tenant or user.
+- Unit tests cover tenant policy and mocked endpoint authorization behavior.
+- PostgreSQL-backed route-handler integration tests now cover Projects and Clients read isolation (authorized tenant sees only its own records; cross-tenant requests return 403; unauthenticated requests return 401). Members integration tests cover cross-tenant and unauthenticated denial.
+- These tests invoke Next.js route handlers directly with a real PostgreSQL database and mock only the NextAuth session boundary. They are not live-server HTTP transport E2E tests.
 - Future business repositories must accept a verified tenant context and include organization scope in every read/write; do not accept raw organization IDs as authorization.
 
 ### Subscription and payment
@@ -57,7 +59,7 @@ License secrets use cryptographically secure random bytes. Only SHA-256 hashes a
 2. Prisma client generation and schema validation pass.
 3. Google OAuth login, verified email handling, session persistence and logout pass in a configured preview.
 4. Organization create/list and owner membership work.
-5. A user without membership receives 403/404 for another tenant's data; cross-tenant HTTP integration tests pass.
+5. PostgreSQL-backed route-handler tests cover Projects, Clients and Members tenant access boundaries; live HTTP E2E remains outstanding.
 6. Owner/admin-only subscription creation is enforced.
 7. Midtrans invalid signature, wrong amount, unknown order, pending, settlement, accepted capture and duplicate webhook cases are tested.
 8. License plaintext is never persisted or logged; only its hash is stored.
@@ -70,7 +72,8 @@ License secrets use cryptographically secure random bytes. Only SHA-256 hashes a
 - Ops login, organization dashboard, membership checks, organization APIs and summary endpoint have been added.
 - Subscription checkout, Midtrans webhook verification, plan management endpoint, license secret primitives and entitlement resolver have been added.
 - Unit tests cover tenant matching, license hashing/verification and Midtrans signature/status logic.
+- PostgreSQL-backed route-handler integration tests cover tenant isolation for Projects and Clients, plus authorization denial for Members. The tests use the real Prisma/PostgreSQL database and mock the NextAuth session boundary; they do not exercise a running HTTP server.
 - CI workflow uses read-only repository permissions, pnpm dependency caching and frozen-lockfile installation. It validates/applies the committed Prisma migration, checks tenant-scoped database constraints, runs type checks and unit tests, builds both apps and executes public-site/Ops smoke tests.
-- CI-hardening changes are on a draft pull request targeting `feat/monorepo-saas-foundation`; they have not been merged. The latest validation run is still in progress.
+- CI-hardening changes are on draft PR #7 targeting `feat/monorepo-saas-foundation`; they have not been merged. Commit `4cc913d` completed all quality gates successfully, including type checks, unit tests, production builds and both smoke tests.
 
-**Not yet verified:** completion of the current CI-hardening run; Google OAuth callback in preview; Midtrans sandbox callback; HTTP-level cross-tenant integration tests; PostgreSQL backup/restore; Vercel deployment and environment configuration for the current baseline. Do not merge to `main` or switch production until all required exit criteria pass.
+**Not yet verified:** Google OAuth callback in preview; Midtrans sandbox callback; live HTTP-level cross-tenant E2E tests; PostgreSQL backup/restore; Vercel deployment and environment configuration for the current baseline. Do not merge to `main` or switch production until all required exit criteria pass.
