@@ -25,10 +25,21 @@ const request = (body: unknown) => new Request("http://localhost/api/organizatio
   method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body),
 }) as never;
 
+type SetupOptions = {
+  actorRole?: string;
+  user?: { id: string; email: string; name: string | null } | null;
+  existing?: { id: string } | null;
+  subscription?: { plan: { maxUsers: number | null } } | null;
+  memberCount?: number;
+};
+
 function setup({
-  actorRole = "OWNER", user = { id: "user-b", email: "member@example.com", name: "Member" },
-  existing = null, subscription = { plan: { maxUsers: 5 } }, memberCount = 1,
-} = {}) {
+  actorRole = "OWNER",
+  user = { id: "user-b", email: "member@example.com", name: "Member" },
+  existing = null,
+  subscription = { plan: { maxUsers: 5 } },
+  memberCount = 1,
+}: SetupOptions = {}) {
   requireTenantRole.mockResolvedValue({ organizationId: "org-a", userId: "owner-a", role: actorRole });
   const tx = {
     user: { findUnique: vi.fn().mockResolvedValue(user) },
