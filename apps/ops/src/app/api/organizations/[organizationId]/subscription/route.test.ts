@@ -82,4 +82,17 @@ describe("POST organization subscription API authorization boundary", () => {
     expect(prisma.plan.findUnique).not.toHaveBeenCalled();
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });
+
+  it("rejects an oversized streamed body even when Content-Length is absent", async () => {
+    vi.stubEnv("MIDTRANS_SERVER_KEY", "test-server-key");
+    vi.stubEnv("MIDTRANS_CLIENT_KEY", "test-client-key");
+    requireTenantRole.mockResolvedValue({ userId: "user-a", role: "OWNER" });
+
+    const response = await POST(request(" ".repeat(8_193)) as never, context("org-a"));
+
+    expect(response.status).toBe(413);
+    expect(prisma.organization.findUnique).not.toHaveBeenCalled();
+    expect(prisma.plan.findUnique).not.toHaveBeenCalled();
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
 });

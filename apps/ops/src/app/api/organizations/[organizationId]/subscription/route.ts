@@ -7,6 +7,46 @@ import { requireTenantRole, toHttpError } from "@/lib/tenant";
 import { createLicenseSecret, hashLicenseSecret } from "@/lib/licensing";
 
 const schema = z.object({ planCode: z.string().min(2).max(40), billingCycle: z.enum(["MONTHLY", "YEARLY"]) });
+const MAX_CHECKOUT_BODY_BYTES = 8_192;
+
+type LimitedJsonResult =
+  | { kind: "ok"; value: unknown }
+  | { kind: "too-large" }
+  | { kind: "invalid" };
+
+async function readLimitedJson(request: NextRequest): Promise<LimitedJsonResult> {
+  const declaredLength = request.headers.get("content-length");
+  if (declaredLength && Number(declaredLength) > MAX_CHECKOUT_BODY_BYTES) return { kind: "too-large" };
+  const reader = request.body?.getReader();
+  if (!reader) return { kind: "invalid" };
+  let totalBytes = 0;
+  const chunks: Uint8Array[] = [];
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (!value) continue;
+      totalBytes += value.byteLength;
+      if (totalBytes > MAX_CHECKOUT_BODY_BYTES) {
+        await reader.cancel();
+        return { kind: "too-large" };
+      }
+      chunks.push(value);
+    }
+    const bytes = new Uint8Array(totalBytes);
+    let offset = 0;
+    for (const chunk of chunks) {
+      bytes.set(chunk, offset);
+      offset += chunk.byteLength;
+    }
+    const text = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+    return { kind: "ok", value: JSON.parse(text) as unknown };
+  } catch {
+    return { kind: "invalid" };
+  } finally {
+    reader.releaseLock();
+  }
+}
 
 function getSnapClient() {
   const serverKey = process.env.MIDTRANS_SERVER_KEY;
@@ -21,8 +61,10 @@ export async function POST(request: NextRequest, context: { params: Promise<{ or
     const membership = await requireTenantRole(organizationId, [MembershipRole.OWNER, MembershipRole.ADMIN]);
     const snap = getSnapClient();
     if (!snap) return NextResponse.json({ error: "Payment gateway belum dikonfigurasi." }, { status: 503 });
-    if (Number(request.headers.get("content-length") ?? 0) > 8_192) return NextResponse.json({ error: "Payload terlalu besar." }, { status: 413 });
-    const parsed = schema.safeParse(await request.json().catch(() => null));
+    const body = await readLimitedJson(request);
+    if (body.kind === "too-large") return NextResponse.json({ error: "Payload terlalu besar." }, { status: 413 });
+    if (body.kind === "invalid") return NextResponse.json({ error: "Payload tidak valid." }, { status: 400 });
+    const parsed = schema.safeParse(body.value);
     if (!parsed.success) return NextResponse.json({ error: "Paket atau siklus pembayaran tidak valid." }, { status: 400 });
 
     const [organization, plan] = await Promise.all([
