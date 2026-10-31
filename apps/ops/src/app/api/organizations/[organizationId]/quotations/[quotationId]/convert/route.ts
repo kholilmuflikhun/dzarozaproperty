@@ -33,6 +33,11 @@ export async function POST(_request: NextRequest, context: { params: Promise<{ o
       if (subscription.plan.maxProjects !== null && projectCount >= subscription.plan.maxProjects) {
         return { kind: "project-limit" as const, limit: subscription.plan.maxProjects, current: projectCount };
       }
+      const claimed = await tx.quotation.updateMany({
+        where: { organizationId, id: quotationId, status: "ACCEPTED", projectId: null },
+        data: { status: "CONVERTED" },
+      });
+      if (claimed.count !== 1) return { kind: "conflict" as const };
       const project = await tx.project.create({
         data: {
           organizationId, clientId: quotation.clientId,
@@ -43,11 +48,10 @@ export async function POST(_request: NextRequest, context: { params: Promise<{ o
           progress: 0,
         },
       });
-      const changed = await tx.quotation.updateMany({
-        where: { organizationId, id: quotationId, status: "ACCEPTED", projectId: null },
-        data: { status: "CONVERTED", projectId: project.id },
+      await tx.quotation.update({
+        where: { organizationId_id: { organizationId, id: quotationId } },
+        data: { projectId: project.id },
       });
-      if (changed.count !== 1) return { kind: "conflict" as const };
       await tx.auditLog.create({
         data: {
           organizationId, actorId: actor.userId, action: "quotation.converted_to_project",
