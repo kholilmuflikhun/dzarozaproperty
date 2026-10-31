@@ -37,7 +37,6 @@ async function readLimitedJson(request: NextRequest, limit = 4_096): Promise<unk
 }
 
 class PayloadTooLargeError extends Error {}
-class InvalidPayloadError extends Error {}
 
 export async function POST(request: NextRequest, context: { params: Promise<{ organizationId: string }> }) {
   try {
@@ -46,9 +45,6 @@ export async function POST(request: NextRequest, context: { params: Promise<{ or
       return NextResponse.json({ error: "Organisasi tidak valid." }, { status: 400 });
     }
     const actor = await requireTenantRole(organizationId, [MembershipRole.OWNER, MembershipRole.ADMIN]);
-    if (actor.role === MembershipRole.ADMIN) {
-      // Organization admins may manage ordinary seats but cannot grant admin privileges.
-    }
     let body: unknown;
     try {
       body = await readLimitedJson(request);
