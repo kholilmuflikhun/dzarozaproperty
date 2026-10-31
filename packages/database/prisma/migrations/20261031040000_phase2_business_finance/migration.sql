@@ -12,6 +12,8 @@ ALTER TABLE "Invoice"
   ADD COLUMN "discount" DECIMAL(14,2) NOT NULL DEFAULT 0,
   ADD COLUMN "tax" DECIMAL(14,2) NOT NULL DEFAULT 0;
 
+CREATE UNIQUE INDEX "Invoice_organizationId_quotationId_key" ON "Invoice"("organizationId", "quotationId");
+
 CREATE INDEX "Invoice_organizationId_quotationId_idx"
   ON "Invoice"("organizationId", "quotationId");
 
