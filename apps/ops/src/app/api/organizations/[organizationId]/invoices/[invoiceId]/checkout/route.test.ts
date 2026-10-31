@@ -17,10 +17,10 @@ vi.mock("@dzaroza/database", () => ({
 }));
 vi.mock("@/lib/tenant", () => ({
   requireTenantRole,
-  toHttpError: () => ({ status: 500, message: "Server error" }),
+  toHttpError: (error: unknown) => ({ status: 500, message: error instanceof Error ? error.message : String(error) }),
 }));
 vi.mock("midtrans-client", () => ({
-  default: { Snap: vi.fn(() => ({ createTransaction })) },
+  default: { Snap: class { createTransaction = createTransaction; } },
 }));
 import { POST } from "./route";
 
@@ -59,7 +59,7 @@ describe("Midtrans invoice checkout", () => {
 
   it("creates a pending payment record and a Midtrans Snap checkout", async () => {
     const response = await POST(request(), context);
-    expect(response.status).toBe(201);
+    expect(response.status, JSON.stringify(await response.clone().json())).toBe(201);
     const payload = await response.json();
     expect(payload).toMatchObject({ paymentId: "payment-a", snapToken: "snap-token", redirectUrl: expect.stringContaining("midtrans"), orderId: expect.stringMatching(/^DZINV-/) });
     expect(prisma.paymentTransaction.create).toHaveBeenCalledWith(expect.objectContaining({
@@ -77,7 +77,7 @@ describe("Midtrans invoice checkout", () => {
   it("reuses an existing unexpired pending checkout instead of creating another order", async () => {
     prisma.paymentTransaction.findFirst.mockResolvedValue({ id: "payment-existing", providerOrderId: "DZINV-EXISTING", checkoutToken: "old-token", checkoutUrl: "https://example.test/checkout" });
     const response = await POST(request(), context);
-    expect(response.status).toBe(200);
+    expect(response.status, JSON.stringify(await response.clone().json())).toBe(200);
     expect(await response.json()).toMatchObject({ paymentId: "payment-existing", snapToken: "old-token", reused: true });
     expect(prisma.paymentTransaction.create).not.toHaveBeenCalled();
     expect(createTransaction).not.toHaveBeenCalled();
@@ -86,7 +86,7 @@ describe("Midtrans invoice checkout", () => {
   it("does not create a checkout for draft invoices", async () => {
     prisma.invoice.findFirst.mockResolvedValue({ ...invoice, status: "DRAFT" });
     const response = await POST(request(), context);
-    expect(response.status).toBe(409);
+    expect(response.status, JSON.stringify(await response.clone().json())).toBe(409);
     expect(prisma.paymentTransaction.create).not.toHaveBeenCalled();
   });
 });
