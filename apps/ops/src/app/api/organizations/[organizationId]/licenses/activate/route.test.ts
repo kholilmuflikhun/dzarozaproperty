@@ -4,12 +4,7 @@ import { NextRequest } from "next/server";
 const { prisma, requireTenantRole, isLicenseEntitled } = vi.hoisted(() => ({
   prisma: {
     license: { findUnique: vi.fn() },
-    licenseActivation: {
-      findUnique: vi.fn(),
-      count: vi.fn(),
-      create: vi.fn(),
-      update: vi.fn(),
-    },
+    licenseActivation: { findUnique: vi.fn(), count: vi.fn(), create: vi.fn(), update: vi.fn() },
     $transaction: vi.fn(),
   },
   requireTenantRole: vi.fn(),
@@ -21,9 +16,7 @@ vi.mock("@dzaroza/database", () => ({
   MembershipRole: { OWNER: "OWNER", ADMIN: "ADMIN", STAFF: "STAFF" },
   Prisma: {
     TransactionIsolationLevel: { Serializable: "Serializable" },
-    PrismaClientKnownRequestError: class PrismaClientKnownRequestError extends Error {
-      code = "UNKNOWN";
-    },
+    PrismaClientKnownRequestError: class PrismaClientKnownRequestError extends Error { code = "UNKNOWN"; },
   },
 }));
 vi.mock("@/lib/tenant", () => ({
@@ -53,11 +46,7 @@ const makeRequest = (organizationId = "org-a") => new NextRequest(`http://localh
   }),
 });
 const validLicense = (organizationId = "org-a") => ({
-  id: "license-a",
-  organizationId,
-  status: "ACTIVE",
-  expiresAt: null,
-  maxActivations: 2,
+  id: "license-a", organizationId, status: "ACTIVE", expiresAt: null, maxActivations: 2,
   subscription: { status: "ACTIVE", currentPeriodEnd: new Date(Date.now() + 86_400_000) },
 });
 
@@ -77,9 +66,7 @@ describe("POST license activation API tenant boundary and lifecycle", () => {
 
   it("does not activate a license owned by another organization", async () => {
     prisma.license.findUnique.mockResolvedValue(validLicense("org-b"));
-
     const response = await POST(makeRequest(), context("org-a"));
-
     expect(response.status).toBe(404);
     expect(prisma.license.findUnique).toHaveBeenCalledTimes(1);
     expect(prisma.licenseActivation.findUnique).not.toHaveBeenCalled();
@@ -90,9 +77,7 @@ describe("POST license activation API tenant boundary and lifecycle", () => {
   it("rejects an expired or non-entitled license before starting an activation transaction", async () => {
     prisma.license.findUnique.mockResolvedValue(validLicense());
     isLicenseEntitled.mockReturnValue(false);
-
     const response = await POST(makeRequest(), context("org-a"));
-
     expect(response.status).toBe(404);
     expect(isLicenseEntitled).toHaveBeenCalledOnce();
     expect(prisma.$transaction).not.toHaveBeenCalled();
@@ -102,18 +87,12 @@ describe("POST license activation API tenant boundary and lifecycle", () => {
     prisma.license.findUnique.mockResolvedValue(validLicense());
     const existing = { id: "activation-a", revokedAt: null };
     const updated = { id: "activation-a", activatedAt: new Date("2026-10-01T00:00:00.000Z") };
-    const tx = {
-      licenseActivation: {
-        findUnique: vi.fn().mockResolvedValue(existing),
-        count: vi.fn(),
-        update: vi.fn().mockResolvedValue(updated),
-        create: vi.fn(),
-      },
-    };
+    const tx = { licenseActivation: {
+      findUnique: vi.fn().mockResolvedValue(existing), count: vi.fn(),
+      update: vi.fn().mockResolvedValue(updated), create: vi.fn(),
+    } };
     prisma.$transaction.mockImplementation(async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx));
-
     const response = await POST(makeRequest(), context("org-a"));
-
     expect(response.status).toBe(200);
     expect(tx.licenseActivation.update).toHaveBeenCalledWith(expect.objectContaining({
       where: { id: "activation-a" },
@@ -122,25 +101,18 @@ describe("POST license activation API tenant boundary and lifecycle", () => {
     expect(tx.licenseActivation.count).not.toHaveBeenCalled();
     expect(tx.licenseActivation.create).not.toHaveBeenCalled();
     await expect(response.json()).resolves.toEqual({
-      activationId: "activation-a",
-      activatedAt: updated.activatedAt,
+      activationId: "activation-a", activatedAt: updated.activatedAt.toISOString(),
     });
   });
 
   it("rejects a new installation when the activation limit has been reached", async () => {
     prisma.license.findUnique.mockResolvedValue(validLicense());
-    const tx = {
-      licenseActivation: {
-        findUnique: vi.fn().mockResolvedValue(null),
-        count: vi.fn().mockResolvedValue(2),
-        update: vi.fn(),
-        create: vi.fn(),
-      },
-    };
+    const tx = { licenseActivation: {
+      findUnique: vi.fn().mockResolvedValue(null), count: vi.fn().mockResolvedValue(2),
+      update: vi.fn(), create: vi.fn(),
+    } };
     prisma.$transaction.mockImplementation(async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx));
-
     const response = await POST(makeRequest(), context("org-a"));
-
     expect(response.status).toBe(409);
     expect(tx.licenseActivation.count).toHaveBeenCalledWith({ where: { licenseId: "license-a", revokedAt: null } });
     expect(tx.licenseActivation.create).not.toHaveBeenCalled();
@@ -149,29 +121,20 @@ describe("POST license activation API tenant boundary and lifecycle", () => {
   it("creates a new activation when entitlement and activation capacity are valid", async () => {
     prisma.license.findUnique.mockResolvedValue(validLicense());
     const created = { id: "activation-new", activatedAt: new Date("2026-10-31T00:00:00.000Z") };
-    const tx = {
-      licenseActivation: {
-        findUnique: vi.fn().mockResolvedValue(null),
-        count: vi.fn().mockResolvedValue(1),
-        update: vi.fn(),
-        create: vi.fn().mockResolvedValue(created),
-      },
-    };
+    const tx = { licenseActivation: {
+      findUnique: vi.fn().mockResolvedValue(null), count: vi.fn().mockResolvedValue(1),
+      update: vi.fn(), create: vi.fn().mockResolvedValue(created),
+    } };
     prisma.$transaction.mockImplementation(async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx));
-
     const response = await POST(makeRequest(), context("org-a"));
-
     expect(response.status).toBe(200);
     expect(tx.licenseActivation.create).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({
-        licenseId: "license-a",
-        installationId: "install_12345678",
-        activatedById: "user-a",
+        licenseId: "license-a", installationId: "install_12345678", activatedById: "user-a",
       }),
     }));
     await expect(response.json()).resolves.toEqual({
-      activationId: "activation-new",
-      activatedAt: created.activatedAt,
+      activationId: "activation-new", activatedAt: created.activatedAt.toISOString(),
     });
   });
 });
