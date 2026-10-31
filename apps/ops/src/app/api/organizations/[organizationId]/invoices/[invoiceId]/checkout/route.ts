@@ -40,7 +40,7 @@ export async function POST(_request: NextRequest, context: { params: Promise<{ o
       const remaining = invoice.total.minus(invoice.paidAmount).toDecimalPlaces(2);
       if (!remaining.greaterThan(0) || !remaining.isInteger()) return { kind: "amount-invalid" as const };
       const existing = await tx.paymentTransaction.findFirst({
-        where: { organizationId, invoiceId, provider: "MIDTRANS", status: "PENDING", providerOrderId: { not: null } },
+        where: { organizationId, invoiceId, provider: "MIDTRANS", status: "PENDING", providerOrderId: { not: null }, createdAt: { gt: new Date(Date.now() - 30 * 60 * 1000) } },
         orderBy: { createdAt: "desc" },
       });
       if (existing?.checkoutToken && existing.checkoutUrl) {
