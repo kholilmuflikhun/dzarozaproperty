@@ -66,6 +66,19 @@ describe("organization CRM leads API", () => {
     }));
   });
 
+  it("uses a validated cursor for the next tenant-scoped page", async () => {
+    requireTenantContext.mockResolvedValue({ organizationId: "org-a", userId: "user-a", role: "STAFF" });
+    prisma.lead.findMany.mockResolvedValue([]);
+    const response = await GET(getRequest("?limit=20&cursor=lead-cursor-a"), context);
+    expect(response.status).toBe(200);
+    expect(prisma.lead.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { organizationId: "org-a" },
+      cursor: { id: "lead-cursor-a" },
+      skip: 1,
+      take: 21,
+    }));
+  });
+
   it("rejects invalid filters before querying", async () => {
     requireTenantContext.mockResolvedValue({ organizationId: "org-a", userId: "user-a", role: "STAFF" });
     const response = await GET(getRequest("?stage=UNKNOWN&limit=500"), context);
