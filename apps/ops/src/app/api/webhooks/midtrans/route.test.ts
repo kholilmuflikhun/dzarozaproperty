@@ -212,7 +212,9 @@ describe("Midtrans webhook", () => {
       where: { subscriptionId: "sub-a", status: "ACTIVE" },
       data: { status: "REVOKED" },
     });
-    expect(tx.auditLog.create).not.toHaveBeenCalled();
+    expect(tx.auditLog.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ action: "subscription.payment_failed", entityId: "sub-a" }),
+    }));
   });
 
   it("does not revoke licenses when a late terminal notification arrives for an active subscription", async () => {
