@@ -1,21 +1,24 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { prisma, requireTenantContext, requireTenantRole } = vi.hoisted(() => ({
-  prisma: { quotation: { findMany: vi.fn() }, $transaction: vi.fn() },
-  requireTenantContext: vi.fn(),
-  requireTenantRole: vi.fn(),
-}));
-class TestDecimal {
-  value: number;
-  constructor(value: number | string | TestDecimal) { this.value = value instanceof TestDecimal ? value.value : Number(value); }
-  mul(value: number | string | TestDecimal) { return new TestDecimal(this.value * Number(value instanceof TestDecimal ? value.value : value)); }
-  plus(value: number | string | TestDecimal) { return new TestDecimal(this.value + Number(value instanceof TestDecimal ? value.value : value)); }
-  minus(value: number | string | TestDecimal) { return new TestDecimal(this.value - Number(value instanceof TestDecimal ? value.value : value)); }
-  toDecimalPlaces(dp: number) { const factor = 10 ** dp; return new TestDecimal(Math.round((this.value + Number.EPSILON) * factor) / factor); }
-  greaterThan(value: number | string) { return this.value > Number(value); }
-  lessThan(value: number | string) { return this.value < Number(value); }
-  toString() { return this.value.toFixed(2); }
-}
+const { prisma, requireTenantContext, requireTenantRole, TestDecimal } = vi.hoisted(() => {
+  class TestDecimal {
+    value: number;
+    constructor(value: number | string | TestDecimal) { this.value = value instanceof TestDecimal ? value.value : Number(value); }
+    mul(value: number | string | TestDecimal) { return new TestDecimal(this.value * Number(value instanceof TestDecimal ? value.value : value)); }
+    plus(value: number | string | TestDecimal) { return new TestDecimal(this.value + Number(value instanceof TestDecimal ? value.value : value)); }
+    minus(value: number | string | TestDecimal) { return new TestDecimal(this.value - Number(value instanceof TestDecimal ? value.value : value)); }
+    toDecimalPlaces(dp: number) { const factor = 10 ** dp; return new TestDecimal(Math.round((this.value + Number.EPSILON) * factor) / factor); }
+    greaterThan(value: number | string) { return this.value > Number(value); }
+    lessThan(value: number | string) { return this.value < Number(value); }
+    toString() { return this.value.toFixed(2); }
+  }
+  return {
+    prisma: { quotation: { findMany: vi.fn() }, $transaction: vi.fn() },
+    requireTenantContext: vi.fn(),
+    requireTenantRole: vi.fn(),
+    TestDecimal,
+  };
+});
 vi.mock("@dzaroza/database", () => ({
   prisma,
   MembershipRole: { OWNER: "OWNER", ADMIN: "ADMIN", PROJECT_MANAGER: "PROJECT_MANAGER", SALES: "SALES" },
