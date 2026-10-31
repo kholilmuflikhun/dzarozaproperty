@@ -3,12 +3,12 @@ name: Monorepo quality gates
 on:
   workflow_dispatch:
   push:
-    branches: [main, feat/monorepo-saas-foundation]
+    branches: [main, feat/monorepo-saas-foundation, chore/ci-hardening-phase0-1, feat/crm-leads-api]
   pull_request:
-    branches: [main]
+    branches: [main, feat/monorepo-saas-foundation]
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   validate:
@@ -48,21 +48,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: pnpm
       - name: Install workspace dependencies
-        run: pnpm install --no-frozen-lockfile
-      - name: Generate initial Prisma migration when absent
-        run: |
-          if [ ! -f packages/database/prisma/migrations/20261031000000_init/migration.sql ]; then
-            mkdir -p packages/database/prisma/migrations/20261031000000_init
-            pnpm --filter @dzaroza/database exec prisma migrate diff --from-empty --to-schema-datamodel prisma/schema.prisma --script > packages/database/prisma/migrations/20261031000000_init/migration.sql
-          fi
-      - name: Commit generated pnpm lockfile and Prisma migration
-        if: github.event_name == 'push' && github.ref_name == 'feat/monorepo-saas-foundation'
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: "chore: commit generated pnpm lockfile and initial migration"
-          branch: feat/monorepo-saas-foundation
-          file_pattern: pnpm-lock.yaml packages/database/prisma/migrations/**
+        run: pnpm install --frozen-lockfile
       - name: Validate Prisma schema
         run: pnpm --filter @dzaroza/database exec prisma validate --schema prisma/schema.prisma
       - name: Generate Prisma client
@@ -100,10 +88,3 @@ jobs:
             sleep 2
           done
           curl --fail --silent http://127.0.0.1:3001/login >/dev/null
-      - name: Upload generated lockfile and initial migration
-        uses: actions/upload-artifact@v4
-        with:
-          name: monorepo-lock-and-migration
-          path: |
-            pnpm-lock.yaml
-            packages/database/prisma/migrations/
