@@ -315,6 +315,7 @@ model Invoice {
   payments PaymentTransaction[]
   @@unique([organizationId,number])
   @@index([organizationId,status,dueAt])
+  @@unique([organizationId,quotationId])
   @@index([organizationId,quotationId])
 }
 model InvoiceItem {
