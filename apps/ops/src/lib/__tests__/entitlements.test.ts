@@ -22,6 +22,14 @@ describe("subscription entitlements", () => {
     const result = computeEntitlements({ status: "INCOMPLETE", currentPeriodEnd: new Date("2026-11-30T00:00:00.000Z"), plan }, now);
     expect(result.active).toBe(false);
   });
+  it("allows an active license during an entitled trial period", () => {
+    expect(isLicenseEntitled({
+      status: "ACTIVE",
+      expiresAt: new Date("2026-11-15T00:00:00Z"),
+      subscriptionStatus: "TRIALING",
+      periodEnd: new Date("2026-11-15T00:00:00Z"),
+    }, now)).toBe(true);
+  });
   it("validates active license against its paid subscription and expiry", () => {
     expect(isLicenseEntitled({ status: "ACTIVE", expiresAt: new Date("2026-11-30T00:00:00Z"), subscriptionStatus: "ACTIVE", periodEnd: new Date("2026-11-30T00:00:00Z") }, now)).toBe(true);
     expect(isLicenseEntitled({ status: "REVOKED", expiresAt: null, subscriptionStatus: "ACTIVE", periodEnd: new Date("2026-11-30T00:00:00Z") }, now)).toBe(false);

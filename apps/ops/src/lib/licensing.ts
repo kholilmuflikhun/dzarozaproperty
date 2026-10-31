@@ -27,7 +27,7 @@ export function computeEntitlements(subscription: EntitlementSource, now = new D
   };
 }
 export function isLicenseEntitled(input: { status: string; expiresAt: Date | null; subscriptionStatus: string; periodEnd: Date | null }, now = new Date()) {
-  return input.status === "ACTIVE" && input.subscriptionStatus === "ACTIVE" && Boolean(input.periodEnd && input.periodEnd > now) && (!input.expiresAt || input.expiresAt > now);
+  return input.status === "ACTIVE" && ["ACTIVE", "TRIALING"].includes(input.subscriptionStatus) && Boolean(input.periodEnd && input.periodEnd > now) && (!input.expiresAt || input.expiresAt > now);
 }
 export async function getEntitlements(organizationId: string) {
   const subscription = await prisma.subscription.findFirst({ where: { organizationId }, include: { plan: true }, orderBy: { createdAt: "desc" } });
