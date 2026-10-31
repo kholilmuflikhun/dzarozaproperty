@@ -54,7 +54,6 @@ function setupTransaction() {
   };
   prisma.$transaction.mockImplementation(async (
     callback: (client: typeof tx) => Promise<unknown>,
-    options: unknown,
   ) => {
     await callback(tx);
     return prisma.plan.upsert.mock.results.at(-1)?.value;
@@ -156,6 +155,35 @@ describe("platform plan administration", () => {
           maxUsers: 10, maxProjects: 20, maxStorageMb: 1024,
           featureFlags: { crm: true, finance: true },
         }),
+      }),
+    });
+  });
+
+  it("allows an administrator to deactivate a plan and explicitly clear its description", async () => {
+    getServerSession.mockResolvedValue({ user: { id: "admin-a", isPlatformAdmin: true } });
+    const existing = {
+      id: "plan-a", code: "PRO", name: "Professional", description: "Old description",
+      monthlyPrice: { toString: () => "150000" }, yearlyPrice: { toString: () => "1500000" },
+      currency: "IDR", maxUsers: 10, maxProjects: 20, maxStorageMb: 1024,
+      maxActivations: 3, featureFlags: { crm: true }, isActive: true,
+    };
+    const saved = {
+      ...existing, description: null, isActive: false,
+    };
+    prisma.plan.findUnique.mockResolvedValue(existing);
+    prisma.plan.upsert.mockResolvedValue(saved);
+    const tx = setupTransaction();
+
+    const response = await POST(request({ ...payload, description: null, isActive: false }));
+
+    expect(response.status).toBe(200);
+    expect(tx.tx.plan.upsert).toHaveBeenCalledWith(expect.objectContaining({
+      update: expect.objectContaining({ description: null, isActive: false }),
+    }));
+    expect(tx.tx.platformAuditLog.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        beforeState: expect.objectContaining({ description: "Old description", isActive: true }),
+        afterState: expect.objectContaining({ description: null, isActive: false }),
       }),
     });
   });

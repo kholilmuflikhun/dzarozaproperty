@@ -7,7 +7,8 @@ import { authOptions } from "@/lib/auth";
 const planSchema = z.object({
   code: z.string().regex(/^[A-Z0-9_-]{2,40}$/),
   name: z.string().min(2).max(80),
-  description: z.string().max(500).optional(),
+  description: z.string().max(500).nullable().optional(),
+  isActive: z.boolean().optional(),
   monthlyPrice: z.number().int().nonnegative(),
   yearlyPrice: z.number().int().nonnegative(),
   currency: z.literal("IDR").default("IDR"),
@@ -76,6 +77,7 @@ export async function POST(request: NextRequest) {
         update: {
           name: input.name,
           description: input.description,
+          isActive: input.isActive,
           monthlyPrice: new Prisma.Decimal(input.monthlyPrice),
           yearlyPrice: new Prisma.Decimal(input.yearlyPrice),
           currency: input.currency,
