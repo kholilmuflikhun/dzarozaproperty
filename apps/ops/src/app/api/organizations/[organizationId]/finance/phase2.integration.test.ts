@@ -1,4 +1,4 @@
-import { createHash, createHmac, randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
@@ -8,6 +8,7 @@ vi.mock("next-auth", () => ({ getServerSession }));
 
 import { prisma } from "@dzaroza/database";
 import { POST as convertQuotation } from "../quotations/[quotationId]/convert/route";
+import { POST as createApprovalLink } from "../quotations/[quotationId]/approval-link/route";
 import { POST as createInvoice } from "../invoices/route";
 import { GET as invoicePdf } from "../invoices/[invoiceId]/pdf/route";
 import { PATCH as updateInvoice } from "../invoices/[invoiceId]/route";
@@ -165,4 +166,25 @@ describe("Phase 2 PostgreSQL business workflow integration", () => {
     const unchanged = await prisma.invoice.findFirstOrThrow({ where: { organizationId, id: newInvoice.id } });
     expect(unchanged.paidAmount.toString()).toBe("500000");
   });
+  it("issues an approval link for the verified client and supports one-time acceptance", async () => {
+    process.env.NEXTAUTH_URL = "http://localhost:3001";
+    delete process.env.RESEND_API_KEY;
+    delete process.env.RESEND_FROM_EMAIL;
+    const quote = await prisma.quotation.create({
+      data: { organizationId, clientId, number: `QT-LINK-${suffix.slice(0, 8)}`, status: "SENT", subtotal: 1000, discount: 0, tax: 0, total: 1000 },
+    });
+    const generated = await createApprovalLink(
+      request(`http://localhost/api/organizations/${organizationId}/quotations/${quote.id}/approval-link`, "POST"),
+      { params: Promise.resolve({ organizationId, quotationId: quote.id }) },
+    );
+    expect(generated.status).toBe(201);
+    const result = await generated.json();
+    expect(result.approval.delivery).toBe("manual");
+    const token = new URL(result.approval.url).pathname.split("/").pop()!;
+    const context = { params: Promise.resolve({ token }) };
+    expect((await publicApprovalGet(request(result.approval.url), context)).status).toBe(200);
+    expect((await publicApprovalPost(request(result.approval.url, "POST", { decision: "ACCEPTED" }), context)).status).toBe(200);
+    expect((await publicApprovalPost(request(result.approval.url, "POST", { decision: "REJECTED" }), context)).status).toBe(409);
+  });
+
 });
