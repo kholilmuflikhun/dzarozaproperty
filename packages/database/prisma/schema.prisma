@@ -271,6 +271,10 @@ model Quotation {
   client Client @relation(fields:[organizationId,clientId],references:[organizationId,id],onDelete:NoAction)
   project Project? @relation(fields:[organizationId,projectId],references:[organizationId,id],onDelete:NoAction)
   items QuotationItem[]
+  invoices Invoice[]
+  approvalTokenHash String? @unique
+  approvalTokenExpiresAt DateTime?
+  approvalTokenUsedAt DateTime?
   @@unique([organizationId,id])
   @@unique([organizationId,number])
   @@index([organizationId,status])
@@ -293,8 +297,12 @@ model Invoice {
   id String @id @default(cuid())
   organizationId String
   projectId String?
+  quotationId String?
   number String
   status String @default("DRAFT")
+  subtotal Decimal @default(0) @db.Decimal(14,2)
+  discount Decimal @default(0) @db.Decimal(14,2)
+  tax Decimal @default(0) @db.Decimal(14,2)
   total Decimal @db.Decimal(14,2)
   paidAmount Decimal @default(0) @db.Decimal(14,2)
   dueAt DateTime?
@@ -302,9 +310,25 @@ model Invoice {
   createdAt DateTime @default(now())
   organization Organization @relation(fields:[organizationId],references:[id],onDelete:Cascade)
   project Project? @relation(fields:[organizationId,projectId],references:[organizationId,id],onDelete:NoAction)
+  quotation Quotation? @relation(fields:[organizationId,quotationId],references:[organizationId,id],onDelete:NoAction)
+  items InvoiceItem[]
   payments PaymentTransaction[]
   @@unique([organizationId,number])
   @@index([organizationId,status,dueAt])
+  @@index([organizationId,quotationId])
+}
+model InvoiceItem {
+  id String @id @default(cuid())
+  organizationId String
+  invoiceId String
+  description String
+  quantity Decimal @db.Decimal(14,3)
+  unitPrice Decimal @db.Decimal(14,2)
+  lineTotal Decimal @db.Decimal(14,2)
+  sortOrder Int @default(0)
+  createdAt DateTime @default(now())
+  invoice Invoice @relation(fields:[organizationId,invoiceId],references:[organizationId,id],onDelete:Cascade)
+  @@index([organizationId,invoiceId,sortOrder])
 }
 model PaymentTransaction {
   id String @id @default(cuid())
