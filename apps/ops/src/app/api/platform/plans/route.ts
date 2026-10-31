@@ -29,7 +29,7 @@ function planAuditSnapshot(plan: {
   maxProjects: number | null;
   maxStorageMb: number | null;
   maxActivations: number;
-  featureFlags: unknown;
+  featureFlags: Prisma.InputJsonValue;
   isActive: boolean;
 }) {
   return {
@@ -45,7 +45,7 @@ function planAuditSnapshot(plan: {
     maxActivations: plan.maxActivations,
     featureFlags: plan.featureFlags,
     isActive: plan.isActive,
-  };
+  } satisfies Prisma.InputJsonObject;
 }
 
 export async function POST(request: NextRequest) {
@@ -93,8 +93,14 @@ export async function POST(request: NextRequest) {
           action: existing ? "plan.updated" : "plan.created",
           entityType: "Plan",
           entityId: saved.id,
-          beforeState: existing ? planAuditSnapshot(existing) : undefined,
-          afterState: planAuditSnapshot(saved),
+          beforeState: existing ? planAuditSnapshot({
+            ...existing,
+            featureFlags: existing.featureFlags as Prisma.InputJsonValue,
+          }) : undefined,
+          afterState: planAuditSnapshot({
+            ...saved,
+            featureFlags: saved.featureFlags as Prisma.InputJsonValue,
+          }),
         },
       });
       return saved;
