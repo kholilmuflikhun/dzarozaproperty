@@ -13,7 +13,7 @@ import { POST as createInvoice } from "../invoices/route";
 import { GET as invoicePdf } from "../invoices/[invoiceId]/pdf/route";
 import { PATCH as updateInvoice } from "../invoices/[invoiceId]/route";
 import { POST as recordPayment } from "../payments/route";
-import { GET as financeSummary } from "../summary/route";
+import { GET as financeSummary } from "./summary/route";
 import { GET as publicApprovalGet, POST as publicApprovalPost } from "../../../public/quotation-approvals/[token]/route";
 import { POST as midtransWebhook } from "../../../webhooks/midtrans/route";
 
@@ -58,6 +58,10 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
+  await prisma.billingEvent.deleteMany({ where: { subscription: { organizationId } } });
+  await prisma.paymentTransaction.deleteMany({ where: { organizationId } });
+  await prisma.license.deleteMany({ where: { organizationId } });
+  await prisma.subscription.deleteMany({ where: { organizationId } });
   await prisma.organization.deleteMany({ where: { id: organizationId } });
   await prisma.user.deleteMany({ where: { id: userId } });
   await prisma.plan.deleteMany({ where: { code: planCode } });
