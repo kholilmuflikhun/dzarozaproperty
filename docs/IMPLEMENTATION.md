@@ -103,7 +103,7 @@ License secrets use cryptographically secure random bytes. Only SHA-256 hashes a
 
 ### Financial dashboard
 
-- Tenant-scoped summary endpoint reports current-month invoiced value, settled invoice collections, expenses, net cash flow, outstanding receivables and a six-month collection/expense trend.
+- Tenant-scoped summary endpoint and organization finance dashboard UI report current-month invoiced value, settled invoice collections, expenses, net cash flow, outstanding receivables and a six-month collection/expense trend. The workspace links to `/dashboard/[organizationId]/finance`.
 - Operational income is based on settled invoice payments, not merely issued invoice value. Subscription payments are excluded from tenant operating revenue. Expenses use their recorded `incurredAt` date.
 
 ### Phase 2 — remaining validation and exit criteria
