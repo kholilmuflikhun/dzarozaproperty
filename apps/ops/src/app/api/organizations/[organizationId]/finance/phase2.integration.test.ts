@@ -80,6 +80,19 @@ describe("Phase 2 PostgreSQL business workflow integration", () => {
     expect(replay.status).toBe(409);
   });
 
+  it("rejects an expired approval token", async () => {
+    const expiredQuote = await prisma.quotation.create({
+      data: { organizationId, clientId, number: `QT-EXP-${suffix.slice(0, 8)}`, status: "SENT", subtotal: 1000, discount: 0, tax: 0, total: 1000 },
+    });
+    const rawToken = randomBytes(32).toString("base64url");
+    await prisma.quotation.update({
+      where: { organizationId_id: { organizationId, id: expiredQuote.id } },
+      data: { approvalTokenHash: createHash("sha256").update(rawToken).digest("hex"), approvalTokenExpiresAt: new Date(Date.now() - 60_000) },
+    });
+    const response = await publicApprovalGet(request(`http://localhost/api/public/quotation-approvals/${rawToken}`), { params: Promise.resolve({ token: rawToken }) });
+    expect(response.status).toBe(404);
+  });
+
   it("converts an accepted quotation exactly once and enforces tenant ownership", async () => {
     const first = await convertQuotation(request(`http://localhost/api/organizations/${organizationId}/quotations/${quotationId}`, "POST"), { params: Promise.resolve({ organizationId, quotationId }) });
     expect(first.status).toBe(201);
@@ -146,5 +159,10 @@ describe("Phase 2 PostgreSQL business workflow integration", () => {
     const updated = await prisma.invoice.findFirstOrThrow({ where: { organizationId, id: newInvoice.id } });
     expect(updated.status).toBe("PAID");
     expect(updated.paidAmount.toString()).toBe("500000");
+    const duplicate = await midtransWebhook(request("http://localhost/api/webhooks/midtrans", "POST", { ...payload, signature_key }));
+    expect(duplicate.status).toBe(200);
+    expect((await duplicate.json()).duplicate).toBe(true);
+    const unchanged = await prisma.invoice.findFirstOrThrow({ where: { organizationId, id: newInvoice.id } });
+    expect(unchanged.paidAmount.toString()).toBe("500000");
   });
 });
