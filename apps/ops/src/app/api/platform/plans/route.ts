@@ -18,58 +18,90 @@ const planSchema = z.object({
   featureFlags: z.record(z.string(), z.boolean()),
 });
 
+function planAuditSnapshot(plan: {
+  code: string;
+  name: string;
+  description: string | null;
+  monthlyPrice: { toString(): string };
+  yearlyPrice: { toString(): string };
+  currency: string;
+  maxUsers: number | null;
+  maxProjects: number | null;
+  maxStorageMb: number | null;
+  maxActivations: number;
+  featureFlags: unknown;
+  isActive: boolean;
+}) {
+  return {
+    code: plan.code,
+    name: plan.name,
+    description: plan.description,
+    monthlyPrice: plan.monthlyPrice.toString(),
+    yearlyPrice: plan.yearlyPrice.toString(),
+    currency: plan.currency,
+    maxUsers: plan.maxUsers,
+    maxProjects: plan.maxProjects,
+    maxStorageMb: plan.maxStorageMb,
+    maxActivations: plan.maxActivations,
+    featureFlags: plan.featureFlags,
+    isActive: plan.isActive,
+  };
+}
+
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.isPlatformAdmin || !session.user.id) {
     return NextResponse.json({ error: "Akses platform admin diperlukan." }, { status: 403 });
   }
+
   const parsed = planSchema.safeParse(await request.json().catch(() => null));
-  if (!parsed.success) return NextResponse.json({ error: "Konfigurasi paket tidak valid.", issues: parsed.error.flatten() }, { status: 400 });
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Konfigurasi paket tidak valid.", issues: parsed.error.flatten() }, { status: 400 });
+  }
+
   const input = parsed.data;
-  const existing = await prisma.plan.findUnique({ where: { code: input.code } });
-  const plan = await prisma.$transaction(async (tx) => {
-    const saved = await tx.plan.upsert({
-      where: { code: input.code },
-      create: {
-        ...input,
-        monthlyPrice: new Prisma.Decimal(input.monthlyPrice),
-        yearlyPrice: new Prisma.Decimal(input.yearlyPrice),
-        featureFlags: input.featureFlags,
-      },
-      update: {
-        name: input.name,
-        description: input.description,
-        monthlyPrice: new Prisma.Decimal(input.monthlyPrice),
-        yearlyPrice: new Prisma.Decimal(input.yearlyPrice),
-        currency: input.currency,
-        maxUsers: input.maxUsers,
-        maxProjects: input.maxProjects,
-        maxStorageMb: input.maxStorageMb,
-        maxActivations: input.maxActivations,
-        featureFlags: input.featureFlags,
-      },
-    });
-    await tx.platformAuditLog.create({
-      data: {
-        actorId: session.user.id,
-        action: existing ? "plan.updated" : "plan.created",
-        entityType: "Plan",
-        entityId: saved.id,
-        beforeState: existing ? {
-          name: existing.name,
-          monthlyPrice: existing.monthlyPrice.toString(),
-          yearlyPrice: existing.yearlyPrice.toString(),
-          featureFlags: existing.featureFlags,
-        } : undefined,
-        afterState: {
-          name: saved.name,
-          monthlyPrice: saved.monthlyPrice.toString(),
-          yearlyPrice: saved.yearlyPrice.toString(),
-          featureFlags: saved.featureFlags,
+  try {
+    const plan = await prisma.$transaction(async (tx) => {
+      // Read and write under the same serializable transaction so the audit
+      // action and before-state describe the row this transaction actually saw.
+      const existing = await tx.plan.findUnique({ where: { code: input.code } });
+      const saved = await tx.plan.upsert({
+        where: { code: input.code },
+        create: {
+          ...input,
+          monthlyPrice: new Prisma.Decimal(input.monthlyPrice),
+          yearlyPrice: new Prisma.Decimal(input.yearlyPrice),
+          featureFlags: input.featureFlags,
         },
-      },
-    });
-    return saved;
-  });
-  return NextResponse.json({ plan });
+        update: {
+          name: input.name,
+          description: input.description,
+          monthlyPrice: new Prisma.Decimal(input.monthlyPrice),
+          yearlyPrice: new Prisma.Decimal(input.yearlyPrice),
+          currency: input.currency,
+          maxUsers: input.maxUsers,
+          maxProjects: input.maxProjects,
+          maxStorageMb: input.maxStorageMb,
+          maxActivations: input.maxActivations,
+          featureFlags: input.featureFlags,
+        },
+      });
+
+      await tx.platformAuditLog.create({
+        data: {
+          actorId: session.user.id,
+          action: existing ? "plan.updated" : "plan.created",
+          entityType: "Plan",
+          entityId: saved.id,
+          beforeState: existing ? planAuditSnapshot(existing) : undefined,
+          afterState: planAuditSnapshot(saved),
+        },
+      });
+      return saved;
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+
+    return NextResponse.json({ plan });
+  } catch {
+    return NextResponse.json({ error: "Paket gagal disimpan. Silakan coba kembali." }, { status: 500 });
+  }
 }
