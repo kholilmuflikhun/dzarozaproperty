@@ -5,7 +5,7 @@ on:
   push:
     branches: [main, feat/monorepo-saas-foundation, chore/ci-hardening-phase0-1, feat/crm-leads-api, feat/quotation-management-api]
   pull_request:
-    branches: [main, feat/monorepo-saas-foundation]
+    branches: [main, feat/monorepo-saas-foundation, feat/crm-leads-api]
 
 permissions:
   contents: read
