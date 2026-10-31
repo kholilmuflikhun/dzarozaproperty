@@ -93,7 +93,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ o
       const dueAt = input.dueAt === undefined ? current.dueAt : input.dueAt === null ? null : new Date(input.dueAt);
       if (startAt && dueAt && dueAt < startAt) return { kind: "invalid-dates" as const };
 
-      const data: Prisma.ProjectUpdateManyMutationInput = {};
+      const data: Prisma.ProjectUncheckedUpdateManyInput = {};
       if (input.clientId !== undefined) data.clientId = input.clientId;
       if (input.code !== undefined) data.code = input.code;
       if (input.name !== undefined) data.name = input.name;
