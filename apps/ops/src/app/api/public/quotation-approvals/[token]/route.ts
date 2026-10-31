@@ -2,6 +2,7 @@ import { createHash, timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma, prisma } from "@dzaroza/database";
 import { z } from "zod";
+import { consumePublicRateLimit } from "@/lib/public-rate-limit";
 
 export const runtime = "nodejs";
 const decisionSchema = z.object({ decision: z.enum(["ACCEPTED", "REJECTED"]) });
@@ -15,7 +16,9 @@ function tokenMatches(stored: string, supplied: string) {
   return left.length === right.length && timingSafeEqual(left, right);
 }
 
-export async function GET(_request: NextRequest, context: { params: Promise<{ token: string }> }) {
+export async function GET(request: NextRequest, context: { params: Promise<{ token: string }> }) {
+  const rate = await consumePublicRateLimit(request, "quotation-approval-read", 30, 900);
+  if (!rate.allowed) return NextResponse.json({ error: "Terlalu banyak permintaan." }, { status: 429, headers: { "retry-after": String(rate.retryAfterSeconds), "cache-control": "no-store" } });
   const { token } = await context.params;
   if (!/^[A-Za-z0-9_-]{40,64}$/.test(token)) return NextResponse.json({ error: "Tautan persetujuan tidak valid." }, { status: 404 });
   const hash = hashToken(token);
@@ -40,10 +43,12 @@ export async function GET(_request: NextRequest, context: { params: Promise<{ to
       })),
     },
     allowedDecisions: ["ACCEPTED", "REJECTED"],
-  });
+  }, { headers: { "cache-control": "no-store, private", "referrer-policy": "no-referrer" } });
 }
 
 export async function POST(request: NextRequest, context: { params: Promise<{ token: string }> }) {
+  const rate = await consumePublicRateLimit(request, "quotation-approval-decision", 8, 900);
+  if (!rate.allowed) return NextResponse.json({ error: "Terlalu banyak permintaan." }, { status: 429, headers: { "retry-after": String(rate.retryAfterSeconds), "cache-control": "no-store" } });
   const { token } = await context.params;
   if (!/^[A-Za-z0-9_-]{40,64}$/.test(token)) return NextResponse.json({ error: "Tautan persetujuan tidak valid." }, { status: 404 });
   let body: unknown;
@@ -80,7 +85,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ to
       return { number: quotation.number, decision: parsed.data.decision };
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
     if (!result) return NextResponse.json({ error: "Tautan tidak valid, kedaluwarsa, atau sudah pernah digunakan." }, { status: 409 });
-    return NextResponse.json({ message: "Keputusan berhasil dicatat.", quotation: result });
+    return NextResponse.json({ message: "Keputusan berhasil dicatat.", quotation: result }, { headers: { "cache-control": "no-store", "referrer-policy": "no-referrer" } });
   } catch (error) {
     if (typeof error === "object" && error !== null && "code" in error && error.code === "P2034") {
       return NextResponse.json({ error: "Keputusan sedang diproses. Periksa status quotation sebelum mencoba lagi." }, { status: 409 });
