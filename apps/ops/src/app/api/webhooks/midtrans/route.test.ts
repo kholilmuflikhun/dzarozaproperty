@@ -215,6 +215,24 @@ describe("Midtrans webhook", () => {
     expect(tx.auditLog.create).not.toHaveBeenCalled();
   });
 
+  it("does not revoke licenses when a late terminal notification arrives for an active subscription", async () => {
+    prisma.subscription.findUnique.mockResolvedValue({ ...subscription, status: "ACTIVE" });
+    const tx = makeTx({
+      subscription: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
+    });
+    prisma.$transaction.mockImplementation(async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx));
+
+    const response = await POST(makeRequest(makePayload({ transaction_status: "expire" })));
+
+    expect(response.status).toBe(200);
+    expect(tx.subscription.updateMany).toHaveBeenCalledWith({
+      where: { id: "sub-a", status: "INCOMPLETE" },
+      data: { status: "EXPIRED" },
+    });
+    expect(tx.license.updateMany).not.toHaveBeenCalled();
+    expect(tx.auditLog.create).not.toHaveBeenCalled();
+  });
+
   it("rejects notifications for a subscription already closed before opening a transaction", async () => {
     prisma.subscription.findUnique.mockResolvedValue({ ...subscription, status: "EXPIRED" });
     const response = await POST(makeRequest(makePayload()));

@@ -136,11 +136,27 @@ export async function POST(request: NextRequest) {
           data: { organizationId: subscription.organizationId, action: "subscription.payment_confirmed", entityType: "Subscription", entityId: subscription.id, metadata: { provider: "MIDTRANS", transactionId: payload.transaction_id, periodEnd: periodEnd.toISOString() } },
         });
       } else if (terminalFailure) {
-        await tx.subscription.updateMany({
+        const closed = await tx.subscription.updateMany({
           where: { id: subscription.id, status: "INCOMPLETE" },
           data: { status: payload.transaction_status === "cancel" ? "CANCELED" : "EXPIRED" },
         });
-        await tx.license.updateMany({ where: { subscriptionId: subscription.id, status: "ACTIVE" }, data: { status: "REVOKED" } });
+        // A failed/expired notification may arrive late. Revoke licenses only
+        // when this event actually closes the still-incomplete subscription.
+        if (closed.count === 1) {
+          await tx.license.updateMany({
+            where: { subscriptionId: subscription.id, status: "ACTIVE" },
+            data: { status: "REVOKED" },
+          });
+          await tx.auditLog.create({
+            data: {
+              organizationId: subscription.organizationId,
+              action: "subscription.payment_failed",
+              entityType: "Subscription",
+              entityId: subscription.id,
+              metadata: { provider: "MIDTRANS", transactionId: payload.transaction_id, transactionStatus: payload.transaction_status },
+            },
+          });
+        }
       }
     });
   } catch (error) {
