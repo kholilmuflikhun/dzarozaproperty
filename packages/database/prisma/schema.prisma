@@ -1,0 +1,337 @@
+generator client {
+  provider = "prisma-client-js"
+}
+datasource db {
+  provider = "postgresql"
+  url = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+enum MembershipRole {
+  OWNER
+  ADMIN
+  PROJECT_MANAGER
+  FINANCE
+  SALES
+  STAFF
+  CLIENT
+}
+enum SubscriptionStatus {
+  INCOMPLETE
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  PAUSED
+  CANCELED
+  EXPIRED
+}
+enum BillingCycle {
+  MONTHLY
+  YEARLY
+}
+enum LicenseStatus {
+  ACTIVE
+  SUSPENDED
+  REVOKED
+  EXPIRED
+}
+enum ProjectStatus {
+  DRAFT
+  QUOTATION
+  WAITING_APPROVAL
+  SCHEDULED
+  IN_PROGRESS
+  ON_HOLD
+  HANDOVER
+  COMPLETED
+  CANCELED
+  ARCHIVED
+}
+model User {
+  id String @id @default(cuid())
+  email String @unique
+  name String?
+  passwordHash String?
+  isPlatformAdmin Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  memberships Membership[]
+  auditLogs AuditLog[]
+  activations LicenseActivation[]
+  platformAuditLogs PlatformAuditLog[]
+}
+model Organization {
+  id String @id @default(cuid())
+  name String
+  slug String @unique
+  legalName String?
+  timezone String @default("Asia/Jakarta")
+  currency String @default("IDR")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  memberships Membership[]
+  subscriptions Subscription[]
+  licenses License[]
+  clients Client[]
+  leads Lead[]
+  projects Project[]
+  quotations Quotation[]
+  invoices Invoice[]
+  payments PaymentTransaction[]
+  expenses Expense[]
+  auditLogs AuditLog[]
+}
+model Membership {
+  id String @id @default(cuid())
+  organizationId String
+  userId String
+  role MembershipRole @default(STAFF)
+  createdAt DateTime @default(now())
+  organization Organization @relation(fields:[organizationId],references:[id],onDelete:Cascade)
+  user User @relation(fields:[userId],references:[id],onDelete:Cascade)
+  @@unique([organizationId,userId])
+  @@index([userId])
+  @@index([organizationId,role])
+}
+model Plan {
+  id String @id @default(cuid())
+  code String @unique
+  name String
+  description String?
+  isActive Boolean @default(true)
+  monthlyPrice Decimal @db.Decimal(14,2)
+  yearlyPrice Decimal @db.Decimal(14,2)
+  currency String @default("IDR")
+  maxUsers Int?
+  maxProjects Int?
+  maxStorageMb Int?
+  maxActivations Int @default(1)
+  featureFlags Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  subscriptions Subscription[]
+}
+model Subscription {
+  @@unique([organizationId,id])
+  id String @id @default(cuid())
+  organizationId String
+  planId String
+  status SubscriptionStatus @default(INCOMPLETE)
+  billingCycle BillingCycle
+  checkoutAmount Decimal? @db.Decimal(14,2)
+  provider String @default("MIDTRANS")
+  providerCustomerId String?
+  providerSubscriptionId String? @unique
+  providerOrderId String? @unique
+  currentPeriodStart DateTime?
+  currentPeriodEnd DateTime?
+  cancelAtPeriodEnd Boolean @default(false)
+  canceledAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  organization Organization @relation(fields:[organizationId],references:[id])
+  plan Plan @relation(fields:[planId],references:[id])
+  licenses License[]
+  billingEvents BillingEvent[]
+  payments PaymentTransaction[]
+  @@index([organizationId,status])
+  @@index([currentPeriodEnd])
+}
+model License {
+  id String @id @default(cuid())
+  organizationId String
+  subscriptionId String?
+  keyHash String @unique
+  keyPrefix String
+  status LicenseStatus @default(ACTIVE)
+  maxActivations Int @default(1)
+  expiresAt DateTime?
+  lastValidatedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  organization Organization @relation(fields:[organizationId],references:[id])
+  subscription Subscription? @relation(fields:[organizationId,subscriptionId],references:[organizationId,id],onDelete:NoAction)
+  activations LicenseActivation[]
+  @@index([organizationId,status])
+}
+model LicenseActivation {
+  id String @id @default(cuid())
+  licenseId String
+  installationId String
+  label String?
+  fingerprintHash String
+  activatedById String?
+  activatedAt DateTime @default(now())
+  lastSeenAt DateTime @default(now())
+  revokedAt DateTime?
+  license License @relation(fields:[licenseId],references:[id],onDelete:Cascade)
+  activatedBy User? @relation(fields:[activatedById],references:[id])
+  @@unique([licenseId,installationId])
+  @@index([licenseId,revokedAt])
+}
+model BillingEvent {
+  id String @id @default(cuid())
+  subscriptionId String?
+  provider String
+  providerEventId String @unique
+  eventType String
+  payload Json
+  receivedAt DateTime @default(now())
+  processedAt DateTime?
+  failureReason String?
+  subscription Subscription? @relation(fields:[subscriptionId],references:[id])
+  @@index([provider,receivedAt])
+}
+model AuditLog {
+  id String @id @default(cuid())
+  organizationId String
+  actorId String?
+  action String
+  entityType String
+  entityId String
+  beforeState Json?
+  afterState Json?
+  metadata Json?
+  createdAt DateTime @default(now())
+  organization Organization @relation(fields:[organizationId],references:[id],onDelete:Cascade)
+  actor User? @relation(fields:[actorId],references:[id])
+  @@index([organizationId,createdAt])
+  @@index([entityType,entityId])
+}
+model Client {
+  @@unique([organizationId,id])
+  id String @id @default(cuid())
+  organizationId String
+  name String
+  email String?
+  phone String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  organization Organization @relation(fields:[organizationId],references:[id],onDelete:Cascade)
+  leads Lead[]
+  projects Project[]
+  quotations Quotation[]
+  @@index([organizationId,name])
+  @@index([organizationId,email])
+}
+model Lead {
+  id String @id @default(cuid())
+  organizationId String
+  clientId String?
+  title String
+  contactName String
+  phone String?
+  email String?
+  source String?
+  stage String @default("NEW")
+  estimatedValue Decimal? @db.Decimal(14,2)
+  followUpAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  organization Organization @relation(fields:[organizationId],references:[id],onDelete:Cascade)
+  client Client? @relation(fields:[organizationId,clientId],references:[organizationId,id],onDelete:NoAction)
+  @@index([organizationId,stage])
+  @@index([organizationId,followUpAt])
+}
+model Project {
+  @@unique([organizationId,id])
+  id String @id @default(cuid())
+  organizationId String
+  clientId String
+  code String
+  name String
+  status ProjectStatus @default(DRAFT)
+  contractValue Decimal @default(0) @db.Decimal(14,2)
+  progress Int @default(0)
+  startAt DateTime?
+  dueAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  organization Organization @relation(fields:[organizationId],references:[id],onDelete:Cascade)
+  client Client @relation(fields:[organizationId,clientId],references:[organizationId,id],onDelete:NoAction)
+  quotations Quotation[]
+  invoices Invoice[]
+  expenses Expense[]
+  @@unique([organizationId,code])
+  @@index([organizationId,status])
+}
+model Quotation {
+  id String @id @default(cuid())
+  organizationId String
+  clientId String
+  projectId String?
+  number String
+  status String @default("DRAFT")
+  subtotal Decimal @db.Decimal(14,2)
+  discount Decimal @default(0) @db.Decimal(14,2)
+  tax Decimal @default(0) @db.Decimal(14,2)
+  total Decimal @db.Decimal(14,2)
+  issuedAt DateTime?
+  createdAt DateTime @default(now())
+  organization Organization @relation(fields:[organizationId],references:[id],onDelete:Cascade)
+  client Client @relation(fields:[organizationId,clientId],references:[organizationId,id],onDelete:NoAction)
+  project Project? @relation(fields:[organizationId,projectId],references:[organizationId,id],onDelete:NoAction)
+  @@unique([organizationId,number])
+  @@index([organizationId,status])
+}
+model Invoice {
+  @@unique([organizationId,id])
+  id String @id @default(cuid())
+  organizationId String
+  projectId String?
+  number String
+  status String @default("DRAFT")
+  total Decimal @db.Decimal(14,2)
+  paidAmount Decimal @default(0) @db.Decimal(14,2)
+  dueAt DateTime?
+  issuedAt DateTime?
+  createdAt DateTime @default(now())
+  organization Organization @relation(fields:[organizationId],references:[id],onDelete:Cascade)
+  project Project? @relation(fields:[organizationId,projectId],references:[organizationId,id],onDelete:NoAction)
+  payments PaymentTransaction[]
+  @@unique([organizationId,number])
+  @@index([organizationId,status,dueAt])
+}
+model PaymentTransaction {
+  id String @id @default(cuid())
+  organizationId String
+  invoiceId String?
+  subscriptionId String?
+  provider String
+  providerRef String? @unique
+  amount Decimal @db.Decimal(14,2)
+  currency String @default("IDR")
+  status String @default("PENDING")
+  paidAt DateTime?
+  createdAt DateTime @default(now())
+  organization Organization @relation(fields:[organizationId],references:[id],onDelete:Cascade)
+  invoice Invoice? @relation(fields:[organizationId,invoiceId],references:[organizationId,id],onDelete:NoAction)
+  subscription Subscription? @relation(fields:[organizationId,subscriptionId],references:[organizationId,id],onDelete:NoAction)
+  @@index([organizationId,status])
+}
+model Expense {
+  id String @id @default(cuid())
+  organizationId String
+  projectId String?
+  category String
+  description String?
+  amount Decimal @db.Decimal(14,2)
+  incurredAt DateTime
+  createdAt DateTime @default(now())
+  organization Organization @relation(fields:[organizationId],references:[id],onDelete:Cascade)
+  project Project? @relation(fields:[organizationId,projectId],references:[organizationId,id],onDelete:NoAction)
+  @@index([organizationId,incurredAt])
+}
+model PlatformAuditLog {
+  id String @id @default(cuid())
+  actorId String
+  action String
+  entityType String
+  entityId String
+  beforeState Json?
+  afterState Json?
+  metadata Json?
+  createdAt DateTime @default(now())
+  actor User @relation(fields:[actorId],references:[id],onDelete:Restrict)
+  @@index([actorId,createdAt])
+  @@index([entityType,entityId])
+}
