@@ -140,6 +140,46 @@ describe("Midtrans webhook", () => {
     expect(tx.subscription.updateMany).not.toHaveBeenCalled();
   });
 
+  it("activates the subscription for a capture explicitly accepted by Midtrans", async () => {
+    const tx = makeTx();
+    prisma.$transaction.mockImplementation(async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx));
+    const response = await POST(makeRequest(makePayload({
+      transaction_status: "capture",
+      fraud_status: "accept",
+    })));
+    expect(response.status).toBe(200);
+    expect(tx.paymentTransaction.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ status: "CAPTURE", paidAt: expect.any(Date) }),
+    }));
+    expect(tx.subscription.updateMany).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ status: "ACTIVE" }),
+    }));
+    expect(tx.auditLog.create).toHaveBeenCalledOnce();
+  });
+
+  it("expires an incomplete subscription and revokes active licenses on terminal payment failure", async () => {
+    const tx = makeTx();
+    prisma.$transaction.mockImplementation(async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx));
+    const response = await POST(makeRequest(makePayload({ transaction_status: "expire" })));
+    expect(response.status).toBe(200);
+    expect(tx.subscription.updateMany).toHaveBeenCalledWith({
+      where: { id: "sub-a", status: "INCOMPLETE" },
+      data: { status: "EXPIRED" },
+    });
+    expect(tx.license.updateMany).toHaveBeenCalledWith({
+      where: { subscriptionId: "sub-a", status: "ACTIVE" },
+      data: { status: "REVOKED" },
+    });
+    expect(tx.auditLog.create).not.toHaveBeenCalled();
+  });
+
+  it("rejects notifications for a subscription already closed before opening a transaction", async () => {
+    prisma.subscription.findUnique.mockResolvedValue({ ...subscription, status: "EXPIRED" });
+    const response = await POST(makeRequest(makePayload()));
+    expect(response.status).toBe(409);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
   it("stores a challenged capture without activating the subscription", async () => {
     const tx = makeTx();
     prisma.$transaction.mockImplementation(async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx));
