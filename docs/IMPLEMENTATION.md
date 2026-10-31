@@ -39,7 +39,7 @@ Ops uses NextAuth Google OAuth with JWT sessions. Google email must be verified.
 - Organization creation, membership owner assignment and audit record are one database transaction.
 - Organization summary queries are scoped by the authorized organization ID.
 - Unit tests cover tenant policy and mocked endpoint authorization behavior.
-- PostgreSQL-backed route-handler integration tests now cover Projects and Clients read isolation (authorized tenant sees only its own records; cross-tenant requests return 403; unauthenticated requests return 401). Members integration tests cover cross-tenant and unauthenticated denial.
+- PostgreSQL-backed route-handler integration tests cover Projects and Clients read isolation, Members authorization denial, and CRM Leads read/write tenant boundaries (including rejection of a Client ID owned by another organization). The Leads API also has unit coverage for filtering, validation, role authorization, atomic audit logging and pagination limits.
 - These tests invoke Next.js route handlers directly with a real PostgreSQL database and mock only the NextAuth session boundary. They are not live-server HTTP transport E2E tests.
 - Future business repositories must accept a verified tenant context and include organization scope in every read/write; do not accept raw organization IDs as authorization.
 
@@ -72,8 +72,9 @@ License secrets use cryptographically secure random bytes. Only SHA-256 hashes a
 - Ops login, organization dashboard, membership checks, organization APIs and summary endpoint have been added.
 - Subscription checkout, Midtrans webhook verification, plan management endpoint, license secret primitives and entitlement resolver have been added.
 - Unit tests cover tenant matching, license hashing/verification and Midtrans signature/status logic.
-- PostgreSQL-backed route-handler integration tests cover tenant isolation for Projects and Clients, plus authorization denial for Members. The tests use the real Prisma/PostgreSQL database and mock the NextAuth session boundary; they do not exercise a running HTTP server.
+- PostgreSQL-backed route-handler integration tests cover tenant isolation for Projects, Clients and CRM Leads, plus authorization denial for Members. Leads tests additionally cover successful creation with an audit record and rejection of a cross-tenant Client reference. The tests use the real Prisma/PostgreSQL database and mock the NextAuth session boundary; they do not exercise a running HTTP server.
+- A tenant-scoped CRM Leads API is implemented at `/api/organizations/[organizationId]/leads`: authorized listing with bounded `limit` and stage filter; creation restricted to OWNER, ADMIN, PROJECT_MANAGER and SALES; optional same-tenant Client association; input validation; serializable transaction; and atomic audit logging.
 - CI workflow uses read-only repository permissions, pnpm dependency caching and frozen-lockfile installation. It validates/applies the committed Prisma migration, checks tenant-scoped database constraints, runs type checks and unit tests, builds both apps and executes public-site/Ops smoke tests.
-- CI-hardening changes are on draft PR #7 targeting `feat/monorepo-saas-foundation`; they have not been merged. Commit `4cc913d` completed all quality gates successfully, including type checks, unit tests, production builds and both smoke tests.
+- CI-hardening changes are on draft PR #7 targeting `feat/monorepo-saas-foundation`; they have not been merged. Commit `56c6945` completed all quality gates successfully, including type checks, unit tests, production builds and both smoke tests. The subsequent CRM Leads API implementation is on a separate feature branch and awaits its own CI run.
 
 **Not yet verified:** Google OAuth callback in preview; Midtrans sandbox callback; live HTTP-level cross-tenant E2E tests; PostgreSQL backup/restore; Vercel deployment and environment configuration for the current baseline. Do not merge to `main` or switch production until all required exit criteria pass.
