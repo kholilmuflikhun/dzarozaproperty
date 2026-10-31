@@ -22,7 +22,7 @@ export async function POST(_request: NextRequest, context: { params: Promise<{ o
         where: { organizationId, id: invoiceId },
         include: {
           items: { orderBy: { sortOrder: "asc" } },
-          project: { include: { name: true, client: { select: { name: true, email: true } } } },
+          project: { select: { name: true, client: { select: { name: true, email: true } } } },
           quotation: { include: { client: { select: { name: true, email: true } } } },
         },
       }),
