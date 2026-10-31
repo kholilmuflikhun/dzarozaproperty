@@ -270,10 +270,10 @@ model Quotation {
   organization Organization @relation(fields:[organizationId],references:[id],onDelete:Cascade)
   client Client @relation(fields:[organizationId,clientId],references:[organizationId,id],onDelete:NoAction)
   project Project? @relation(fields:[organizationId,projectId],references:[organizationId,id],onDelete:NoAction)
+  items QuotationItem[]
   @@unique([organizationId,id])
   @@unique([organizationId,number])
   @@index([organizationId,status])
-  items QuotationItem[]
 }
 model QuotationItem {
   id String @id @default(cuid())
