@@ -5,7 +5,12 @@ import { NextRequest } from "next/server";
 const { prisma, PrismaClientKnownRequestError } = vi.hoisted(() => {
   class PrismaClientKnownRequestError extends Error {
     code: string;
-    constructor(code: string) { super(code); this.code = code; }
+    meta?: Record<string, unknown>;
+    constructor(code: string, meta?: Record<string, unknown>) {
+      super(code);
+      this.code = code;
+      this.meta = meta;
+    }
   }
   return {
     prisma: { subscription: { findUnique: vi.fn() }, $transaction: vi.fn() },
@@ -141,12 +146,26 @@ describe("Midtrans webhook", () => {
 
   it("returns an idempotent duplicate response for an existing event key", async () => {
     const tx = makeTx();
-    tx.billingEvent.create.mockRejectedValue(new PrismaClientKnownRequestError("P2002"));
+    tx.billingEvent.create.mockRejectedValue(new PrismaClientKnownRequestError("P2002", { target: ["providerEventId"] }));
     prisma.$transaction.mockImplementation(async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx));
     const response = await POST(makeRequest(makePayload()));
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({ received: true, duplicate: true });
     expect(tx.paymentTransaction.create).not.toHaveBeenCalled();
+  });
+
+  it("does not acknowledge a payment-reference uniqueness conflict as a duplicate webhook event", async () => {
+    const tx = makeTx({
+      paymentTransaction: {
+        findUnique: vi.fn().mockResolvedValue(null),
+        create: vi.fn().mockRejectedValue(new PrismaClientKnownRequestError("P2002", { target: ["providerRef"] })),
+        update: vi.fn(),
+      },
+    });
+    prisma.$transaction.mockImplementation(async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx));
+    const response = await POST(makeRequest(makePayload()));
+    expect(response.status).toBe(500);
+    await expect(response.json()).resolves.toEqual({ error: "Webhook belum dapat diproses." });
   });
 
   it("rejects a transaction reference owned by another subscription", async () => {

@@ -144,7 +144,13 @@ export async function POST(request: NextRequest) {
       }
     });
   } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") return NextResponse.json({ received: true, duplicate: true });
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      const target = error.meta?.target;
+      const targetFields = Array.isArray(target) ? target : typeof target === "string" ? [target] : [];
+      if (targetFields.some((field) => String(field).includes("providerEventId"))) {
+        return NextResponse.json({ received: true, duplicate: true });
+      }
+    }
     if (error instanceof Error && error.message === "SUBSCRIPTION_STATE_CONFLICT") return NextResponse.json({ error: "Status langganan berubah sebelum pembayaran diproses." }, { status: 409 });
     if (error instanceof Error && error.message === "PAYMENT_REFERENCE_CONFLICT") return NextResponse.json({ error: "Referensi pembayaran sudah digunakan pada order lain." }, { status: 409 });
     return NextResponse.json({ error: "Webhook belum dapat diproses." }, { status: 500 });
