@@ -88,6 +88,7 @@ export async function POST(request: NextRequest) {
       where: { providerOrderId: payload.order_id, invoiceId: { not: null }, provider: "MIDTRANS" },
     });
     if (!invoicePayment || !invoicePayment.invoiceId) return NextResponse.json({ error: "Order tidak ditemukan." }, { status: 404 });
+    const invoiceId = invoicePayment.invoiceId;
     if (!new Prisma.Decimal(payload.gross_amount).equals(invoicePayment.amount)) {
       return NextResponse.json({ error: "Nominal pembayaran tidak cocok." }, { status: 400 });
     }
@@ -100,7 +101,7 @@ export async function POST(request: NextRequest) {
           data: { subscriptionId: null, provider: "MIDTRANS", providerEventId: invoiceEventId, eventType: payload.transaction_status, payload: payload as Prisma.InputJsonValue, processedAt: new Date() },
         });
         const payment = await tx.paymentTransaction.findUnique({ where: { id: invoicePayment.id } });
-        if (!payment || payment.invoiceId !== invoicePayment.invoiceId || payment.organizationId !== invoicePayment.organizationId) {
+        if (!payment || payment.invoiceId !== invoiceId || payment.organizationId !== invoicePayment.organizationId) {
           throw new Error("INVOICE_PAYMENT_NOT_FOUND");
         }
         const referenceOwner = await tx.paymentTransaction.findUnique({ where: { providerRef: payload.transaction_id } });
@@ -118,7 +119,7 @@ export async function POST(request: NextRequest) {
         }
         if (invoiceSuccessful && !alreadySuccessful) {
           const invoice = await tx.invoice.findFirst({
-            where: { organizationId: payment.organizationId, id: payment.invoiceId },
+            where: { organizationId: payment.organizationId, id: invoiceId },
           });
           if (!invoice || !["SENT", "PARTIALLY_PAID", "OVERDUE"].includes(invoice.status)) {
             throw new Error("INVOICE_STATE_CONFLICT");
