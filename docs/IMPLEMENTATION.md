@@ -116,3 +116,21 @@ License secrets use cryptographically secure random bytes. Only SHA-256 hashes a
 6. PDF invoice output, email delivery, tax configuration, refunds, payment gateway collection and bank reconciliation remain separate follow-up scope.
 
 **Phase 2 status:** implementation has been opened on the feature branch and is awaiting CI plus the test/security hardening above. It is not production-ready until all exit criteria pass.
+
+
+### Phase 2 hardening additions
+
+- **Durable public rate limiting:** approval-link reads are limited to 30 requests per 15 minutes per client address; decisions are limited to 8 per 15 minutes. Buckets are atomically incremented in PostgreSQL, so limits are shared across app instances. The reverse proxy must overwrite trusted client-IP headers; do not trust arbitrary client-supplied forwarding headers on a directly exposed origin.
+- **Approval email delivery:** when `RESEND_API_KEY` and `RESEND_FROM_EMAIL` are configured, approval links are sent through Resend to the client's stored email address. If email is not configured or the client has no email, the API explicitly returns a one-time manual link. Failed email delivery invalidates the generated token and writes an audit event. The approval URL is not written to logs.
+- **Invoice PDF:** `GET /api/organizations/[organizationId]/invoices/[invoiceId]/pdf` returns a tenant-protected PDF attachment with line items, totals, paid amount and balance.
+- **Invoice email:** `POST /api/organizations/[organizationId]/invoices/[invoiceId]/send` sends the PDF attachment to the verified client contact through Resend and records success/failure in AuditLog.
+- **Invoice online payment:** `POST /api/organizations/[organizationId]/invoices/[invoiceId]/checkout` creates or reuses a pending Midtrans Snap checkout for the remaining invoice balance. Abandoned checkout sessions older than 30 minutes are no longer reused.
+- **Midtrans invoice webhook:** signed Midtrans notifications are matched to the invoice payment order, amount-checked, deduplicated through BillingEvent, and applied atomically to the payment transaction and invoice paid balance. Replays do not double-apply settlement.
+- **Payment configuration:** configure `MIDTRANS_SERVER_KEY`, `MIDTRANS_CLIENT_KEY`, and `MIDTRANS_IS_PRODUCTION` for checkout/webhook use. Configure `RESEND_API_KEY` and `RESEND_FROM_EMAIL` for automatic approval and invoice email. Without Resend, approval links remain explicitly manual and invoice email returns 503.
+- **PDF limitation:** invoice PDF uses a built-in Helvetica renderer without external PDF runtime dependencies. It supports multi-page line items; non-ASCII glyphs outside the basic Latin range are substituted. If full Unicode typography or a branded template is required, use a font-embedded renderer in a later UI/document-design pass.
+
+### Phase 2 verification coverage
+
+- Unit tests cover approval token validation/replay/rate-limit behavior, durable rate-limit decisions, email provider success/failure, PDF structure/multi-page output and Midtrans checkout creation/reuse.
+- PostgreSQL-backed integration tests cover real approval token issuance/expiry/replay, accepted quotation conversion idempotency, invoice creation/issue, partial/full/manual payment, overpayment rejection, PDF download, financial summary aggregates and Midtrans invoice settlement/replay.
+- CI remains the authority for the final result. A successful run on an older commit does not certify later changes; review the run matching the current PR head SHA.
