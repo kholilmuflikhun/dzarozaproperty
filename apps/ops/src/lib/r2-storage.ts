@@ -98,7 +98,6 @@ async function signObjectUrl(
   method: R2ObjectMethod,
   objectKey: string,
   expiresIn: number,
-  config = getConfig(),
   contentType?: string,
 ): Promise<R2ObjectUrl> {
   if (!Number.isInteger(expiresIn) || expiresIn < 1 || expiresIn > MAX_PRESIGN_TTL_SECONDS) {
@@ -194,7 +193,7 @@ export function createPresignedUploadUrl(
   expiresIn = DEFAULT_UPLOAD_TTL_SECONDS,
   contentType?: string,
 ) {
-  return signObjectUrl("PUT", objectKey, expiresIn, getConfig(), contentType);
+  return signObjectUrl("PUT", objectKey, expiresIn, contentType);
 }
 
 export function createPresignedDownloadUrl(objectKey: string, expiresIn = DEFAULT_DOWNLOAD_TTL_SECONDS) {
