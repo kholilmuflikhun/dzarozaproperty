@@ -1,11 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { requireTenantContext, createPresignedUploadUrl, createPresignedDownloadUrl, createTenantDocumentKey, findFirst, create } = vi.hoisted(() => ({
+const { requireTenantContext, createPresignedUploadUrl, createPresignedDownloadUrl, createTenantDocumentKey, findFirst, findProject, create } = vi.hoisted(() => ({
   requireTenantContext: vi.fn(),
   createPresignedUploadUrl: vi.fn(),
   createPresignedDownloadUrl: vi.fn(),
   createTenantDocumentKey: vi.fn(),
   findFirst: vi.fn(),
+  findProject: vi.fn(),
   create: vi.fn(),
 }));
 
@@ -25,7 +26,7 @@ vi.mock("@/lib/r2-storage", () => ({
   createTenantDocumentKey,
 }));
 
-vi.mock("@dzaroza/database", () => ({ prisma: { document: { findFirst, create } } }));
+vi.mock("@dzaroza/database", () => ({ ProjectDocumentType: { QUOTATION: "QUOTATION", WORK_AGREEMENT: "WORK_AGREEMENT", PAYMENT_SCHEDULE: "PAYMENT_SCHEDULE", CHANGE_ORDER: "CHANGE_ORDER", PROGRESS_REPORT: "PROGRESS_REPORT", INVOICE: "INVOICE", HANDOVER: "HANDOVER" }, prisma: { document: { findFirst, create }, project: { findFirst: findProject } } }));
 
 import { POST } from "./route";
 
@@ -43,9 +44,11 @@ describe("tenant-scoped R2 presign API", () => {
     createPresignedDownloadUrl.mockReset();
     createTenantDocumentKey.mockReset();
     findFirst.mockReset();
+    findProject.mockReset();
     create.mockReset();
     create.mockResolvedValue({ id: "doc-a" });
     findFirst.mockResolvedValue(null);
+    findProject.mockResolvedValue({ id: "project-a" });
     requireTenantContext.mockResolvedValue({ organizationId: "org-a", userId: "user-a", role: "STAFF" });
     createTenantDocumentKey.mockReturnValue("organizations/org-a/documents/random/file.pdf");
     createPresignedUploadUrl.mockResolvedValue({
