@@ -3,7 +3,7 @@ name: Monorepo quality gates
 on:
   workflow_dispatch:
   push:
-    branches: [main, feat/monorepo-saas-foundation, chore/ci-hardening-phase0-1, feat/crm-leads-api, feat/quotation-management-api, feat/phase-2-business-finance-workflows]
+    branches: [main, feat/monorepo-saas-foundation, chore/ci-hardening-phase0-1, feat/crm-leads-api, feat/quotation-management-api, feat/phase-2-business-finance-workflows, feat/cloudflare-r2-integration]
   pull_request:
     branches: [main, feat/monorepo-saas-foundation, feat/crm-leads-api, feat/quotation-management-api, feat/phase-2-business-finance-workflows]
 
