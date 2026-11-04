@@ -1,7 +1,8 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   createPresignedDownloadUrl,
   createPresignedUploadUrl,
+  headR2Object,
   createTenantDocumentKey,
   isTenantDocumentKey,
 } from "./r2-storage";
@@ -25,6 +26,7 @@ function configureR2() {
 }
 
 afterEach(() => {
+  vi.unstubAllGlobals();
   for (const key of envKeys) {
     const value = previousEnv[key];
     if (value === undefined) delete process.env[key];
@@ -75,6 +77,39 @@ describe("R2 storage adapter", () => {
     expect(new URL(result.url).searchParams.get("X-Amz-Expires")).toBe("300");
     await expect(createPresignedDownloadUrl("organizations/org_123/documents/file.pdf", 3600))
       .rejects.toThrow("expiry must be between");
+  });
+
+
+  it("verifies an uploaded object using a signed HEAD request", async () => {
+    configureR2();
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, {
+      status: 200,
+      headers: {
+        "content-length": "2048",
+        "content-type": "application/pdf",
+        etag: '"r2-etag"',
+      },
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await headR2Object("organizations/org_123/documents/123e4567-e89b-12d3-a456-426614174000/contract.pdf");
+
+    expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining("X-Amz-Signature="), {
+      method: "HEAD",
+      cache: "no-store",
+    });
+    expect(result).toEqual({
+      contentLength: 2048,
+      contentType: "application/pdf",
+      etag: '"r2-etag"',
+    });
+  });
+
+  it("returns null when an uploaded object is missing", async () => {
+    configureR2();
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(null, { status: 404 })));
+    await expect(headR2Object("organizations/org_123/documents/123e4567-e89b-12d3-a456-426614174000/missing.pdf"))
+      .resolves.toBeNull();
   });
 
   it("rejects non-HTTPS and mismatched account endpoints", async () => {
