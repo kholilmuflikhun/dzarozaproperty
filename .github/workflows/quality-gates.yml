@@ -3,9 +3,9 @@ name: Monorepo quality gates
 on:
   workflow_dispatch:
   push:
-    branches: [main, feat/monorepo-saas-foundation, chore/ci-hardening-phase0-1, feat/crm-leads-api, feat/quotation-management-api, feat/phase-2-business-finance-workflows, feat/cloudflare-r2-integration, feat/document-metadata-foundation]
+    branches: [main, feat/monorepo-saas-foundation, chore/ci-hardening-phase0-1, feat/crm-leads-api, feat/quotation-management-api, feat/phase-2-business-finance-workflows, feat/cloudflare-r2-integration, feat/document-metadata-foundation, feat/cloudflare-better-auth]
   pull_request:
-    branches: [main, feat/monorepo-saas-foundation, feat/crm-leads-api, feat/quotation-management-api, feat/phase-2-business-finance-workflows, feat/cloudflare-r2-integration, feat/document-metadata-foundation]
+    branches: [main, feat/monorepo-saas-foundation, feat/crm-leads-api, feat/quotation-management-api, feat/phase-2-business-finance-workflows, feat/cloudflare-r2-integration, feat/document-metadata-foundation, feat/cloudflare-better-auth]
 
 concurrency:
   group: quality-gates-${{ github.workflow }}-${{ github.ref }}
@@ -23,6 +23,8 @@ jobs:
       DIRECT_URL: postgresql://postgres:postgres@localhost:5432/dzaroza?schema=public
       NEXTAUTH_URL: http://localhost:3001
       NEXTAUTH_SECRET: ci-only-not-a-production-secret
+      BETTER_AUTH_URL: http://localhost:3001
+      BETTER_AUTH_SECRET: ci-only-better-auth-secret-for-tests
       GOOGLE_CLIENT_ID: ci-placeholder
       GOOGLE_CLIENT_SECRET: ci-placeholder
       PLATFORM_ADMIN_EMAILS: ci-admin@example.com
