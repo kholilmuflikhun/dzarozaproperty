@@ -367,6 +367,7 @@ model ChangeOrder {
   project Project @relation(fields:[organizationId,projectId],references:[organizationId,id],onDelete:Cascade)
   items ChangeOrderItem[]
   @@unique([organizationId,number])
+  @@unique([organizationId,id])
   @@index([organizationId,projectId,createdAt])
 }
 
