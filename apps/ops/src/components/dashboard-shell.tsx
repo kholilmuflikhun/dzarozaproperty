@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { ArrowUpRight, Building2, CreditCard, FileText, LayoutDashboard, ReceiptText, Wallet } from "lucide-react";
+import { ArrowUpRight, Building2, BriefcaseBusiness, FileText, LayoutDashboard, ReceiptText, Wallet } from "lucide-react";
 
 const navigation = [
   { href: "", label: "Ringkasan", icon: LayoutDashboard },
+  { href: "/projects", label: "Proyek", icon: BriefcaseBusiness },
   { href: "/quotations", label: "Penawaran", icon: FileText },
   { href: "/invoices", label: "Invoice", icon: ReceiptText },
   { href: "/finance", label: "Keuangan", icon: Wallet },
