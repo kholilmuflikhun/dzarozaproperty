@@ -63,14 +63,14 @@ export async function POST(
 
     if (parsed.data.action === "upload") {
       const objectKey = createTenantDocumentKey(organizationId, parsed.data.fileName);
-      const signed = await createPresignedUploadUrl(objectKey, 300);
+      const signed = await createPresignedUploadUrl(objectKey, 300, parsed.data.contentType);
       return NextResponse.json({
         upload: {
           method: signed.method,
           url: signed.url,
           objectKey,
           expiresIn: signed.expiresIn,
-          headers: { "Content-Type": parsed.data.contentType },
+          headers: signed.headers ?? {},
           maxSizeBytes: MAX_FILE_SIZE_BYTES,
         },
       });
