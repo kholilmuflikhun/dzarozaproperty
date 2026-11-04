@@ -1,8 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
-const { getServerSession } = vi.hoisted(() => ({ getServerSession: vi.fn() }));
-vi.mock("next-auth", () => ({ getServerSession }));
+const { getCurrentSession } = vi.hoisted(() => ({ getCurrentSession: vi.fn() }));
+vi.mock("@/lib/auth-session", () => ({ getCurrentSession }));
 
 import { prisma } from "@dzaroza/database";
 import { POST } from "./route";
@@ -39,13 +39,13 @@ afterAll(async () => {
 
 describe("members API with a real PostgreSQL tenant boundary", () => {
   it("rejects an authenticated user who is not a member of the target organization", async () => {
-    getServerSession.mockResolvedValue({ user: { id: userId } });
+    getCurrentSession.mockResolvedValue({ user: { id: userId } });
     const response = await addMember(orgBId);
     expect(response.status).toBe(403);
   });
 
   it("rejects unauthenticated requests before processing membership data", async () => {
-    getServerSession.mockResolvedValue({ user: {} });
+    getCurrentSession.mockResolvedValue({ user: {} });
     const response = await addMember(orgAId);
     expect(response.status).toBe(401);
   });
