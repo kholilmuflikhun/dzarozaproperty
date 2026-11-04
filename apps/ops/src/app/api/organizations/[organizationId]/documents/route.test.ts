@@ -64,6 +64,33 @@ describe("tenant-scoped document metadata API", () => {
     });
   });
 
+  it("returns 403 for document listing when the user is not a member of the organization", async () => {
+    requireTenantContext.mockRejectedValue(new Error("Akses ke organisasi atau tindakan ini tidak diizinkan."));
+    const response = await GET(
+      new Request("http://localhost/api/organizations/org-a/documents") as never,
+      context,
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(body).toEqual({ error: "Akses ke organisasi atau tindakan ini tidak diizinkan." });
+    expect(findMany).not.toHaveBeenCalled();
+  });
+
+  it("returns 403 for document finalization before reading storage when membership is denied", async () => {
+    requireTenantContext.mockRejectedValue(new Error("Akses ke organisasi atau tindakan ini tidak diizinkan."));
+    const response = await POST(request({
+      objectKey: "organizations/org-a/documents/123e4567-e89b-12d3-a456-426614174000/contract.pdf",
+    }), context);
+    const body = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(body).toEqual({ error: "Akses ke organisasi atau tindakan ini tidak diizinkan." });
+    expect(findUnique).not.toHaveBeenCalled();
+    expect(headR2Object).not.toHaveBeenCalled();
+    expect(update).not.toHaveBeenCalled();
+  });
+
   it("lists only available, non-deleted documents for the active tenant", async () => {
     findMany.mockResolvedValue([{
       id: "doc-a", fileName: "contract.pdf", contentType: "application/pdf",
