@@ -105,6 +105,8 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ org
     const result = await prisma.$transaction(async (tx) => {
       const project = await tx.project.findFirst({ where: { organizationId, id: projectId }, select: { id: true, status: true, contractValue: true } });
       if (!project) return null;
+      const existingInvoice = await tx.invoice.findFirst({ where: { organizationId, projectId }, select: { id: true } });
+      if (existingInvoice) return { kind: "invoices-locked" as const };
       const rawWorkspace = input.workspace;
       const workspaceData = {
         ...rawWorkspace,
@@ -151,6 +153,7 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ org
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 
     if (!result) return NextResponse.json({ error: "Proyek tidak ditemukan." }, { status: 404 });
+    if (result.kind === "invoices-locked") return NextResponse.json({ error: "Workspace terkunci setelah invoice dibuat. Untuk menjaga histori kontrak dan tagihan, batalkan seluruh invoice terlebih dahulu sebelum mengubah rincian pekerjaan atau termin." }, { status: 409 });
     if (result.kind === "terms-locked") return NextResponse.json({ error: "Termin sudah memiliki invoice. Untuk menjaga riwayat tagihan, ubah termin hanya setelah invoice terkait diselesaikan atau dibatalkan." }, { status: 409 });
     return NextResponse.json({ result: serialize(result) });
   } catch (error) {
