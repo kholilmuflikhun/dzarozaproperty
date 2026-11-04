@@ -1,11 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { requireTenantContext, createPresignedUploadUrl, createPresignedDownloadUrl, createTenantDocumentKey, findFirst } = vi.hoisted(() => ({
+const { requireTenantContext, createPresignedUploadUrl, createPresignedDownloadUrl, createTenantDocumentKey, findFirst, create } = vi.hoisted(() => ({
   requireTenantContext: vi.fn(),
   createPresignedUploadUrl: vi.fn(),
   createPresignedDownloadUrl: vi.fn(),
   createTenantDocumentKey: vi.fn(),
   findFirst: vi.fn(),
+  create: vi.fn(),
 }));
 
 vi.mock("@/lib/tenant", () => ({
@@ -24,7 +25,7 @@ vi.mock("@/lib/r2-storage", () => ({
   createTenantDocumentKey,
 }));
 
-vi.mock("@dzaroza/database", () => ({ prisma: { document: { findFirst } } }));
+vi.mock("@dzaroza/database", () => ({ prisma: { document: { findFirst, create } } }));
 
 import { POST } from "./route";
 
@@ -42,6 +43,8 @@ describe("tenant-scoped R2 presign API", () => {
     createPresignedDownloadUrl.mockReset();
     createTenantDocumentKey.mockReset();
     findFirst.mockReset();
+    create.mockReset();
+    create.mockResolvedValue({ id: "doc-a" });
     findFirst.mockResolvedValue(null);
     requireTenantContext.mockResolvedValue({ organizationId: "org-a", userId: "user-a", role: "STAFF" });
     createTenantDocumentKey.mockReturnValue("organizations/org-a/documents/random/file.pdf");
@@ -67,6 +70,17 @@ describe("tenant-scoped R2 presign API", () => {
     );
     expect(body.upload.method).toBe("PUT");
     expect(body.upload.expiresIn).toBe(300);
+    expect(body.upload.documentId).toBe("doc-a");
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        organizationId: "org-a",
+        uploadedById: "user-a",
+        fileName: "file.pdf",
+        contentType: "application/pdf",
+        sizeBytes: 1024n,
+        status: "PENDING_UPLOAD",
+      }),
+    }));
   });
 
   it("rejects files with unsupported types or excessive sizes", async () => {
