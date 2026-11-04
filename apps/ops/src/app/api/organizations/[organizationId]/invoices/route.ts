@@ -129,10 +129,11 @@ export async function POST(request: NextRequest, context: { params: Promise<{ or
         include: { items: { orderBy: { sortOrder: "asc" } }, project: { select: { id: true, code: true, name: true } } },
       });
       if (paymentTermId) {
-        await tx.paymentTerm.updateMany({
+        const linkedTerm = await tx.paymentTerm.updateMany({
           where: { organizationId, projectId: projectId!, id: paymentTermId, status: "UNPAID", invoiceId: null },
           data: { invoiceId: invoice.id, status: "INVOICED" },
         });
+        if (linkedTerm.count !== 1) throw new Error("PAYMENT_TERM_LINK_CONFLICT");
       }
       await tx.auditLog.create({
         data: {
@@ -152,6 +153,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ or
   } catch (error) {
     const code = typeof error === "object" && error !== null && "code" in error ? error.code : undefined;
     if (code === "P2002") return NextResponse.json({ error: "Invoice untuk quotation ini sudah ada atau nomor invoice duplikat." }, { status: 409 });
+    if (error instanceof Error && error.message === "PAYMENT_TERM_LINK_CONFLICT") return NextResponse.json({ error: "Termin sudah ditagihkan oleh proses lain. Muat ulang workspace." }, { status: 409 });
     if (code === "P2034") return NextResponse.json({ error: "Perubahan bersamaan terdeteksi. Silakan coba kembali." }, { status: 409 });
     const result = toHttpError(error);
     return NextResponse.json({ error: result.message }, { status: result.status });
