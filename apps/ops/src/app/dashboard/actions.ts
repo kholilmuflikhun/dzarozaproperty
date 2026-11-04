@@ -1,12 +1,11 @@
 "use server";
 
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
+import { getCurrentSession } from "@/lib/auth-session";
 import { prisma } from "@dzaroza/database";
 
 export async function getDashboardData() {
-  const session = await auth.api.getSession({ headers: await headers() });
+  const session = await getCurrentSession();
   if (!session?.user?.id) redirect("/login");
 
   const memberships = await prisma.membership.findMany({
