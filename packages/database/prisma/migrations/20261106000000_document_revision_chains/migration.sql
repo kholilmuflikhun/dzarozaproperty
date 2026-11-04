@@ -7,6 +7,9 @@ CREATE UNIQUE INDEX "Document_organizationId_id_key"
 CREATE INDEX "Document_organizationId_parentDocumentId_version_idx"
   ON "Document"("organizationId", "parentDocumentId", "version");
 
+CREATE UNIQUE INDEX "Document_organizationId_parentDocumentId_version_key"
+  ON "Document"("organizationId", "parentDocumentId", "version");
+
 ALTER TABLE "Document"
   ADD CONSTRAINT "Document_organizationId_parentDocumentId_fkey"
   FOREIGN KEY ("organizationId", "parentDocumentId")
