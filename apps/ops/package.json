@@ -12,6 +12,7 @@
   "dependencies": {
     "@dzaroza/database": "workspace:*",
     "@dzaroza/shared": "workspace:*",
+    "better-auth": "1.7.16",
     "lucide-react": "^1.61.0",
     "midtrans-client": "^1.4.3",
     "next": "16.4.3",
