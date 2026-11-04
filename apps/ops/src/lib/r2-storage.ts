@@ -46,6 +46,8 @@ function getConfig(): R2Config {
     || endpoint.password
     || endpoint.search
     || endpoint.hash
+    || endpoint.port
+    || endpoint.pathname !== "/"
   ) {
     throw new Error("R2_ENDPOINT must be the HTTPS S3 endpoint for the configured Cloudflare account.");
   }
@@ -119,15 +121,19 @@ async function signObjectUrl(
     "X-Amz-Credential": `${config.accessKeyId}/${credentialScope}`,
     "X-Amz-Date": amzDate,
     "X-Amz-Expires": String(expiresIn),
-    "X-Amz-SignedHeaders": "host",
+    "X-Amz-SignedHeaders": contentType ? "content-type;host" : "host",
   });
   const query = canonicalQuery(params);
+  const canonicalHeaders = contentType
+    ? `content-type:${contentType.trim()}\nhost:${url.host}\n`
+    : `host:${url.host}\n`;
+  const signedHeaders = contentType ? "content-type;host" : "host";
   const canonicalRequest = [
     method,
     url.pathname,
     query,
-    `host:${url.host}\n`,
-    "host",
+    canonicalHeaders,
+    signedHeaders,
     "UNSIGNED-PAYLOAD",
   ].join("\n");
   const stringToSign = [
@@ -169,10 +175,16 @@ export function createTenantDocumentKey(organizationId: string, fileName: string
 }
 
 export function isTenantDocumentKey(organizationId: string, objectKey: string): boolean {
-  return /^[a-zA-Z0-9_-]{1,64}$/.test(organizationId)
-    && objectKey.startsWith(`organizations/${organizationId}/documents/`)
-    && !objectKey.includes("\\")
-    && !objectKey.split("/").some((part) => part === "." || part === "..");
+  if (!/^[a-zA-Z0-9_-]{1,64}$/.test(organizationId)) return false;
+  const segments = objectKey.split("/");
+  return segments.length === 5
+    && segments[0] === "organizations"
+    && segments[1] === organizationId
+    && segments[2] === "documents"
+    && /^[0-9a-f-]{36}$/i.test(segments[3])
+    && /^[a-zA-Z0-9._-]{1,100}$/.test(segments[4])
+    && segments[4] !== "."
+    && segments[4] !== "..";
 }
 
 export function createPresignedUploadUrl(
