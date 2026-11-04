@@ -1,8 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
-const { getServerSession } = vi.hoisted(() => ({ getServerSession: vi.fn() }));
-vi.mock("next-auth", () => ({ getServerSession }));
+const { getCurrentSession } = vi.hoisted(() => ({ getCurrentSession: vi.fn() }));
+vi.mock("@/lib/auth-session", () => ({ getCurrentSession }));
 
 import { prisma } from "@dzaroza/database";
 import { GET, POST } from "./route";
@@ -58,7 +58,7 @@ afterAll(async () => {
 
 describe("CRM leads API with a real PostgreSQL tenant boundary", () => {
   it("returns only leads belonging to the authorized organization", async () => {
-    getServerSession.mockResolvedValue({ user: { id: userId } });
+    getCurrentSession.mockResolvedValue({ user: { id: userId } });
     const response = await getLeads(orgAId);
     const payload = await response.json();
 
@@ -68,15 +68,15 @@ describe("CRM leads API with a real PostgreSQL tenant boundary", () => {
   });
 
   it("denies cross-tenant reads and unauthenticated requests", async () => {
-    getServerSession.mockResolvedValue({ user: { id: userId } });
+    getCurrentSession.mockResolvedValue({ user: { id: userId } });
     expect((await getLeads(orgBId)).status).toBe(403);
 
-    getServerSession.mockResolvedValue({ user: {} });
+    getCurrentSession.mockResolvedValue({ user: {} });
     expect((await getLeads(orgAId)).status).toBe(401);
   });
 
   it("creates a lead and its audit record in the authorized tenant", async () => {
-    getServerSession.mockResolvedValue({ user: { id: userId } });
+    getCurrentSession.mockResolvedValue({ user: { id: userId } });
     const response = await createLead(orgAId, {
       title: "New construction opportunity",
       contactName: "Test Contact",
@@ -94,7 +94,7 @@ describe("CRM leads API with a real PostgreSQL tenant boundary", () => {
   });
 
   it("rejects a client from another organization without creating a lead", async () => {
-    getServerSession.mockResolvedValue({ user: { id: userId } });
+    getCurrentSession.mockResolvedValue({ user: { id: userId } });
     const response = await createLead(orgAId, {
       title: "Cross-tenant client attempt",
       contactName: "Test Contact",
