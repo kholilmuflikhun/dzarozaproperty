@@ -31,6 +31,7 @@ const requestSchema = z.discriminatedUnion("action", [
     documentType: z.nativeEnum(ProjectDocumentType).optional(),
     documentNumber: z.string().trim().max(120).optional(),
     metadata: z.record(z.string(), z.unknown()).optional(),
+    parentDocumentId: z.string().trim().min(1).max(64).optional(),
   }).refine((value) => !value.documentType || Boolean(value.projectId), {
     message: "Dokumen bertipe proyek wajib terhubung ke proyek.",
     path: ["projectId"],
@@ -79,6 +80,29 @@ export async function POST(
         }
       }
 
+      let parent: { id: string; projectId: string | null; documentType: ProjectDocumentType | null; documentNumber: string | null; version: number } | null = null;
+      if (parsed.data.parentDocumentId) {
+        parent = await prisma.document.findFirst({
+          where: {
+            id: parsed.data.parentDocumentId,
+            organizationId,
+            status: "AVAILABLE",
+            deletedAt: null,
+          },
+          select: { id: true, projectId: true, documentType: true, documentNumber: true, version: true },
+        });
+        if (!parent) {
+          return NextResponse.json({ error: "Dokumen induk tidak ditemukan pada organisasi ini." }, { status: 404 });
+        }
+        if (
+          parent.projectId !== (parsed.data.projectId ?? null)
+          || parent.documentType !== (parsed.data.documentType ?? null)
+          || parent.documentNumber !== (parsed.data.documentNumber ?? null)
+        ) {
+          return NextResponse.json({ error: "Revisi harus mempertahankan proyek, jenis, dan nomor dokumen induk." }, { status: 409 });
+        }
+      }
+
       const objectKey = createTenantDocumentKey(organizationId, parsed.data.fileName);
       const signed = await createPresignedUploadUrl(objectKey, 300, parsed.data.contentType);
       const document = await prisma.document.create({
@@ -94,6 +118,8 @@ export async function POST(
           documentType: parsed.data.documentType ?? null,
           documentNumber: parsed.data.documentNumber ?? null,
           metadata: parsed.data.metadata as Prisma.InputJsonValue | undefined,
+          parentDocumentId: parent?.id ?? null,
+          version: parent ? parent.version + 1 : 1,
         },
         select: { id: true },
       });
