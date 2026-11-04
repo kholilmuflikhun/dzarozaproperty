@@ -565,7 +565,12 @@ model Document {
   project Project? @relation(fields:[organizationId,projectId],references:[organizationId,id],onDelete:NoAction)
   invoice Invoice? @relation(fields:[organizationId,invoiceId],references:[organizationId,id],onDelete:NoAction)
   uploadedBy User? @relation(fields:[uploadedById],references:[id],onDelete:SetNull)
+  parentDocumentId String?
+  parentDocument Document? @relation("DocumentRevisions", fields:[organizationId,parentDocumentId], references:[organizationId,id], onDelete:NoAction)
+  revisions Document[] @relation("DocumentRevisions")
+  @@unique([organizationId,id])
   @@index([organizationId,status,createdAt])
+  @@index([organizationId,parentDocumentId,version])
   @@index([organizationId,projectId])
   @@index([organizationId,invoiceId])
   @@index([uploadedById])
