@@ -86,6 +86,66 @@ describe("tenant-scoped R2 presign API", () => {
     }));
   });
 
+  it("creates a tenant-scoped revision with the next version and preserved document identity", async () => {
+    findFirst.mockResolvedValue({
+      id: "doc-parent",
+      projectId: "project-a",
+      documentType: "WORK_AGREEMENT",
+      documentNumber: "SPK/001/2026",
+      version: 2,
+    });
+    const response = await POST(request({
+      action: "upload",
+      fileName: "spk-v3.pdf",
+      contentType: "application/pdf",
+      size: 2048,
+      projectId: "project-a",
+      documentType: "WORK_AGREEMENT",
+      documentNumber: "SPK/001/2026",
+      parentDocumentId: "doc-parent",
+    }), context);
+
+    expect(response.status).toBe(200);
+    expect(findFirst).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: "doc-parent", organizationId: "org-a", status: "AVAILABLE", deletedAt: null },
+    }));
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        parentDocumentId: "doc-parent",
+        version: 3,
+        projectId: "project-a",
+        documentType: "WORK_AGREEMENT",
+        documentNumber: "SPK/001/2026",
+      }),
+    }));
+  });
+
+  it("rejects a revision when the selected parent already has a newer child", async () => {
+    findFirst
+      .mockResolvedValueOnce({
+        id: "doc-parent",
+        projectId: "project-a",
+        documentType: "WORK_AGREEMENT",
+        documentNumber: "SPK/001/2026",
+        version: 1,
+      })
+      .mockResolvedValueOnce({ id: "doc-child" });
+    const response = await POST(request({
+      action: "upload",
+      fileName: "spk-old.pdf",
+      contentType: "application/pdf",
+      size: 1024,
+      projectId: "project-a",
+      documentType: "WORK_AGREEMENT",
+      documentNumber: "SPK/001/2026",
+      parentDocumentId: "doc-parent",
+    }), context);
+
+    expect(response.status).toBe(409);
+    expect(createPresignedUploadUrl).not.toHaveBeenCalled();
+    expect(create).not.toHaveBeenCalled();
+  });
+
   it("rejects files with unsupported types or excessive sizes", async () => {
     const unsupported = await POST(request({
       action: "upload", fileName: "script.js", contentType: "application/javascript", size: 10,
