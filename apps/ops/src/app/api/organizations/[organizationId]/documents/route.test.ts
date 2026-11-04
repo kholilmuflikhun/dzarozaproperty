@@ -61,7 +61,6 @@ describe("tenant-scoped document metadata API", () => {
       projectId: null,
       invoiceId: null,
       createdAt: new Date("2026-11-04T00:00:00.000Z"),
-      ...select,
     }));
   });
 
