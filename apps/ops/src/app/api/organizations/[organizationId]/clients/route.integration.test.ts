@@ -1,8 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
-const { getServerSession } = vi.hoisted(() => ({ getServerSession: vi.fn() }));
-vi.mock("next-auth", () => ({ getServerSession }));
+const { getCurrentSession } = vi.hoisted(() => ({ getCurrentSession: vi.fn() }));
+vi.mock("@/lib/auth-session", () => ({ getCurrentSession }));
 
 import { prisma } from "@dzaroza/database";
 import { GET } from "./route";
@@ -41,7 +41,7 @@ afterAll(async () => {
 
 describe("clients API with a real PostgreSQL tenant boundary", () => {
   it("returns only clients belonging to the authorized organization", async () => {
-    getServerSession.mockResolvedValue({ user: { id: userId } });
+    getCurrentSession.mockResolvedValue({ user: { id: userId } });
     const response = await getClients(orgAId);
     const payload = await response.json();
 
@@ -52,13 +52,13 @@ describe("clients API with a real PostgreSQL tenant boundary", () => {
   });
 
   it("denies access to a different organization without querying its data", async () => {
-    getServerSession.mockResolvedValue({ user: { id: userId } });
+    getCurrentSession.mockResolvedValue({ user: { id: userId } });
     const response = await getClients(orgBId);
     expect(response.status).toBe(403);
   });
 
   it("rejects unauthenticated requests", async () => {
-    getServerSession.mockResolvedValue({ user: {} });
+    getCurrentSession.mockResolvedValue({ user: {} });
     const response = await getClients(orgAId);
     expect(response.status).toBe(401);
   });
