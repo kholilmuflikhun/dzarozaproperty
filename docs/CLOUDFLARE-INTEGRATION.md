@@ -13,6 +13,7 @@ This document does not authorize DNS/nameserver changes, production traffic chan
 - R2 is enabled and the account API is accessible (verified 2026-11-04).
 - Three private Standard buckets were provisioned in APAC: `dzaroza-ops-dev`, `dzaroza-ops-preview`, and `dzaroza-ops-prod`.
 - The managed `r2.dev` public-access flag is disabled for all three buckets.
+- The Preview bucket has a narrowly scoped CORS rule for the dedicated Vercel Preview branch alias only: PUT/GET/HEAD, `content-type` request header, `ETag` exposed, 1-hour preflight cache. Dev and Production CORS policies remain unset.
 - A Preview-scoped S3 API token and five sensitive Preview environment-variable entries were reported/configured by the operator. Secret values are never read by the integration.
 - The dedicated Vercel Ops Preview project already exists: `dzaroza-ops-preview` (see `docs/PREVIEW-VERIFICATION.md`). Keep it isolated from the existing Marketing/production Vercel project.
 - The worker workspace is currently a Node.js placeholder. Do not silently convert it into a Cloudflare Worker; choose a queue/runtime adapter only after the use case and deployment model are reviewed.
