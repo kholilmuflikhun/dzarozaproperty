@@ -52,7 +52,7 @@ describe("R2 storage adapter", () => {
   it("creates a short-lived signed PUT URL for the configured private bucket", async () => {
     configureR2();
     const key = "organizations/org_123/documents/file id/kontrak final.pdf";
-    const result = await createPresignedUploadUrl(key, 300);
+    const result = await createPresignedUploadUrl(key, 300, "application/pdf");
     const url = new URL(result.url);
 
     expect(result.method).toBe("PUT");
@@ -62,7 +62,8 @@ describe("R2 storage adapter", () => {
     expect(url.searchParams.get("X-Amz-Algorithm")).toBe("AWS4-HMAC-SHA256");
     expect(url.searchParams.get("X-Amz-Credential")).toContain("preview-access-key/");
     expect(url.searchParams.get("X-Amz-Expires")).toBe("300");
-    expect(url.searchParams.get("X-Amz-SignedHeaders")).toBe("host");
+    expect(url.searchParams.get("X-Amz-SignedHeaders")).toBe("content-type;host");
+    expect(result.headers).toEqual({ "Content-Type": "application/pdf" });
     expect(url.searchParams.get("X-Amz-Signature")).toMatch(/^[a-f0-9]{64}$/);
     expect(result.url).not.toContain("preview-secret-key-do-not-log");
   });
