@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { ProjectDocumentType, prisma } from "@dzaroza/database";
+import { Prisma, ProjectDocumentType, prisma } from "@dzaroza/database";
 import { requireTenantContext, toHttpError } from "@/lib/tenant";
 import {
   createPresignedDownloadUrl,
@@ -93,7 +93,7 @@ export async function POST(
           projectId: parsed.data.projectId ?? null,
           documentType: parsed.data.documentType ?? null,
           documentNumber: parsed.data.documentNumber ?? null,
-          metadata: parsed.data.metadata,
+          metadata: parsed.data.metadata as Prisma.InputJsonValue | undefined,
         },
         select: { id: true },
       });
