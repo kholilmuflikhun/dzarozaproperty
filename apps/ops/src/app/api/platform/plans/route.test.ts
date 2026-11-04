@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { prisma, getServerSession } = vi.hoisted(() => ({
+const { prisma, getCurrentSession } = vi.hoisted(() => ({
   prisma: {
     plan: { findUnique: vi.fn(), upsert: vi.fn() },
     platformAuditLog: { create: vi.fn() },
     $transaction: vi.fn(),
   },
-  getServerSession: vi.fn(),
+  getCurrentSession: vi.fn(),
 }));
 
 vi.mock("@dzaroza/database", () => ({
@@ -20,8 +20,7 @@ vi.mock("@dzaroza/database", () => ({
     TransactionIsolationLevel: { Serializable: "Serializable" },
   },
 }));
-vi.mock("next-auth", () => ({ getServerSession }));
-vi.mock("@/lib/auth", () => ({ authOptions: {} }));
+vi.mock("@/lib/auth-session", () => ({ getCurrentSession }));
 
 import { POST } from "./route";
 
@@ -63,7 +62,7 @@ function setupTransaction() {
 
 describe("platform plan administration", () => {
   beforeEach(() => {
-    getServerSession.mockReset();
+    getCurrentSession.mockReset();
     prisma.plan.findUnique.mockReset();
     prisma.plan.upsert.mockReset();
     prisma.platformAuditLog.create.mockReset();
@@ -71,7 +70,7 @@ describe("platform plan administration", () => {
   });
 
   it("rejects non-admin requests without opening a transaction", async () => {
-    getServerSession.mockResolvedValue({ user: { id: "user-a", isPlatformAdmin: false } });
+    getCurrentSession.mockResolvedValue({ user: { id: "user-a", isPlatformAdmin: false } });
 
     const response = await POST(request());
 
@@ -80,7 +79,7 @@ describe("platform plan administration", () => {
   });
 
   it("rejects invalid plan data before opening a transaction", async () => {
-    getServerSession.mockResolvedValue({ user: { id: "admin-a", isPlatformAdmin: true } });
+    getCurrentSession.mockResolvedValue({ user: { id: "admin-a", isPlatformAdmin: true } });
 
     const response = await POST(request({ ...payload, monthlyPrice: -1 }));
 
@@ -89,7 +88,7 @@ describe("platform plan administration", () => {
   });
 
   it("records a complete created snapshot in the same serializable transaction", async () => {
-    getServerSession.mockResolvedValue({ user: { id: "admin-a", isPlatformAdmin: true } });
+    getCurrentSession.mockResolvedValue({ user: { id: "admin-a", isPlatformAdmin: true } });
     const saved = {
       id: "plan-a", ...payload, isActive: true,
       monthlyPrice: { toString: () => "150000" },
@@ -122,7 +121,7 @@ describe("platform plan administration", () => {
   });
 
   it("records the actual before and after snapshots when updating an existing plan", async () => {
-    getServerSession.mockResolvedValue({ user: { id: "admin-a", isPlatformAdmin: true } });
+    getCurrentSession.mockResolvedValue({ user: { id: "admin-a", isPlatformAdmin: true } });
     const existing = {
       id: "plan-a", code: "PRO", name: "Old name", description: "Old description",
       monthlyPrice: { toString: () => "100000" }, yearlyPrice: { toString: () => "1000000" },
@@ -160,7 +159,7 @@ describe("platform plan administration", () => {
   });
 
   it("allows an administrator to deactivate a plan and explicitly clear its description", async () => {
-    getServerSession.mockResolvedValue({ user: { id: "admin-a", isPlatformAdmin: true } });
+    getCurrentSession.mockResolvedValue({ user: { id: "admin-a", isPlatformAdmin: true } });
     const existing = {
       id: "plan-a", code: "PRO", name: "Professional", description: "Old description",
       monthlyPrice: { toString: () => "150000" }, yearlyPrice: { toString: () => "1500000" },
@@ -189,7 +188,7 @@ describe("platform plan administration", () => {
   });
 
   it("returns a safe error and relies on transaction rollback when audit persistence fails", async () => {
-    getServerSession.mockResolvedValue({ user: { id: "admin-a", isPlatformAdmin: true } });
+    getCurrentSession.mockResolvedValue({ user: { id: "admin-a", isPlatformAdmin: true } });
     prisma.plan.findUnique.mockResolvedValue(null);
     prisma.plan.upsert.mockResolvedValue({
       id: "plan-a", ...payload, isActive: true,
