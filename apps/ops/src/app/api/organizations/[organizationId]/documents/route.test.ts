@@ -65,7 +65,7 @@ describe("tenant-scoped document metadata API", () => {
   });
 
   it("returns 403 for document listing when the user is not a member of the organization", async () => {
-    requireTenantContext.mockRejectedValue(new Error("Akses ke organisasi atau tindakan ini tidak diizinkan."));
+    requireTenantContext.mockRejectedValue(Object.assign(new Error("Akses ke organisasi atau tindakan ini tidak diizinkan."), { name: "ForbiddenError" }));
     const response = await GET(
       new Request("http://localhost/api/organizations/org-a/documents") as never,
       context,
@@ -78,7 +78,7 @@ describe("tenant-scoped document metadata API", () => {
   });
 
   it("returns 403 for document finalization before reading storage when membership is denied", async () => {
-    requireTenantContext.mockRejectedValue(new Error("Akses ke organisasi atau tindakan ini tidak diizinkan."));
+    requireTenantContext.mockRejectedValue(Object.assign(new Error("Akses ke organisasi atau tindakan ini tidak diizinkan."), { name: "ForbiddenError" }));
     const response = await POST(request({
       objectKey: "organizations/org-a/documents/123e4567-e89b-12d3-a456-426614174000/contract.pdf",
     }), context);
