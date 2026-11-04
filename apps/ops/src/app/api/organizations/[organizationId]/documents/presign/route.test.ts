@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { requireTenantContext, createPresignedUploadUrl, createPresignedDownloadUrl, createTenantDocumentKey, isTenantDocumentKey } = vi.hoisted(() => ({
+const { requireTenantContext, createPresignedUploadUrl, createPresignedDownloadUrl, createTenantDocumentKey, findFirst } = vi.hoisted(() => ({
   requireTenantContext: vi.fn(),
   createPresignedUploadUrl: vi.fn(),
   createPresignedDownloadUrl: vi.fn(),
   createTenantDocumentKey: vi.fn(),
-  isTenantDocumentKey: vi.fn(),
+  findFirst: vi.fn(),
 }));
 
 vi.mock("@/lib/tenant", () => ({
@@ -22,8 +22,9 @@ vi.mock("@/lib/r2-storage", () => ({
   createPresignedUploadUrl,
   createPresignedDownloadUrl,
   createTenantDocumentKey,
-  isTenantDocumentKey,
 }));
+
+vi.mock("@dzaroza/database", () => ({ prisma: { document: { findFirst } } }));
 
 import { POST } from "./route";
 
@@ -40,7 +41,8 @@ describe("tenant-scoped R2 presign API", () => {
     createPresignedUploadUrl.mockReset();
     createPresignedDownloadUrl.mockReset();
     createTenantDocumentKey.mockReset();
-    isTenantDocumentKey.mockReset();
+    findFirst.mockReset();
+    findFirst.mockResolvedValue(null);
     requireTenantContext.mockResolvedValue({ organizationId: "org-a", userId: "user-a", role: "STAFF" });
     createTenantDocumentKey.mockReturnValue("organizations/org-a/documents/random/file.pdf");
     createPresignedUploadUrl.mockResolvedValue({
@@ -79,19 +81,21 @@ describe("tenant-scoped R2 presign API", () => {
     expect(createPresignedUploadUrl).not.toHaveBeenCalled();
   });
 
-  it("does not issue a download URL for a key outside the active tenant", async () => {
-    isTenantDocumentKey.mockReturnValue(false);
+  it("does not issue a download URL for a missing or foreign tenant document", async () => {
     const response = await POST(request({
-      action: "download", objectKey: "organizations/org-b/documents/private.pdf",
+      action: "download", documentId: "doc-foreign",
     }), context);
     expect(response.status).toBe(404);
+    expect(findFirst).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: "doc-foreign", organizationId: "org-a", status: "AVAILABLE", deletedAt: null },
+    }));
     expect(createPresignedDownloadUrl).not.toHaveBeenCalled();
   });
 
-  it("issues a download URL only after tenant-prefix validation", async () => {
-    isTenantDocumentKey.mockReturnValue(true);
+  it("issues a download URL only for an AVAILABLE document in the active tenant", async () => {
+    findFirst.mockResolvedValue({ objectKey: "organizations/org-a/documents/random/file.pdf" });
     const response = await POST(request({
-      action: "download", objectKey: "organizations/org-a/documents/random/file.pdf",
+      action: "download", documentId: "doc-a",
     }), context);
     const body = await response.json();
     expect(response.status).toBe(200);
