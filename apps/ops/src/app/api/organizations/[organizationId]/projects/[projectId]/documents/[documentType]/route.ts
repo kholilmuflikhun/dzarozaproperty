@@ -1,6 +1,9 @@
+import { createHash } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { ProjectDocumentType, prisma } from "@dzaroza/database";
+import { Prisma, ProjectDocumentType, prisma } from "@dzaroza/database";
 import { requireTenantContext, toHttpError } from "@/lib/tenant";
+import { createPresignedUploadUrl, createTenantDocumentKey } from "@/lib/r2-storage";
+import { buildProjectDocumentPdf } from "@/lib/project-document-pdf";
 
 const documentTitles: Record<ProjectDocumentType, string> = {
   QUOTATION: "Surat Penawaran Harga",
@@ -109,6 +112,78 @@ export async function GET(_request: NextRequest, context: { params: Promise<{ or
       },
     };
     return NextResponse.json({ document: payload });
+  } catch (error) {
+    const result = toHttpError(error);
+    return NextResponse.json({ error: result.message }, { status: result.status });
+  }
+}
+
+export async function POST(request: NextRequest, context: { params: Promise<{ organizationId: string; projectId: string; documentType: string }> }) {
+  try {
+    const { organizationId, projectId, documentType } = await context.params;
+    const type = documentType as ProjectDocumentType;
+    if (!Object.values(ProjectDocumentType).includes(type)) {
+      return NextResponse.json({ error: "Jenis dokumen tidak dikenal." }, { status: 404 });
+    }
+    const actor = await requireTenantContext(organizationId);
+    const previewResponse = await GET(request, context);
+    if (!previewResponse.ok) return previewResponse;
+    const previewBody = await previewResponse.json();
+    const snapshot = previewBody.document;
+    const pdf = buildProjectDocumentPdf(snapshot);
+    const checksumSha256 = createHash("sha256").update(pdf).digest("hex");
+    const safeNumber = String(snapshot.number).replace(/[^a-zA-Z0-9_-]+/g, "-");
+    const fileName = `${type.toLowerCase()}-${safeNumber}.pdf`;
+    const objectKey = createTenantDocumentKey(organizationId, fileName);
+    const signed = await createPresignedUploadUrl(objectKey, 300, "application/pdf");
+    const uploadResponse = await fetch(signed.url, {
+      method: "PUT",
+      headers: signed.headers,
+      body: new Uint8Array(pdf),
+      cache: "no-store",
+    });
+    if (!uploadResponse.ok) {
+      return NextResponse.json({ error: "Gagal menyimpan PDF ke arsip privat." }, { status: 502 });
+    }
+    const parent = await prisma.document.findFirst({
+      where: {
+        organizationId, projectId, documentType: type,
+        documentNumber: snapshot.number, status: "AVAILABLE", deletedAt: null,
+      },
+      orderBy: { version: "desc" },
+      select: { id: true, version: true },
+    });
+    const document = await prisma.document.create({
+      data: {
+        organizationId,
+        projectId,
+        uploadedById: actor.userId,
+        fileName,
+        objectKey,
+        contentType: "application/pdf",
+        sizeBytes: BigInt(pdf.byteLength),
+        checksumSha256,
+        etag: uploadResponse.headers.get("etag"),
+        status: "AVAILABLE",
+        documentType: type,
+        documentNumber: snapshot.number,
+        parentDocumentId: parent?.id ?? null,
+        version: parent ? parent.version + 1 : 1,
+        metadata: {
+          source: "PROJECT_DOCUMENT_TEMPLATE",
+          generatedAt: snapshot.generatedAt,
+          snapshot: snapshot as Prisma.InputJsonValue,
+        } as Prisma.InputJsonValue,
+      },
+      select: {
+        id: true, fileName: true, documentType: true, documentNumber: true,
+        version: true, sizeBytes: true, checksumSha256: true, createdAt: true,
+      },
+    });
+    return NextResponse.json({
+      document: { ...document, sizeBytes: document.sizeBytes.toString() },
+      message: "PDF berhasil dibuat dan diarsipkan.",
+    }, { status: 201 });
   } catch (error) {
     const result = toHttpError(error);
     return NextResponse.json({ error: result.message }, { status: result.status });
