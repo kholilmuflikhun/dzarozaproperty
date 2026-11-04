@@ -43,11 +43,14 @@ All endpoints reuse the existing tenant membership and role authorization helper
 - ChangeOrder and ChangeOrderItem
 - ProgressReport
 - ProjectDocumentType enum and document metadata/version columns on Document
+- Tenant-scoped immutable revision lineage on Document (`parentDocumentId`): each revision points to its immediate predecessor, carries an incremented version, and cannot branch from a superseded version.
 
 Migration: 20261105000000_project_workspace_document_engine.
 
 ## Current implementation boundary
 
-The seven document previews are rendered as HTML with A4 print styles. The browser's Print / Save PDF action produces the PDF locally. This phase does not yet archive generated PDF bytes into R2 or create a Document record for each generated revision. That requires a separate server-side PDF rendering and R2 persistence step, plus immutable document snapshots and download authorization.
+The seven document previews are rendered as HTML with A4 print styles. The browser's Print / Save PDF action still produces the PDF locally; server-side PDF rendering and automatic R2 archival of generated previews remain outstanding.
+
+Uploaded project files are archived in private R2. The archive supports revision chains: a new upload can select the latest stored document as its parent, keeps the project/type/document number consistent, increments the version, and preserves prior files. A composite database foreign key scopes each revision parent to the same organization. The API rejects revisions from superseded parents and cross-tenant parents. Revision metadata is currently based on uploaded files; generated HTML previews are not yet automatically frozen as PDF snapshots.
 
 The current invoice document view summarizes invoices attached to a project; the dedicated invoice module remains the source of truth for issue/send/payment actions. Legal document templates are operational starting points and should be reviewed before execution.
