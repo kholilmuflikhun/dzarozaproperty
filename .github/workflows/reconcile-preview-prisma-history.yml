@@ -1,7 +1,11 @@
 name: Reconcile Preview Prisma migration history
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - feat/document-metadata-foundation
+    paths:
+      - .github/workflows/reconcile-preview-prisma-history.yml
 
 permissions:
   contents: read
