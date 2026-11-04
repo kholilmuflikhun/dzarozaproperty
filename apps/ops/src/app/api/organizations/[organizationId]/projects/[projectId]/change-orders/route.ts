@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { MembershipRole, Prisma, prisma } from "@dzaroza/database";
 import { z } from "zod";
@@ -19,7 +20,7 @@ export async function POST(request:NextRequest,context:{params:Promise<{organiza
  const added=items.filter(i=>i.kind==="ADD").reduce((s,i)=>s.plus(i.lineTotal),new Prisma.Decimal(0));
  const deducted=items.filter(i=>i.kind==="DEDUCT").reduce((s,i)=>s.plus(i.lineTotal),new Prisma.Decimal(0));
  const net=added.minus(deducted).toDecimalPlaces(2);
- const number=`BA-KT-${new Date().toISOString().slice(0,10).replaceAll("-","")}-${crypto.randomUUID().slice(0,6).toUpperCase()}`;
+ const number=`BA-KT-${new Date().toISOString().slice(0,10).replaceAll("-","")}-${randomUUID().slice(0,6).toUpperCase()}`;
  const result=await prisma.$transaction(async tx=>{
   const project=await tx.project.findFirst({where:{organizationId,id:projectId},select:{id:true}});
   if(!project)return null;
