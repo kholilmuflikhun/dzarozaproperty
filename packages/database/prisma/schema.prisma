@@ -569,6 +569,7 @@ model Document {
   parentDocument Document? @relation("DocumentRevisions", fields:[organizationId,parentDocumentId], references:[organizationId,id], onDelete:NoAction)
   revisions Document[] @relation("DocumentRevisions")
   @@unique([organizationId,id])
+  @@unique([organizationId,parentDocumentId,version])
   @@index([organizationId,status,createdAt])
   @@index([organizationId,parentDocumentId,version])
   @@index([organizationId,projectId])
