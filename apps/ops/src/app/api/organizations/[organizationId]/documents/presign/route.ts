@@ -101,6 +101,13 @@ export async function POST(
         ) {
           return NextResponse.json({ error: "Revisi harus mempertahankan proyek, jenis, dan nomor dokumen induk." }, { status: 409 });
         }
+        const existingChild = await prisma.document.findFirst({
+          where: { organizationId, parentDocumentId: parent.id, status: { in: ["PENDING_UPLOAD", "AVAILABLE"] }, deletedAt: null },
+          select: { id: true },
+        });
+        if (existingChild) {
+          return NextResponse.json({ error: "Dokumen induk bukan versi terbaru. Pilih revisi terakhir dari arsip." }, { status: 409 });
+        }
       }
 
       const objectKey = createTenantDocumentKey(organizationId, parsed.data.fileName);
