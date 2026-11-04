@@ -54,12 +54,16 @@ enum ProjectStatus {
 }
 model User {
   id String @id @default(cuid())
+  name String @default("")
   email String @unique
-  name String?
+  emailVerified Boolean @default(false)
+  image String?
   passwordHash String?
   isPlatformAdmin Boolean @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  sessions Session[]
+  accounts Account[]
   memberships Membership[]
   auditLogs AuditLog[]
   activations LicenseActivation[]
@@ -421,4 +425,47 @@ model Document {
   @@index([organizationId,projectId])
   @@index([organizationId,invoiceId])
   @@index([uploadedById])
+}
+
+
+model Session {
+  id String @id @default(cuid())
+  expiresAt DateTime
+  token String @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId])
+}
+
+model Account {
+  id String @id @default(cuid())
+  accountId String
+  providerId String
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken String? @db.Text
+  refreshToken String? @db.Text
+  idToken String? @db.Text
+  accessTokenExpiresAt DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope String?
+  password String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId])
+  @@unique([providerId, accountId])
+}
+
+model Verification {
+  id String @id @default(cuid())
+  identifier String
+  value String @db.Text
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([identifier])
 }
