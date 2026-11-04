@@ -44,7 +44,7 @@ describe("tenant-scoped R2 presign API", () => {
     requireTenantContext.mockResolvedValue({ organizationId: "org-a", userId: "user-a", role: "STAFF" });
     createTenantDocumentKey.mockReturnValue("organizations/org-a/documents/random/file.pdf");
     createPresignedUploadUrl.mockResolvedValue({
-      method: "PUT", url: "https://r2.example/signed-upload", expiresIn: 300,
+      method: "PUT", url: "https://r2.example/signed-upload", expiresIn: 300, headers: { "Content-Type": "application/pdf" },
     });
     createPresignedDownloadUrl.mockResolvedValue({
       method: "GET", url: "https://r2.example/signed-download", expiresIn: 300,
