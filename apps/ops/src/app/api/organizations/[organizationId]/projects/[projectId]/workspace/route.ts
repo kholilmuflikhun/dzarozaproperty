@@ -122,6 +122,8 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ org
           data: workItems.map((item) => ({ organizationId, projectId, ...item })),
         });
       }
+      const invoicedTerm = await tx.paymentTerm.findFirst({ where: { organizationId, projectId, invoiceId: { not: null } }, select: { id: true } });
+      if (invoicedTerm) return { kind: "terms-locked" as const };
       await tx.paymentTerm.deleteMany({ where: { organizationId, projectId } });
       if (input.paymentTerms.length) {
         await tx.paymentTerm.createMany({
@@ -145,10 +147,11 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ org
           afterState: { contractValue: baseValue.toString(), workItemCount: workItems.length, paymentTermCount: input.paymentTerms.length },
         },
       });
-      return { workspace, baseValue: baseValue.toString(), workItemCount: workItems.length, paymentTermCount: input.paymentTerms.length };
+      return { kind: "saved" as const, workspace, baseValue: baseValue.toString(), workItemCount: workItems.length, paymentTermCount: input.paymentTerms.length };
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 
     if (!result) return NextResponse.json({ error: "Proyek tidak ditemukan." }, { status: 404 });
+    if (result.kind === "terms-locked") return NextResponse.json({ error: "Termin sudah memiliki invoice. Untuk menjaga riwayat tagihan, ubah termin hanya setelah invoice terkait diselesaikan atau dibatalkan." }, { status: 409 });
     return NextResponse.json({ result: serialize(result) });
   } catch (error) {
     const code = typeof error === "object" && error !== null && "code" in error ? error.code : undefined;
