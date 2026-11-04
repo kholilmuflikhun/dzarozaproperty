@@ -151,7 +151,7 @@ export default function ProjectDocumentsPage() {
         </div>
         <label className="block space-y-1 text-sm">
           <span className="font-medium text-slate-700">Jenis unggahan</span>
-          <select value={parentDocumentId} onChange={(event) => setParentDocumentId(event.target.value)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5">
+          <select value={parentDocumentId} onChange={(event) => { const selectedId = event.target.value; setParentDocumentId(selectedId); const selected = documents.find((item) => item.id === selectedId); if (selected?.documentNumber) setDocumentNumber(selected.documentNumber); }} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5">
             <option value="">Dokumen baru (versi 1)</option>
             {documents.filter((item) => item.documentType === documentType && item.documentNumber === (documentNumber.trim() || null)).map((item) => (
               <option key={item.id} value={item.id}>Revisi dari {item.fileName} · v{item.version}</option>
