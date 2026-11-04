@@ -1,13 +1,12 @@
 import { MembershipRole } from "@dzaroza/database";
-import { headers } from "next/headers";
-import { auth } from "@/lib/auth";
+import { getCurrentSession } from "@/lib/auth-session";
 import { ForbiddenError, UnauthorizedError } from "@/lib/errors";
 import { findTenantMembership } from "@/lib/tenant-data";
 import { membershipHasAllowedRole, membershipMatchesTenant } from "@/lib/tenant-policy";
 export { membershipHasAllowedRole, membershipMatchesTenant } from "@/lib/tenant-policy";
 
 export async function requireUserId(): Promise<string> {
-  const session = await auth.api.getSession({ headers: await headers() });
+  const session = await getCurrentSession();
   if (!session?.user?.id) throw new UnauthorizedError();
   return session.user.id;
 }
