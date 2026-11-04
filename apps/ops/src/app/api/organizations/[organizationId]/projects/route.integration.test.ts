@@ -1,11 +1,11 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
-const { getServerSession } = vi.hoisted(() => ({
-  getServerSession: vi.fn(),
+const { getCurrentSession } = vi.hoisted(() => ({
+  getCurrentSession: vi.fn(),
 }));
 
-vi.mock("next-auth", () => ({ getServerSession }));
+vi.mock("@/lib/auth-session", () => ({ getCurrentSession }));
 
 import { prisma } from "@dzaroza/database";
 import { GET } from "./route";
@@ -70,7 +70,7 @@ afterAll(async () => {
 
 describe("projects API with a real PostgreSQL tenant boundary", () => {
   it("returns only the requesting member's organization projects", async () => {
-    getServerSession.mockResolvedValue({ user: { id: userId } });
+    getCurrentSession.mockResolvedValue({ user: { id: userId } });
 
     const response = await getProjects(orgAId);
     const payload = await response.json();
@@ -87,7 +87,7 @@ describe("projects API with a real PostgreSQL tenant boundary", () => {
   });
 
   it("rejects the same authenticated user from another organization before querying its projects", async () => {
-    getServerSession.mockResolvedValue({ user: { id: userId } });
+    getCurrentSession.mockResolvedValue({ user: { id: userId } });
 
     const response = await getProjects(orgBId);
     const payload = await response.json();
@@ -97,7 +97,7 @@ describe("projects API with a real PostgreSQL tenant boundary", () => {
   });
 
   it("rejects requests without an authenticated user", async () => {
-    getServerSession.mockResolvedValue({ user: {} });
+    getCurrentSession.mockResolvedValue({ user: {} });
 
     const response = await getProjects(orgAId);
 
