@@ -50,7 +50,7 @@ describe("tenant-scoped document metadata API", () => {
       contentType: "application/pdf",
       etag: '"r2-etag"',
     });
-    create.mockImplementation(async ({ data, select }) => ({
+    create.mockImplementation(async ({ data }) => ({
       id: "doc-a",
       organizationId: data.organizationId,
       fileName: data.fileName,
