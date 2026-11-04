@@ -31,8 +31,14 @@ export async function POST(request:NextRequest,context:{params:Promise<{organiza
    overallProgress:input.overallProgress,completedItems:input.completedItems as Prisma.InputJsonValue,
    nextWeekPlans:input.nextWeekPlans as Prisma.InputJsonValue,blockers:input.blockers,clientDecision:input.clientDecision,paymentStatus:input.paymentStatus,
   }});
-  await tx.project.updateMany({where:{organizationId,id:projectId},data:{progress:input.overallProgress}});
-  await tx.auditLog.create({data:{organizationId,actorId:actor.userId,action:"project.progress_report.created",entityType:"ProgressReport",entityId:created.id,beforeState:{progress:project.progress},afterState:{progress:input.overallProgress,reportNumber}}});
+  const latestReport = await tx.progressReport.findFirst({
+   where:{organizationId,projectId},
+   orderBy:[{weekStart:"desc"},{createdAt:"desc"}],
+   select:{overallProgress:true,reportNumber:true},
+  });
+  const currentProgress = latestReport?.overallProgress ?? project.progress;
+  await tx.project.updateMany({where:{organizationId,id:projectId},data:{progress:currentProgress}});
+  await tx.auditLog.create({data:{organizationId,actorId:actor.userId,action:"project.progress_report.created",entityType:"ProgressReport",entityId:created.id,beforeState:{progress:project.progress},afterState:{progress:currentProgress,reportNumber,latestReportNumber:latestReport?.reportNumber??reportNumber}}});
   return created;
  },{isolationLevel:Prisma.TransactionIsolationLevel.Serializable});
  if(!report)return NextResponse.json({error:"Proyek tidak ditemukan."},{status:404});
