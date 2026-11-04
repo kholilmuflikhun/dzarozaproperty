@@ -36,6 +36,17 @@ export async function GET(request: NextRequest, context: { params: Promise<{ org
     const url = new URL(request.url);
     const limit = Number(url.searchParams.get("limit") ?? 50);
     const cursor = url.searchParams.get("cursor");
+    const projectId = url.searchParams.get("projectId");
+    if (projectId && (projectId.length > 64 || !/^[a-zA-Z0-9_-]+$/.test(projectId))) {
+      return NextResponse.json({ error: "ID proyek tidak valid." }, { status: 400 });
+    }
+    if (projectId) {
+      const project = await prisma.project.findFirst({
+        where: { id: projectId, organizationId },
+        select: { id: true },
+      });
+      if (!project) return NextResponse.json({ error: "Proyek tidak ditemukan pada organisasi ini." }, { status: 404 });
+    }
     if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
       return NextResponse.json({ error: "Limit harus antara 1 dan 100." }, { status: 400 });
     }
@@ -44,11 +55,17 @@ export async function GET(request: NextRequest, context: { params: Promise<{ org
     }
 
     const rows = await prisma.document.findMany({
-      where: { organizationId, status: "AVAILABLE", deletedAt: null },
+      where: {
+        organizationId,
+        status: "AVAILABLE",
+        deletedAt: null,
+        ...(projectId ? { projectId } : {}),
+      },
       ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
       select: {
         id: true, fileName: true, contentType: true, sizeBytes: true, etag: true,
-        status: true, projectId: true, invoiceId: true, createdAt: true,
+        status: true, projectId: true, invoiceId: true, documentType: true,
+        documentNumber: true, version: true, metadata: true, createdAt: true,
       },
       orderBy: [{ createdAt: "desc" }, { id: "desc" }],
       take: limit + 1,
