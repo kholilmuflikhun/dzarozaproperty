@@ -87,13 +87,15 @@ describe("tenant-scoped R2 presign API", () => {
   });
 
   it("creates a tenant-scoped revision with the next version and preserved document identity", async () => {
-    findFirst.mockResolvedValue({
-      id: "doc-parent",
-      projectId: "project-a",
-      documentType: "WORK_AGREEMENT",
-      documentNumber: "SPK/001/2026",
-      version: 2,
-    });
+    findFirst
+      .mockResolvedValueOnce({
+        id: "doc-parent",
+        projectId: "project-a",
+        documentType: "WORK_AGREEMENT",
+        documentNumber: "SPK/001/2026",
+        version: 2,
+      })
+      .mockResolvedValueOnce(null);
     const response = await POST(request({
       action: "upload",
       fileName: "spk-v3.pdf",
