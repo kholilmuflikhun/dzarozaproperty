@@ -65,7 +65,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ org
       select: {
         id: true, fileName: true, contentType: true, sizeBytes: true, etag: true,
         status: true, projectId: true, invoiceId: true, documentType: true,
-        documentNumber: true, version: true, metadata: true, createdAt: true,
+        documentNumber: true, version: true, parentDocumentId: true, metadata: true, createdAt: true,
       },
       orderBy: [{ createdAt: "desc" }, { id: "desc" }],
       take: limit + 1,
