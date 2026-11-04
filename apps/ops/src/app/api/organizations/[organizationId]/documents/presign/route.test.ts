@@ -61,7 +61,7 @@ describe("tenant-scoped R2 presign API", () => {
     expect(requireTenantContext).toHaveBeenCalledWith("org-a");
     expect(createTenantDocumentKey).toHaveBeenCalledWith("org-a", "file.pdf");
     expect(createPresignedUploadUrl).toHaveBeenCalledWith(
-      "organizations/org-a/documents/random/file.pdf", 300,
+      "organizations/org-a/documents/random/file.pdf", 300, "application/pdf",
     );
     expect(body.upload.method).toBe("PUT");
     expect(body.upload.expiresIn).toBe(300);
