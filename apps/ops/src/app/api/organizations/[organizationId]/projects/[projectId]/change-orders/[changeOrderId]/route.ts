@@ -13,15 +13,19 @@ export async function PATCH(request:NextRequest,context:{params:Promise<{organiz
    const order=await tx.changeOrder.findFirst({where:{organizationId,projectId,id:changeOrderId}});
    if(!order)return {kind:"not-found" as const};
    if(order.status!=="DRAFT")return {kind:"conflict" as const,status:order.status};
-   await tx.changeOrder.updateMany({where:{organizationId,projectId,id:changeOrderId,status:"DRAFT"},data:{status:parsed.data.status,agreedAt:parsed.data.status==="APPROVED"?new Date():null}});
+   let approvedFinalValue: Prisma.Decimal | null = null;
    if(parsed.data.status==="APPROVED"){
     const project=await tx.project.findFirst({where:{organizationId,id:projectId},select:{contractValue:true}});
     if(!project)return {kind:"not-found" as const};
     const approved=await tx.changeOrder.findMany({where:{organizationId,projectId,status:{in:["APPROVED","AGREED"]}} ,select:{netTotal:true}});
-    const finalValue=approved.reduce((sum,row)=>sum.plus(row.netTotal),new Prisma.Decimal(project.contractValue)).toDecimalPlaces(2);
+    approvedFinalValue=approved.reduce((sum,row)=>sum.plus(row.netTotal),new Prisma.Decimal(project.contractValue)).plus(order.netTotal).toDecimalPlaces(2);
+    if(approvedFinalValue.lessThan(0)||approvedFinalValue.greaterThan("999999999999.99"))return {kind:"invalid-value" as const};
+   }
+   await tx.changeOrder.updateMany({where:{organizationId,projectId,id:changeOrderId,status:"DRAFT"},data:{status:parsed.data.status,agreedAt:parsed.data.status==="APPROVED"?new Date():null}});
+   if(parsed.data.status==="APPROVED"&&approvedFinalValue){
     const terms=await tx.paymentTerm.findMany({where:{organizationId,projectId,status:"UNPAID",invoiceId:null},select:{id:true,percentage:true}});
     for(const term of terms){
-      const amount=finalValue.mul(term.percentage).div(100).toDecimalPlaces(2);
+      const amount=approvedFinalValue.mul(term.percentage).div(100).toDecimalPlaces(2);
       await tx.paymentTerm.updateMany({where:{organizationId,id:term.id,projectId},data:{amount}});
     }
    }
@@ -30,6 +34,7 @@ export async function PATCH(request:NextRequest,context:{params:Promise<{organiz
   },{isolationLevel:Prisma.TransactionIsolationLevel.Serializable});
   if(result.kind==="not-found")return NextResponse.json({error:"Berita acara tidak ditemukan."},{status:404});
   if(result.kind==="conflict")return NextResponse.json({error:`Perubahan tidak dapat diproses dari status ${result.status}.`},{status:409});
+  if(result.kind==="invalid-value")return NextResponse.json({error:"Nilai akhir kontrak tidak valid. Nilai pekerjaan kurang tidak boleh melebihi nilai kontrak berjalan."},{status:422});
   return NextResponse.json({changeOrder:{id:changeOrderId,status:result.status}});
  }catch(error){if(typeof error==="object"&&error!==null&&"code"in error&&error.code==="P2034")return NextResponse.json({error:"Perubahan bersamaan terdeteksi."},{status:409});const r=toHttpError(error);return NextResponse.json({error:r.message},{status:r.status});}
 }
