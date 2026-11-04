@@ -115,8 +115,8 @@ Implemented API:
 - Presigned URL lifetime is capped at 15 minutes; current routes use five minutes.
 
 Important scope limitation:
-- The current Prisma schema does not yet contain a Document/File metadata model. This phase issues tenant-authorized presigned URLs and enforces tenant prefixes, but it does not yet persist document metadata, verify post-upload object size/checksum, or bind a file to a project/invoice record. Do not expose this as a complete DMS workflow until the metadata/finalization phase is implemented and tested.
-- The route's download authorization currently relies on the authenticated organization membership plus the unguessable, tenant-prefixed object key. The next DMS phase must additionally verify a persisted document row and record-level permissions before issuing downloads.
+- The current Prisma schema does not yet contain a Document/File metadata model. This phase issues tenant-authorized presigned URLs and enforces tenant prefixes, but it does not yet persist document metadata, verify post-upload object size/checksum on the server, or bind a file to a project/invoice record. The upload Content-Type is included in the SigV4 signed headers and must match the browser PUT request. Do not expose this as a complete DMS workflow until the metadata/finalization phase is implemented and tested.
+- The route's download authorization currently relies on authenticated organization membership plus the unguessable, strictly validated tenant-prefixed object key. The next DMS phase must additionally verify a persisted document row and record-level permissions before issuing downloads.
 
 Preview environment:
 - Configure the five R2 variables only in `dzaroza-ops-preview`, Preview target, branch `feat/cloudflare-r2-integration`.
@@ -124,5 +124,5 @@ Preview environment:
 - The Preview environment variables were listed with decryption disabled and their keys/branch scope were confirmed; actual values remain intentionally uninspected.
 
 Tests added:
-- Presigned PUT/GET signing shape, TTL guard, HTTPS/account endpoint validation, key generation and tenant-prefix isolation.
+- Presigned PUT/GET signing shape, signed Content-Type, TTL guard, HTTPS/account endpoint validation, key generation and strict tenant-prefix isolation.
 - API authorization, upload MIME/size validation, cross-tenant key denial and membership failure.
