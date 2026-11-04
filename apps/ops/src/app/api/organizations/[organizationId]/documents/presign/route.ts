@@ -44,7 +44,7 @@ export async function POST(
       return NextResponse.json({ error: "Organisasi tidak valid." }, { status: 400 });
     }
 
-    await requireTenantContext(organizationId);
+    const actor = await requireTenantContext(organizationId);
 
     let body: unknown;
     try {
@@ -64,8 +64,21 @@ export async function POST(
     if (parsed.data.action === "upload") {
       const objectKey = createTenantDocumentKey(organizationId, parsed.data.fileName);
       const signed = await createPresignedUploadUrl(objectKey, 300, parsed.data.contentType);
+      const document = await prisma.document.create({
+        data: {
+          organizationId,
+          uploadedById: actor.userId,
+          fileName: objectKey.split("/").at(-1) ?? "document",
+          objectKey,
+          contentType: parsed.data.contentType,
+          sizeBytes: BigInt(parsed.data.size),
+          status: "PENDING_UPLOAD",
+        },
+        select: { id: true },
+      });
       return NextResponse.json({
         upload: {
+          documentId: document.id,
           method: signed.method,
           url: signed.url,
           objectKey,
