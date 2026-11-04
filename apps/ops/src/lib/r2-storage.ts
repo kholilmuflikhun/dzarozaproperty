@@ -10,6 +10,7 @@ export interface R2ObjectUrl {
   url: string;
   method: R2ObjectMethod;
   expiresIn: number;
+  headers?: Record<string, string>;
 }
 
 interface R2Config {
@@ -94,6 +95,7 @@ async function signObjectUrl(
   objectKey: string,
   expiresIn: number,
   config = getConfig(),
+  contentType?: string,
 ): Promise<R2ObjectUrl> {
   if (!Number.isInteger(expiresIn) || expiresIn < 1 || expiresIn > MAX_PRESIGN_TTL_SECONDS) {
     throw new Error(`Presigned URL expiry must be between 1 and ${MAX_PRESIGN_TTL_SECONDS} seconds.`);
@@ -143,7 +145,12 @@ async function signObjectUrl(
 
   params.set("X-Amz-Signature", signature);
   url.search = params.toString();
-  return { url: url.toString(), method, expiresIn };
+  return {
+    url: url.toString(),
+    method,
+    expiresIn,
+    ...(contentType ? { headers: { "Content-Type": contentType.trim() } } : {}),
+  };
 }
 
 export function createTenantDocumentKey(organizationId: string, fileName: string): string {
@@ -168,8 +175,12 @@ export function isTenantDocumentKey(organizationId: string, objectKey: string): 
     && !objectKey.split("/").some((part) => part === "." || part === "..");
 }
 
-export function createPresignedUploadUrl(objectKey: string, expiresIn = DEFAULT_UPLOAD_TTL_SECONDS) {
-  return signObjectUrl("PUT", objectKey, expiresIn);
+export function createPresignedUploadUrl(
+  objectKey: string,
+  expiresIn = DEFAULT_UPLOAD_TTL_SECONDS,
+  contentType?: string,
+) {
+  return signObjectUrl("PUT", objectKey, expiresIn, getConfig(), contentType);
 }
 
 export function createPresignedDownloadUrl(objectKey: string, expiresIn = DEFAULT_DOWNLOAD_TTL_SECONDS) {
