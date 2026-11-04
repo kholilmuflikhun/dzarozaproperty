@@ -1,0 +1,71 @@
+name: Reconcile Preview Prisma migration history
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: preview-prisma-history-reconcile
+  cancel-in-progress: false
+
+jobs:
+  reconcile:
+    if: github.ref == 'refs/heads/feat/document-metadata-foundation'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DATABASE_URL: ${{ secrets.PREVIEW_DATABASE_URL }}
+      DIRECT_URL: ${{ secrets.PREVIEW_DIRECT_URL }}
+    steps:
+      - name: Checkout migration branch
+        uses: actions/checkout@v4
+        with:
+          ref: feat/document-metadata-foundation
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.18.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate required Preview credentials
+        shell: bash
+        run: |
+          test -n "$DATABASE_URL" || { echo "PREVIEW_DATABASE_URL is missing"; exit 1; }
+          test -n "$DIRECT_URL" || { echo "PREVIEW_DIRECT_URL is missing"; exit 1; }
+
+      - name: Validate Prisma schema
+        run: pnpm --filter @dzaroza/database exec prisma validate --schema prisma/schema.prisma
+
+      # The SQL migrations were already applied and verified on Neon Preview.
+      # resolve --applied records their checksums without re-running the SQL.
+      - name: Reconcile applied migration history
+        shell: bash
+        run: |
+          set -euo pipefail
+          migrations=(
+            20261031000000_init
+            20261031010000_enforce_tenant_scoped_relations
+            20261031020000_snapshot_subscription_checkout_amount
+            20261031030000_add_quotation_items
+            20261031040000_phase2_business_finance
+            20261031050000_phase2_hardening
+            20261104000000_add_document_metadata
+          )
+          for migration in "${migrations[@]}"; do
+            echo "Recording already-applied migration: $migration"
+            pnpm --filter @dzaroza/database exec prisma migrate resolve --applied "$migration" --schema prisma/schema.prisma
+          done
+
+      - name: Verify Prisma migration status
+        run: pnpm --filter @dzaroza/database exec prisma migrate status --schema prisma/schema.prisma
