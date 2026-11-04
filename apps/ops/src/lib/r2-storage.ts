@@ -107,6 +107,7 @@ async function signObjectUrl(
     throw new Error("R2 object key is invalid.");
   }
 
+  const config = getConfig();
   const now = new Date();
   const amzDate = now.toISOString().replace(/[:-]|\.\d{3}/g, "");
   const dateStamp = amzDate.slice(0, 8);
