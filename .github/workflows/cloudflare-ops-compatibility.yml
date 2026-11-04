@@ -5,6 +5,7 @@ on:
   pull_request:
     branches:
       - feat/ops-ux-foundation
+      - feat/cloudflare-ops-migration
     paths:
       - "apps/ops/**"
       - "packages/database/**"
