@@ -110,16 +110,45 @@ describe("tenant-scoped document metadata API", () => {
     expect(update).not.toHaveBeenCalled();
   });
 
-  it("does not create metadata when the object is missing from R2", async () => {
+  it("does not finalize a pending upload when the object is missing from R2", async () => {
+    findUnique.mockResolvedValue({
+      id: "doc-a", organizationId: "org-a", fileName: "contract.pdf",
+      contentType: "application/pdf", sizeBytes: 2048n, etag: null,
+      status: "PENDING_UPLOAD", projectId: null, invoiceId: null,
+      createdAt: new Date("2026-11-04T00:00:00.000Z"), deletedAt: null,
+    });
     headR2Object.mockResolvedValue(null);
     const response = await POST(request({
       objectKey: "organizations/org-a/documents/123e4567-e89b-12d3-a456-426614174000/contract.pdf",
     }), context);
     expect(response.status).toBe(404);
-    expect(create).not.toHaveBeenCalled();
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it("rejects finalization when the uploaded object's size differs from the pending record", async () => {
+    findUnique.mockResolvedValue({
+      id: "doc-a", organizationId: "org-a", fileName: "contract.pdf",
+      contentType: "application/pdf", sizeBytes: 2048n, etag: null,
+      status: "PENDING_UPLOAD", projectId: null, invoiceId: null,
+      createdAt: new Date("2026-11-04T00:00:00.000Z"), deletedAt: null,
+    });
+    headR2Object.mockResolvedValue({
+      contentLength: 4096, contentType: "application/pdf", etag: '"r2-etag"',
+    });
+    const response = await POST(request({
+      objectKey: "organizations/org-a/documents/123e4567-e89b-12d3-a456-426614174000/contract.pdf",
+    }), context);
+    expect(response.status).toBe(422);
+    expect(update).not.toHaveBeenCalled();
   });
 
   it("rejects files with unsupported content types or excessive size", async () => {
+    findUnique.mockResolvedValue({
+      id: "doc-a", organizationId: "org-a", fileName: "contract.pdf",
+      contentType: "application/pdf", sizeBytes: 1024n, etag: null,
+      status: "PENDING_UPLOAD", projectId: null, invoiceId: null,
+      createdAt: new Date("2026-11-04T00:00:00.000Z"), deletedAt: null,
+    });
     headR2Object.mockResolvedValueOnce({
       contentLength: 1024, contentType: "application/javascript", etag: null,
     });
@@ -134,7 +163,7 @@ describe("tenant-scoped document metadata API", () => {
     }), context);
     expect(unsupported.status).toBe(422);
     expect(tooLarge.status).toBe(422);
-    expect(create).not.toHaveBeenCalled();
+    expect(update).not.toHaveBeenCalled();
   });
 
   it("returns an existing finalized document idempotently", async () => {
