@@ -14,7 +14,7 @@ vi.mock("@/lib/tenant", () => ({
   toHttpError: (error: unknown) => {
     const name = error instanceof Error ? error.name : "";
     if (name === "UnauthorizedError") return { status: 401, message: "Autentikasi diperlukan." };
-    if (name === "ForbiddenError") return { status: 403, message: "Akses ditolak." };
+    if (name === "ForbiddenError") return { status: 403, message: "Akses ke organisasi atau tindakan ini tidak diizinkan." };
     return { status: 500, message: "Terjadi kesalahan pada server." };
   },
 }));
