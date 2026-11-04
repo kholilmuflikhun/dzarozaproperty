@@ -124,6 +124,21 @@ jobs:
           test -n "$DIRECT_URL" || { echo "PREVIEW_DIRECT_URL is missing"; exit 1; }
       - name: Validate Prisma schema
         run: pnpm --filter @dzaroza/database exec prisma validate --schema prisma/schema.prisma
+      - name: Preflight Neon Preview schema before recording migration history
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+          table_count="$(psql "$DIRECT_URL" -v ON_ERROR_STOP=1 -Atc "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE'")"
+          document_columns="$(psql "$DIRECT_URL" -v ON_ERROR_STOP=1 -Atc "SELECT COUNT(*) FROM information_schema.columns WHERE table_schema='public' AND table_name='Document'")"
+          document_fks="$(psql "$DIRECT_URL" -v ON_ERROR_STOP=1 -Atc "SELECT COUNT(*) FROM information_schema.table_constraints WHERE table_schema='public' AND table_name='Document' AND constraint_type='FOREIGN KEY'")"
+          document_status="$(psql "$DIRECT_URL" -v ON_ERROR_STOP=1 -Atc "SELECT COUNT(*) FROM pg_type WHERE typnamespace='public'::regnamespace AND typname='DocumentStatus'")"
+          test "$table_count" = "21" || { echo "Expected 21 public tables; found $table_count"; exit 1; }
+          test "$document_columns" = "15" || { echo "Expected 15 Document columns; found $document_columns"; exit 1; }
+          test "$document_fks" = "4" || { echo "Expected 4 Document foreign keys; found $document_fks"; exit 1; }
+          test "$document_status" = "1" || { echo "DocumentStatus enum is missing"; exit 1; }
+          echo "Preview schema preflight passed: 21 tables, 15 Document columns, 4 Document foreign keys, DocumentStatus enum."
       - name: Record migrations already applied to Neon Preview
         shell: bash
         run: |
