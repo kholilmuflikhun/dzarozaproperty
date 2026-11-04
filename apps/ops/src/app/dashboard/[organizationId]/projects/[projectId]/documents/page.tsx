@@ -12,6 +12,7 @@ type ProjectDocument = {
   documentType: string | null;
   documentNumber: string | null;
   version: number;
+  parentDocumentId: string | null;
   createdAt: string;
 };
 
@@ -37,6 +38,7 @@ export default function ProjectDocumentsPage() {
   const [documents, setDocuments] = useState<ProjectDocument[]>([]);
   const [documentType, setDocumentType] = useState<string>("WORK_AGREEMENT");
   const [documentNumber, setDocumentNumber] = useState("");
+  const [parentDocumentId, setParentDocumentId] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -77,6 +79,7 @@ export default function ProjectDocumentsPage() {
           projectId,
           documentType,
           ...(documentNumber.trim() ? { documentNumber: documentNumber.trim() } : {}),
+          ...(parentDocumentId ? { parentDocumentId } : {}),
         }),
       });
       const presignBody = await presignResponse.json();
@@ -95,7 +98,7 @@ export default function ProjectDocumentsPage() {
       });
       const finalizeBody = await finalizeResponse.json();
       if (!finalizeResponse.ok) throw new Error(finalizeBody.error ?? "Gagal memverifikasi dokumen.");
-      setFile(null); setDocumentNumber("");
+      setFile(null); setDocumentNumber(""); setParentDocumentId("");
       setNotice("Dokumen berhasil diarsipkan dan diverifikasi.");
       await loadDocuments();
     } catch (cause) {
@@ -146,6 +149,16 @@ export default function ProjectDocumentsPage() {
             <input value={documentNumber} onChange={(event) => setDocumentNumber(event.target.value)} maxLength={120} placeholder="Contoh: SPK/001/2026" className="w-full rounded-lg border border-slate-300 px-3 py-2.5" />
           </label>
         </div>
+        <label className="block space-y-1 text-sm">
+          <span className="font-medium text-slate-700">Jenis unggahan</span>
+          <select value={parentDocumentId} onChange={(event) => setParentDocumentId(event.target.value)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5">
+            <option value="">Dokumen baru (versi 1)</option>
+            {documents.filter((item) => item.documentType === documentType && item.documentNumber === (documentNumber.trim() || null)).map((item) => (
+              <option key={item.id} value={item.id}>Revisi dari {item.fileName} · v{item.version}</option>
+            ))}
+          </select>
+          <span className="text-xs text-slate-500">Pilih dokumen induk untuk membuat revisi. Riwayat versi lama tetap tersimpan.</span>
+        </label>
         <label className="block space-y-1 text-sm">
           <span className="font-medium text-slate-700">Pilih berkas (PDF, JPG, PNG, WEBP, CSV, DOCX, XLSX — maks. 20 MB)</span>
           <input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.csv,.docx,.xlsx" onChange={(event) => setFile(event.target.files?.[0] ?? null)} className="block w-full rounded-lg border border-dashed border-slate-300 p-3 text-sm" />
