@@ -75,7 +75,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ or
     if (!organizationId || organizationId.length > 64) {
       return NextResponse.json({ error: "Organisasi tidak valid." }, { status: 400 });
     }
-    const actor = await requireTenantContext(organizationId);
+    await requireTenantContext(organizationId);
 
     let body: unknown;
     try {
@@ -100,11 +100,14 @@ export async function POST(request: NextRequest, context: { params: Promise<{ or
         etag: true, status: true, projectId: true, invoiceId: true, createdAt: true, deletedAt: true,
       },
     });
-    if (existing) {
-      if (existing.organizationId !== organizationId || existing.status !== "AVAILABLE" || existing.deletedAt) {
-        return NextResponse.json({ error: "Dokumen tidak dapat difinalisasi." }, { status: 409 });
-      }
+    if (!existing || existing.organizationId !== organizationId || existing.deletedAt) {
+      return NextResponse.json({ error: "Sesi unggah dokumen tidak ditemukan." }, { status: 404 });
+    }
+    if (existing.status === "AVAILABLE") {
       return NextResponse.json({ document: serializeDocument(existing), alreadyFinalized: true });
+    }
+    if (existing.status !== "PENDING_UPLOAD") {
+      return NextResponse.json({ error: "Dokumen tidak dapat difinalisasi." }, { status: 409 });
     }
 
     const object = await headR2Object(objectKey);
@@ -114,24 +117,17 @@ export async function POST(request: NextRequest, context: { params: Promise<{ or
     if (
       object.contentLength < 1
       || object.contentLength > MAX_FILE_SIZE_BYTES
+      || object.contentLength !== Number(existing.sizeBytes)
       || !object.contentType
       || !allowedContentTypes.has(object.contentType)
+      || object.contentType !== existing.contentType
     ) {
-      return NextResponse.json({ error: "Metadata berkas tidak memenuhi kebijakan penyimpanan." }, { status: 422 });
+      return NextResponse.json({ error: "Metadata berkas tidak sesuai dengan permintaan unggah." }, { status: 422 });
     }
 
-    const fileName = objectKey.split("/").at(-1) ?? "document";
-    const document = await prisma.document.create({
-      data: {
-        organizationId,
-        uploadedById: actor.userId,
-        fileName,
-        objectKey,
-        contentType: object.contentType,
-        sizeBytes: BigInt(object.contentLength),
-        etag: object.etag,
-        status: "AVAILABLE",
-      },
+    const document = await prisma.document.update({
+      where: { id: existing.id },
+      data: { status: "AVAILABLE", etag: object.etag },
       select: {
         id: true, organizationId: true, fileName: true, contentType: true, sizeBytes: true,
         etag: true, status: true, projectId: true, invoiceId: true, createdAt: true,
