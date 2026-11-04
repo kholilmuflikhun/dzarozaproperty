@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { getServerSession } from "next-auth";
+
 import { prisma, Prisma } from "@dzaroza/database";
-import { authOptions } from "@/lib/auth";
+import { getCurrentSession } from "@/lib/auth-session";
 
 const planSchema = z.object({
   code: z.string().regex(/^[A-Z0-9_-]{2,40}$/),
@@ -50,8 +50,8 @@ function planAuditSnapshot(plan: {
 }
 
 export async function POST(request: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.isPlatformAdmin || !session.user.id) {
+  const session = await getCurrentSession();
+  if (!session?.user?.id || !session.user.isPlatformAdmin) {
     return NextResponse.json({ error: "Akses platform admin diperlukan." }, { status: 403 });
   }
 

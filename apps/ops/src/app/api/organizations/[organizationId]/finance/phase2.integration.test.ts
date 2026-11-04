@@ -3,8 +3,8 @@ import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
-const { getServerSession } = vi.hoisted(() => ({ getServerSession: vi.fn() }));
-vi.mock("next-auth", () => ({ getServerSession }));
+const { getCurrentSession } = vi.hoisted(() => ({ getCurrentSession: vi.fn() }));
+vi.mock("@/lib/auth-session", () => ({ getCurrentSession }));
 
 import { prisma } from "@dzaroza/database";
 import { POST as convertQuotation } from "../quotations/[quotationId]/convert/route";
@@ -54,7 +54,7 @@ beforeAll(async () => {
     },
   });
   quotationId = quotation.id;
-  getServerSession.mockResolvedValue({ user: { id: userId } });
+  getCurrentSession.mockResolvedValue({ user: { id: userId } });
 });
 
 afterAll(async () => {

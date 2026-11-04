@@ -1,16 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { prisma, getServerSession } = vi.hoisted(() => ({
+const { prisma, getCurrentSession } = vi.hoisted(() => ({
   prisma: { membership: { findUnique: vi.fn() } },
-  getServerSession: vi.fn(),
+  getCurrentSession: vi.fn(),
 }));
 
 vi.mock("@dzaroza/database", () => ({
   prisma,
   MembershipRole: { OWNER: "OWNER", ADMIN: "ADMIN", STAFF: "STAFF" },
 }));
-vi.mock("next-auth", () => ({ getServerSession }));
-vi.mock("@/lib/auth", () => ({ authOptions: {} }));
+vi.mock("@/lib/auth-session", () => ({ getCurrentSession }));
 
 import {
   requireUserId,
@@ -22,18 +21,18 @@ import { ForbiddenError, UnauthorizedError } from "./errors";
 
 describe("tenant authorization boundary", () => {
   beforeEach(() => {
-    getServerSession.mockReset();
+    getCurrentSession.mockReset();
     prisma.membership.findUnique.mockReset();
   });
 
   it("requires an authenticated session with a user id", async () => {
-    getServerSession.mockResolvedValue({ user: { email: "user@example.com" } });
+    getCurrentSession.mockResolvedValue({ user: { email: "user@example.com" } });
     await expect(requireUserId()).rejects.toBeInstanceOf(UnauthorizedError);
     expect(prisma.membership.findUnique).not.toHaveBeenCalled();
   });
 
   it("looks up membership using both organization and authenticated user identifiers", async () => {
-    getServerSession.mockResolvedValue({ user: { id: "user-a" } });
+    getCurrentSession.mockResolvedValue({ user: { id: "user-a" } });
     prisma.membership.findUnique.mockResolvedValue({
       organizationId: "org-a", userId: "user-a", role: "OWNER",
     });
@@ -48,14 +47,14 @@ describe("tenant authorization boundary", () => {
   });
 
   it("denies access when the requested organization has no membership", async () => {
-    getServerSession.mockResolvedValue({ user: { id: "user-a" } });
+    getCurrentSession.mockResolvedValue({ user: { id: "user-a" } });
     prisma.membership.findUnique.mockResolvedValue(null);
 
     await expect(requireTenantContext("org-b")).rejects.toBeInstanceOf(ForbiddenError);
   });
 
   it("defensively rejects a membership result whose tenant or user does not match", async () => {
-    getServerSession.mockResolvedValue({ user: { id: "user-a" } });
+    getCurrentSession.mockResolvedValue({ user: { id: "user-a" } });
     prisma.membership.findUnique.mockResolvedValue({
       organizationId: "org-b", userId: "user-a", role: "OWNER",
     });
@@ -64,7 +63,7 @@ describe("tenant authorization boundary", () => {
   });
 
   it("enforces the allowed role list after membership verification", async () => {
-    getServerSession.mockResolvedValue({ user: { id: "user-a" } });
+    getCurrentSession.mockResolvedValue({ user: { id: "user-a" } });
     prisma.membership.findUnique.mockResolvedValue({
       organizationId: "org-a", userId: "user-a", role: "STAFF",
     });
@@ -74,7 +73,7 @@ describe("tenant authorization boundary", () => {
   });
 
   it("returns the verified membership for an allowed role", async () => {
-    getServerSession.mockResolvedValue({ user: { id: "user-a" } });
+    getCurrentSession.mockResolvedValue({ user: { id: "user-a" } });
     const membership = { organizationId: "org-a", userId: "user-a", role: "ADMIN" };
     prisma.membership.findUnique.mockResolvedValue(membership);
 
