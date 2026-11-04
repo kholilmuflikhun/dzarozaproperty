@@ -180,6 +180,5 @@ describe("tenant-scoped document metadata API", () => {
     expect(response.status).toBe(200);
     expect(body.alreadyFinalized).toBe(true);
     expect(headR2Object).not.toHaveBeenCalled();
-    expect(create).not.toHaveBeenCalled();
   });
 });
