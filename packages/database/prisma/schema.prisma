@@ -34,6 +34,12 @@ enum LicenseStatus {
   REVOKED
   EXPIRED
 }
+enum DocumentStatus {
+  PENDING_UPLOAD
+  AVAILABLE
+  QUARANTINED
+  DELETED
+}
 enum ProjectStatus {
   DRAFT
   QUOTATION
@@ -58,6 +64,7 @@ model User {
   auditLogs AuditLog[]
   activations LicenseActivation[]
   platformAuditLogs PlatformAuditLog[]
+  uploadedDocuments Document[]
 }
 model Organization {
   id String @id @default(cuid())
@@ -79,6 +86,7 @@ model Organization {
   payments PaymentTransaction[]
   expenses Expense[]
   auditLogs AuditLog[]
+  documents Document[]
 }
 model Membership {
   id String @id @default(cuid())
@@ -251,6 +259,7 @@ model Project {
   quotations Quotation[]
   invoices Invoice[]
   expenses Expense[]
+  documents Document[]
   @@unique([organizationId,code])
   @@index([organizationId,status])
 }
@@ -313,6 +322,7 @@ model Invoice {
   quotation Quotation? @relation(fields:[organizationId,quotationId],references:[organizationId,id],onDelete:NoAction)
   items InvoiceItem[]
   payments PaymentTransaction[]
+  documents Document[]
   @@unique([organizationId,number])
   @@index([organizationId,status,dueAt])
   @@unique([organizationId,quotationId])
@@ -385,4 +395,30 @@ model PublicRateLimitBucket {
   windowStartedAt DateTime
   resetAt DateTime
   @@index([resetAt])
+}
+
+model Document {
+  id String @id @default(cuid())
+  organizationId String
+  projectId String?
+  invoiceId String?
+  uploadedById String?
+  fileName String
+  objectKey String @unique
+  contentType String
+  sizeBytes BigInt
+  checksumSha256 String?
+  etag String?
+  status DocumentStatus @default(PENDING_UPLOAD)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+  organization Organization @relation(fields:[organizationId],references:[id],onDelete:Cascade)
+  project Project? @relation(fields:[organizationId,projectId],references:[organizationId,id],onDelete:NoAction)
+  invoice Invoice? @relation(fields:[organizationId,invoiceId],references:[organizationId,id],onDelete:NoAction)
+  uploadedBy User? @relation(fields:[uploadedById],references:[id],onDelete:SetNull)
+  @@index([organizationId,status,createdAt])
+  @@index([organizationId,projectId])
+  @@index([organizationId,invoiceId])
+  @@index([uploadedById])
 }

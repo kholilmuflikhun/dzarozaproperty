@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { prisma } from "@dzaroza/database";
 import { requireTenantContext, toHttpError } from "@/lib/tenant";
 import {
   createPresignedDownloadUrl,
   createPresignedUploadUrl,
   createTenantDocumentKey,
-  isTenantDocumentKey,
 } from "@/lib/r2-storage";
 
 export const runtime = "nodejs";
@@ -30,7 +30,7 @@ const requestSchema = z.discriminatedUnion("action", [
   }),
   z.object({
     action: z.literal("download"),
-    objectKey: z.string().min(1).max(1024),
+    documentId: z.string().trim().min(1).max(64),
   }),
 ]);
 
@@ -44,7 +44,7 @@ export async function POST(
       return NextResponse.json({ error: "Organisasi tidak valid." }, { status: 400 });
     }
 
-    await requireTenantContext(organizationId);
+    const actor = await requireTenantContext(organizationId);
 
     let body: unknown;
     try {
@@ -64,8 +64,21 @@ export async function POST(
     if (parsed.data.action === "upload") {
       const objectKey = createTenantDocumentKey(organizationId, parsed.data.fileName);
       const signed = await createPresignedUploadUrl(objectKey, 300, parsed.data.contentType);
+      const document = await prisma.document.create({
+        data: {
+          organizationId,
+          uploadedById: actor.userId,
+          fileName: objectKey.split("/").at(-1) ?? "document",
+          objectKey,
+          contentType: parsed.data.contentType,
+          sizeBytes: BigInt(parsed.data.size),
+          status: "PENDING_UPLOAD",
+        },
+        select: { id: true },
+      });
       return NextResponse.json({
         upload: {
+          documentId: document.id,
           method: signed.method,
           url: signed.url,
           objectKey,
@@ -76,11 +89,20 @@ export async function POST(
       });
     }
 
-    if (!isTenantDocumentKey(organizationId, parsed.data.objectKey)) {
-      return NextResponse.json({ error: "Objek tidak ditemukan pada organisasi ini." }, { status: 404 });
+    const document = await prisma.document.findFirst({
+      where: {
+        id: parsed.data.documentId,
+        organizationId,
+        status: "AVAILABLE",
+        deletedAt: null,
+      },
+      select: { objectKey: true },
+    });
+    if (!document) {
+      return NextResponse.json({ error: "Dokumen tidak ditemukan pada organisasi ini." }, { status: 404 });
     }
 
-    const signed = await createPresignedDownloadUrl(parsed.data.objectKey, 300);
+    const signed = await createPresignedDownloadUrl(document.objectKey, 300);
     return NextResponse.json({
       download: {
         method: signed.method,

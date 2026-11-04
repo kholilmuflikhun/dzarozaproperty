@@ -1,11 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { requireTenantContext, createPresignedUploadUrl, createPresignedDownloadUrl, createTenantDocumentKey, isTenantDocumentKey } = vi.hoisted(() => ({
+const { requireTenantContext, createPresignedUploadUrl, createPresignedDownloadUrl, createTenantDocumentKey, findFirst, create } = vi.hoisted(() => ({
   requireTenantContext: vi.fn(),
   createPresignedUploadUrl: vi.fn(),
   createPresignedDownloadUrl: vi.fn(),
   createTenantDocumentKey: vi.fn(),
-  isTenantDocumentKey: vi.fn(),
+  findFirst: vi.fn(),
+  create: vi.fn(),
 }));
 
 vi.mock("@/lib/tenant", () => ({
@@ -22,8 +23,9 @@ vi.mock("@/lib/r2-storage", () => ({
   createPresignedUploadUrl,
   createPresignedDownloadUrl,
   createTenantDocumentKey,
-  isTenantDocumentKey,
 }));
+
+vi.mock("@dzaroza/database", () => ({ prisma: { document: { findFirst, create } } }));
 
 import { POST } from "./route";
 
@@ -40,7 +42,10 @@ describe("tenant-scoped R2 presign API", () => {
     createPresignedUploadUrl.mockReset();
     createPresignedDownloadUrl.mockReset();
     createTenantDocumentKey.mockReset();
-    isTenantDocumentKey.mockReset();
+    findFirst.mockReset();
+    create.mockReset();
+    create.mockResolvedValue({ id: "doc-a" });
+    findFirst.mockResolvedValue(null);
     requireTenantContext.mockResolvedValue({ organizationId: "org-a", userId: "user-a", role: "STAFF" });
     createTenantDocumentKey.mockReturnValue("organizations/org-a/documents/random/file.pdf");
     createPresignedUploadUrl.mockResolvedValue({
@@ -65,6 +70,17 @@ describe("tenant-scoped R2 presign API", () => {
     );
     expect(body.upload.method).toBe("PUT");
     expect(body.upload.expiresIn).toBe(300);
+    expect(body.upload.documentId).toBe("doc-a");
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        organizationId: "org-a",
+        uploadedById: "user-a",
+        fileName: "file.pdf",
+        contentType: "application/pdf",
+        sizeBytes: 1024n,
+        status: "PENDING_UPLOAD",
+      }),
+    }));
   });
 
   it("rejects files with unsupported types or excessive sizes", async () => {
@@ -79,19 +95,21 @@ describe("tenant-scoped R2 presign API", () => {
     expect(createPresignedUploadUrl).not.toHaveBeenCalled();
   });
 
-  it("does not issue a download URL for a key outside the active tenant", async () => {
-    isTenantDocumentKey.mockReturnValue(false);
+  it("does not issue a download URL for a missing or foreign tenant document", async () => {
     const response = await POST(request({
-      action: "download", objectKey: "organizations/org-b/documents/private.pdf",
+      action: "download", documentId: "doc-foreign",
     }), context);
     expect(response.status).toBe(404);
+    expect(findFirst).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: "doc-foreign", organizationId: "org-a", status: "AVAILABLE", deletedAt: null },
+    }));
     expect(createPresignedDownloadUrl).not.toHaveBeenCalled();
   });
 
-  it("issues a download URL only after tenant-prefix validation", async () => {
-    isTenantDocumentKey.mockReturnValue(true);
+  it("issues a download URL only for an AVAILABLE document in the active tenant", async () => {
+    findFirst.mockResolvedValue({ objectKey: "organizations/org-a/documents/random/file.pdf" });
     const response = await POST(request({
-      action: "download", objectKey: "organizations/org-a/documents/random/file.pdf",
+      action: "download", documentId: "doc-a",
     }), context);
     const body = await response.json();
     expect(response.status).toBe(200);

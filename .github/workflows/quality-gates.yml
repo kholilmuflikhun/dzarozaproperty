@@ -3,9 +3,9 @@ name: Monorepo quality gates
 on:
   workflow_dispatch:
   push:
-    branches: [main, feat/monorepo-saas-foundation, chore/ci-hardening-phase0-1, feat/crm-leads-api, feat/quotation-management-api, feat/phase-2-business-finance-workflows, feat/cloudflare-r2-integration]
+    branches: [main, feat/monorepo-saas-foundation, chore/ci-hardening-phase0-1, feat/crm-leads-api, feat/quotation-management-api, feat/phase-2-business-finance-workflows, feat/cloudflare-r2-integration, feat/document-metadata-foundation]
   pull_request:
-    branches: [main, feat/monorepo-saas-foundation, feat/crm-leads-api, feat/quotation-management-api, feat/phase-2-business-finance-workflows]
+    branches: [main, feat/monorepo-saas-foundation, feat/crm-leads-api, feat/quotation-management-api, feat/phase-2-business-finance-workflows, feat/cloudflare-r2-integration, feat/document-metadata-foundation]
 
 concurrency:
   group: quality-gates-${{ github.workflow }}-${{ github.ref }}
@@ -92,3 +92,69 @@ jobs:
             sleep 2
           done
           curl --fail --silent http://127.0.0.1:3001/login >/dev/null
+
+  reconcile-preview-prisma-history:
+    if: >-
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/feat/document-metadata-foundation' &&
+      contains(github.event.head_commit.message, 'reconcile Preview Prisma migration history')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DATABASE_URL: ${{ secrets.PREVIEW_DATABASE_URL }}
+      DIRECT_URL: ${{ secrets.PREVIEW_DIRECT_URL }}
+    steps:
+      - name: Checkout migration branch
+        uses: actions/checkout@v4
+        with:
+          ref: feat/document-metadata-foundation
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.18.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Validate Preview credentials
+        shell: bash
+        run: |
+          test -n "$DATABASE_URL" || { echo "PREVIEW_DATABASE_URL is missing"; exit 1; }
+          test -n "$DIRECT_URL" || { echo "PREVIEW_DIRECT_URL is missing"; exit 1; }
+      - name: Validate Prisma schema
+        run: pnpm --filter @dzaroza/database exec prisma validate --schema prisma/schema.prisma
+      - name: Preflight Neon Preview schema before recording migration history
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+          table_count="$(psql "$DIRECT_URL" -v ON_ERROR_STOP=1 -Atc "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE'")"
+          document_columns="$(psql "$DIRECT_URL" -v ON_ERROR_STOP=1 -Atc "SELECT COUNT(*) FROM information_schema.columns WHERE table_schema='public' AND table_name='Document'")"
+          document_fks="$(psql "$DIRECT_URL" -v ON_ERROR_STOP=1 -Atc "SELECT COUNT(*) FROM information_schema.table_constraints WHERE table_schema='public' AND table_name='Document' AND constraint_type='FOREIGN KEY'")"
+          document_status="$(psql "$DIRECT_URL" -v ON_ERROR_STOP=1 -Atc "SELECT COUNT(*) FROM pg_type WHERE typnamespace='public'::regnamespace AND typname='DocumentStatus'")"
+          test "$table_count" = "21" || { echo "Expected 21 public tables; found $table_count"; exit 1; }
+          test "$document_columns" = "15" || { echo "Expected 15 Document columns; found $document_columns"; exit 1; }
+          test "$document_fks" = "4" || { echo "Expected 4 Document foreign keys; found $document_fks"; exit 1; }
+          test "$document_status" = "1" || { echo "DocumentStatus enum is missing"; exit 1; }
+          echo "Preview schema preflight passed: 21 tables, 15 Document columns, 4 Document foreign keys, DocumentStatus enum."
+      - name: Record migrations already applied to Neon Preview
+        shell: bash
+        run: |
+          set -euo pipefail
+          migrations=(
+            20261031000000_init
+            20261031010000_enforce_tenant_scoped_relations
+            20261031020000_snapshot_subscription_checkout_amount
+            20261031030000_add_quotation_items
+            20261031040000_phase2_business_finance
+            20261031050000_phase2_hardening
+            20261104000000_add_document_metadata
+          )
+          for migration in "${migrations[@]}"; do
+            echo "Recording already-applied migration: $migration"
+            pnpm --filter @dzaroza/database exec prisma migrate resolve --applied "$migration" --schema prisma/schema.prisma
+          done
+      - name: Verify Prisma migration status
+        run: pnpm --filter @dzaroza/database exec prisma migrate status --schema prisma/schema.prisma
