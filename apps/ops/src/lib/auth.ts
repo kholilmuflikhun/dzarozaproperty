@@ -91,23 +91,7 @@ export const auth = betterAuth({
         },
       },
     },
-    session: {
-      create: {
-        before: async (session) => {
-          const user = await prisma.user.findUnique({
-            where: { id: session.userId },
-            select: { id: true, email: true },
-          });
-          if (!user) return false;
 
-          await prisma.user.update({
-            where: { id: user.id },
-            data: { isPlatformAdmin: isPlatformAdminEmail(user.email) },
-          });
-          return { data: session };
-        },
-      },
-    },
   },
   telemetry: {
     enabled: false,
