@@ -150,11 +150,14 @@ export function createTenantDocumentKey(organizationId: string, fileName: string
   if (!/^[a-zA-Z0-9_-]{1,64}$/.test(organizationId)) {
     throw new Error("Organization ID is invalid.");
   }
-  const safeName = fileName
+  const normalizedName = fileName
     .normalize("NFKC")
     .replace(/[^a-zA-Z0-9._-]+/g, "-")
     .replace(/^-+|-+$/g, "")
-    .slice(0, 100) || "document";
+    .slice(0, 100);
+  const safeName = !normalizedName || normalizedName === "." || normalizedName === ".."
+    ? "document"
+    : normalizedName;
   return `organizations/${organizationId}/documents/${randomUUID()}/${safeName}`;
 }
 
