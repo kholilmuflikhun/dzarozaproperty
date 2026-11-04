@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@dzaroza/database";
+import { ProjectDocumentType, prisma } from "@dzaroza/database";
 import { requireTenantContext, toHttpError } from "@/lib/tenant";
 import {
   createPresignedDownloadUrl,
@@ -27,6 +27,13 @@ const requestSchema = z.discriminatedUnion("action", [
     fileName: z.string().trim().min(1).max(180),
     contentType: z.enum(allowedContentTypes),
     size: z.number().int().positive().max(MAX_FILE_SIZE_BYTES),
+    projectId: z.string().trim().min(1).max(64).optional(),
+    documentType: z.nativeEnum(ProjectDocumentType).optional(),
+    documentNumber: z.string().trim().max(120).optional(),
+    metadata: z.record(z.string(), z.unknown()).optional(),
+  }).refine((value) => !value.documentType || Boolean(value.projectId), {
+    message: "Dokumen bertipe proyek wajib terhubung ke proyek.",
+    path: ["projectId"],
   }),
   z.object({
     action: z.literal("download"),
@@ -62,6 +69,16 @@ export async function POST(
     }
 
     if (parsed.data.action === "upload") {
+      if (parsed.data.projectId) {
+        const project = await prisma.project.findFirst({
+          where: { id: parsed.data.projectId, organizationId },
+          select: { id: true },
+        });
+        if (!project) {
+          return NextResponse.json({ error: "Proyek tidak ditemukan pada organisasi ini." }, { status: 404 });
+        }
+      }
+
       const objectKey = createTenantDocumentKey(organizationId, parsed.data.fileName);
       const signed = await createPresignedUploadUrl(objectKey, 300, parsed.data.contentType);
       const document = await prisma.document.create({
@@ -73,6 +90,10 @@ export async function POST(
           contentType: parsed.data.contentType,
           sizeBytes: BigInt(parsed.data.size),
           status: "PENDING_UPLOAD",
+          projectId: parsed.data.projectId ?? null,
+          documentType: parsed.data.documentType ?? null,
+          documentNumber: parsed.data.documentNumber ?? null,
+          metadata: parsed.data.metadata,
         },
         select: { id: true },
       });
