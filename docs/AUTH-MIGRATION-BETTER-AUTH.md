@@ -46,3 +46,17 @@ References:
 - Google OAuth callback, session retrieval, refresh, and sign-out work on both local Next.js and Cloudflare Workers Preview.
 - Existing Vercel deployment path remains available as fallback.
 - No Production resources or traffic are modified.
+
+## Environment configuration
+
+Configure these only in the relevant Preview environment after the Worker hostname is known:
+
+- `BETTER_AUTH_SECRET`: a new, high-entropy secret dedicated to Better Auth. Do not reuse or print the value in repository files.
+- `BETTER_AUTH_URL`: exact Cloudflare Ops Preview origin, including scheme and hostname.
+- `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`: Preview OAuth client credentials.
+- `PLATFORM_ADMIN_EMAILS`: server-side comma-separated allowlist; never expose it to client code.
+- Neon database access is supplied through the Worker Hyperdrive binding; do not add a raw privileged Neon URL to Worker variables.
+- `DIRECT_URL` remains a CI-only Preview migration secret and is not bound to the Worker.
+- The Google OAuth client must allow the exact redirect URI `<BETTER_AUTH_URL>/api/auth/callback/google`. Add this only to the Preview OAuth client; do not change Production OAuth configuration.
+
+The application currently falls back to `NEXTAUTH_URL` and `NEXTAUTH_SECRET` for local/Vercel compatibility. Cloudflare Preview must set `BETTER_AUTH_URL` and `BETTER_AUTH_SECRET` explicitly. Do not copy the entire Vercel environment into Workers.
