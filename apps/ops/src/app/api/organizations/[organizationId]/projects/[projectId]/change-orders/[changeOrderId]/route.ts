@@ -19,7 +19,7 @@ export async function PATCH(request:NextRequest,context:{params:Promise<{organiz
     if(!project)return {kind:"not-found" as const};
     const approved=await tx.changeOrder.findMany({where:{organizationId,projectId,status:{in:["APPROVED","AGREED"]}} ,select:{netTotal:true}});
     const finalValue=approved.reduce((sum,row)=>sum.plus(row.netTotal),new Prisma.Decimal(project.contractValue)).toDecimalPlaces(2);
-    const terms=await tx.paymentTerm.findMany({where:{organizationId,projectId},select:{id:true,percentage:true}});
+    const terms=await tx.paymentTerm.findMany({where:{organizationId,projectId,status:"UNPAID",invoiceId:null},select:{id:true,percentage:true}});
     for(const term of terms){
       const amount=finalValue.mul(term.percentage).div(100).toDecimalPlaces(2);
       await tx.paymentTerm.updateMany({where:{organizationId,id:term.id,projectId},data:{amount}});
