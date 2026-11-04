@@ -161,6 +161,34 @@ async function signObjectUrl(
   };
 }
 
+
+export interface R2ObjectMetadata {
+  contentLength: number;
+  contentType: string | null;
+  etag: string | null;
+}
+
+export async function headR2Object(objectKey: string): Promise<R2ObjectMetadata | null> {
+  const signed = await signObjectUrl("HEAD", objectKey, 60);
+  const response = await fetch(signed.url, { method: "HEAD", cache: "no-store" });
+  if (response.status === 404 || response.status === 410) return null;
+  if (!response.ok) {
+    throw new Error(`R2 object verification failed with status ${response.status}.`);
+  }
+
+  const rawLength = response.headers.get("content-length");
+  const contentLength = rawLength === null ? Number.NaN : Number(rawLength);
+  if (!Number.isSafeInteger(contentLength) || contentLength < 0) {
+    throw new Error("R2 object returned an invalid content length.");
+  }
+
+  return {
+    contentLength,
+    contentType: response.headers.get("content-type")?.split(";")[0]?.trim().toLowerCase() ?? null,
+    etag: response.headers.get("etag"),
+  };
+}
+
 export function createTenantDocumentKey(organizationId: string, fileName: string): string {
   if (!/^[a-zA-Z0-9_-]{1,64}$/.test(organizationId)) {
     throw new Error("Organization ID is invalid.");
