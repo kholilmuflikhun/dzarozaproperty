@@ -10,8 +10,10 @@ This document does not authorize DNS/nameserver changes, production traffic chan
 
 - Cloudflare account authentication is available.
 - The authenticated account currently has no DNS zones.
-- Cloudflare API returned error 10042 for the R2 buckets endpoint: R2 must first be enabled in the Cloudflare Dashboard.
-- No R2 bucket or access key has been provisioned by this integration.
+- R2 is enabled and the account API is accessible (verified 2026-11-04).
+- Three private Standard buckets were provisioned in APAC: `dzaroza-ops-dev`, `dzaroza-ops-preview`, and `dzaroza-ops-prod`.
+- The managed `r2.dev` public-access flag is disabled for all three buckets.
+- A Preview-scoped S3 API token and five sensitive Preview environment-variable entries were reported/configured by the operator. Secret values are never read by the integration.
 - The dedicated Vercel Ops Preview project already exists: `dzaroza-ops-preview` (see `docs/PREVIEW-VERIFICATION.md`). Keep it isolated from the existing Marketing/production Vercel project.
 - The worker workspace is currently a Node.js placeholder. Do not silently convert it into a Cloudflare Worker; choose a queue/runtime adapter only after the use case and deployment model are reviewed.
 
@@ -98,3 +100,29 @@ The current Cloudflare account has no zones. Do not change nameservers or proxy 
 - [ ] Preview E2E tests pass before production configuration.
 - [ ] Marketing Vercel Blob remains unchanged until a separate migration plan is approved.
 - [ ] No production DNS, deployment or credential change occurs without explicit release approval.
+
+
+## Implemented R2 adapter (Preview rollout)
+
+The Ops application now includes a provider-neutral boundary in `src/lib/r2-storage.ts` backed by Cloudflare R2's S3-compatible presigned URL flow. It uses Node.js Web Crypto for AWS Signature Version 4, avoiding an additional runtime dependency and avoiding a lockfile change.
+
+Implemented API:
+- `POST /api/organizations/{organizationId}/documents/presign` with `{ action: "upload", fileName, contentType, size }` returns a five-minute presigned PUT URL and a server-generated tenant-prefixed object key.
+- The same endpoint with `{ action: "download", objectKey }` returns a five-minute presigned GET URL only after the authenticated user is a member of the requested organization and the key belongs to that organization's document prefix.
+- Uploads are limited to 20 MiB and an explicit allowlist of PDF, common image, CSV, DOCX and XLSX media types.
+- Object keys are generated server-side with a UUID. Client-supplied bucket names and arbitrary upload keys are not accepted.
+- R2 endpoint configuration is restricted to the HTTPS endpoint belonging to the configured 32-character Cloudflare account ID.
+- Presigned URL lifetime is capped at 15 minutes; current routes use five minutes.
+
+Important scope limitation:
+- The current Prisma schema does not yet contain a Document/File metadata model. This phase issues tenant-authorized presigned URLs and enforces tenant prefixes, but it does not yet persist document metadata, verify post-upload object size/checksum, or bind a file to a project/invoice record. Do not expose this as a complete DMS workflow until the metadata/finalization phase is implemented and tested.
+- The route's download authorization currently relies on the authenticated organization membership plus the unguessable, tenant-prefixed object key. The next DMS phase must additionally verify a persisted document row and record-level permissions before issuing downloads.
+
+Preview environment:
+- Configure the five R2 variables only in `dzaroza-ops-preview`, Preview target, branch `feat/cloudflare-r2-integration`.
+- Never read or print decrypted Vercel environment values in logs or chat.
+- The Preview environment variables were listed with decryption disabled and their keys/branch scope were confirmed; actual values remain intentionally uninspected.
+
+Tests added:
+- Presigned PUT/GET signing shape, TTL guard, HTTPS/account endpoint validation, key generation and tenant-prefix isolation.
+- API authorization, upload MIME/size validation, cross-tenant key denial and membership failure.
