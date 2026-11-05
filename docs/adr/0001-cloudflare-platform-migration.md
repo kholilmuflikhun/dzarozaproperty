@@ -58,3 +58,10 @@ The vinext compatibility workflow ran successfully (scan execution) on PR #18. I
 Cloudflare's current documentation positions vinext as the recommended path for new Next.js Workers applications and OpenNext as a maintenance path for existing OpenNext apps until vinext compatibility allows migration. Therefore OpenNext is only an experimental candidate for an isolated Preview validation here, not a replacement decision. The repository has not been migrated to either adapter.
 
 Authentication inspection confirms different responsibilities in Marketing and Ops (Google JWT sessions/admin allowlist versus Google verified-email sign-in, Prisma user synchronization, platform-admin re-evaluation and custom login). No authentication provider rewrite is approved. The shared Prisma singleton also lacks a Workers-specific driver adapter; evaluate Prisma + Hyperdrive separately before runtime Preview.
+
+ 
+## Current-head verification update — 2026-11-05
+ 
+At PR #18 head `fc197273c30d080e615fee33b1a69a7e603dd182`, Monorepo quality gates run #460 completed successfully, including Preview migration-history reconciliation, Prisma validation/client generation, tenant constraints, TypeScript, unit tests, production builds and public/Ops smoke tests. Cloudflare compatibility scan run #4 also completed, but the scan findings remain open: NextAuth v4 is flagged in both apps and Marketing image optimization is partial. Vercel checks continue to report `build-rate-limit`, so a fresh Vercel Preview deployment is not verified.
+ 
+The repository inventory shows no existing app-level Wrangler/OpenNext runtime configuration or Next.js middleware/proxy entrypoint. The current Cloudflare Worker remains a bootstrap scaffold, not an application deployment. Continue with an isolated Preview implementation only; do not interpret CI success as Workers runtime acceptance or Production release approval.
