@@ -3,13 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  ArrowLeftRight, Building2, BriefcaseBusiness, FileText, LayoutDashboard,
+  ArrowLeftRight, Building2, BriefcaseBusiness, FileText, LayoutDashboard, Home,
   ReceiptText, Wallet, Menu, X
 } from "lucide-react";
 import { useState } from "react";
 
 const navigation = [
   { href: "", label: "Ringkasan", short: "Home", icon: LayoutDashboard },
+  { href: "/properties", label: "Portofolio Properti", short: "Properti", icon: Home },
   { href: "/projects", label: "Proyek & Pekerjaan", short: "Proyek", icon: BriefcaseBusiness },
   { href: "/quotations", label: "Penawaran", short: "Penawaran", icon: FileText },
   { href: "/invoices", label: "Tagihan", short: "Tagihan", icon: ReceiptText },
