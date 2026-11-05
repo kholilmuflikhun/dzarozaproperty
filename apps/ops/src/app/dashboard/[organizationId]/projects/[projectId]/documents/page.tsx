@@ -188,7 +188,7 @@ export default function ProjectDocumentsPage() {
                   <p className="mt-1 text-xs text-slate-500">{document.documentType?.replaceAll("_", " ") ?? "Dokumen umum"}{document.documentNumber ? ` · ${document.documentNumber}` : ""} · v{document.version} · {formatSize(document.sizeBytes)}</p>
                   <p className="mt-1 text-xs text-slate-400">{new Date(document.createdAt).toLocaleString("id-ID")}</p>
                 </div>
-                <button onClick={() => void downloadDocument(document.id)} className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"><ArrowDownToLine className="h-4 w-4" /><span className="hidden sm:inline">Unduh</span></button>
+                <button onClick={() => void downloadDocument(document.id)} className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-white"><ArrowDownToLine className="h-4 w-4" /><span className="hidden sm:inline">Unduh</span></button>
               </li>
             ))}
           </ul>
