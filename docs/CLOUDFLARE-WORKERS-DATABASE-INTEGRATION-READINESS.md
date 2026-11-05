@@ -4,6 +4,16 @@ Date: 2026-11-05
 Branch: `feat/cloudflare-preview-runtime-foundation`
 Pull request: #19
 
+## Latest CI verification
+
+Commit `b5460e696427886ca7d77c0e8679529ab867bcac` passed all three workflow runs:
+
+- Cloudflare Runtime Compatibility: success.
+- Cloudflare Preview Runtime Build: success for both Marketing and Ops, including OpenNext builds and Wrangler dry-run bundle validation.
+- Monorepo quality gates: success for locked workspace installation, ephemeral pinned OpenNext and Neon adapter installation, Prisma schema validation and client generation, local PostgreSQL migrations, tenant-scoped database constraints, TypeScript, unit tests, production builds, and public-site/Ops-login smoke tests.
+
+These checks validate builds and the Node/Vercel path. They do not validate a live Cloudflare Worker request, Neon connectivity from workerd, or tenant isolation in that runtime.
+
 ## Decision
 
 Keep the Cloudflare runtime work isolated and additive. Do not route existing Ops handlers to the Workers Prisma client until the adapter is a permanent, lockfile-backed runtime dependency and an actual workerd request has passed database and tenant-isolation tests.
@@ -16,6 +26,7 @@ The current Vercel/Node database path remains the production and rollback path.
 - `packages/database/src/workers.ts` is a separate request-scoped factory using the generated `workerd` client and `PrismaNeon`. It is not exported from the package root and is not wired into Ops handlers.
 - `@prisma/adapter-neon` is not declared in `packages/database/package.json`; the Cloudflare workflows currently install it ephemerally for CI validation. Do not make this factory a runtime dependency until the package manifest and pnpm lockfile are updated together using pnpm.
 - The Ops documents API and project workspace API still use the established `prisma` singleton. The documents API explicitly declares `runtime = "nodejs"`; the project workspace route uses the default Next.js runtime.
+- The organization summary API is a candidate low-risk read-only pilot: it authenticates through `requireTenantContext` and scopes all four count queries to the supplied `organizationId`. It currently uses the Node/Vercel singleton and has no explicit runtime declaration. It is not yet migrated.
 - Sampled project, workspace, documents, and organization summary handlers preserve organization-scoped lookups and call `requireTenantContext` or `requireTenantRole` before tenant data access. These query scopes and authorization helpers must remain unchanged during any runtime migration.
 - The Ops Next config currently externalizes `@prisma/client` only. OpenNext's workerd guidance lists Prisma's generated client and driver packages as runtime-sensitive packages; the final externalization list must be based on the generated Worker's actual dependency graph, not copied blindly from a different Prisma generator layout.
 - The Ops Next config does not currently call `initOpenNextCloudflareForDev()`. Local `next dev` therefore has not been configured to provide OpenNext's Cloudflare bindings/context. This must be added and tested before using local development to validate binding access.
@@ -36,7 +47,7 @@ The current Vercel/Node database path remains the production and rollback path.
 - Add and test `initOpenNextCloudflareForDev()` in the Ops Next config, without enabling remote bindings or changing production resources by default.
 - Add unit tests for the request-scoped factory, including operation rejection and disconnect scheduling.
 - Run OpenNext Preview locally and issue a real query against the Neon Preview branch.
-- Integrate one low-risk read-only Ops route behind a route-local runtime-aware database boundary only after the above checks pass.
+- Integrate the organization summary route as the first low-risk read-only pilot behind a route-local runtime-aware database boundary only after the above checks pass.
 - Run authentication/session, tenant-isolation, R2/document, and browser E2E tests before expanding the integration.
 
 ## Platform note
