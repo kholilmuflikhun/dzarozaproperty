@@ -9,8 +9,10 @@ const { mockDisconnect, mockClient, mockPrismaClientConstructor } = vi.hoisted((
 
 vi.mock("@prisma/adapter-neon", () => ({
   PrismaNeon: class PrismaNeonMock {
+    readonly options: unknown;
+
     constructor(options: unknown) {
-      return { options };
+      this.options = options;
     }
   },
 }));
@@ -47,7 +49,7 @@ describe("Workers Prisma request lifecycle", () => {
     const [{ adapter }] = mockPrismaClientConstructor.mock.calls[0] as [
       { adapter: { options: { connectionString: string } } },
     ];
-    expect(adapter.options.connectionString).toBe("postgresql://preview.example/db");
+    expect(adapter.options).toEqual({ connectionString: "postgresql://preview.example/db" });
   });
 
   it("awaits successful work and schedules disconnect on the original execution context", async () => {
