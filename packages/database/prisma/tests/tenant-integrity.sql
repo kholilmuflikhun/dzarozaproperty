@@ -138,6 +138,7 @@ BEGIN
   EXCEPTION WHEN check_violation THEN
     NULL;
   END;
-\nEND $;
+
+END $;
 
 ROLLBACK;
