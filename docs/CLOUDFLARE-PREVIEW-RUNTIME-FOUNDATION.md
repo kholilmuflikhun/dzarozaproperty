@@ -49,3 +49,38 @@ Pinned experiment versions: `@opennextjs/cloudflare@1.20.16` and `wrangler@4.157
 7. Run browser E2E and UAT. Keep Vercel as rollback path.
 
 A successful build or dry-run is not evidence of auth, database, storage, payment, tenant-isolation or end-to-end runtime compatibility.
+
+
+## Runtime compatibility audit (2026-11-05)
+
+### Authentication: high-risk / not yet runtime-validated
+
+The existing apps have different NextAuth v4 responsibilities and must not be normalized into one shared callback implementation:
+
+- Marketing uses Google OAuth with JWT sessions, copies the subject into `session.user.id`, and checks its `ADMIN_EMAILS` allowlist in the server-side admin-session helper.
+- Ops requires a verified Google email, upserts the user in PostgreSQL during sign-in, refreshes the user ID from Prisma during JWT callbacks, and re-evaluates `PLATFORM_ADMIN_EMAILS` so admin revocation takes effect on refresh.
+
+The OpenNext bundle build does not prove NextAuth v4 compatibility with the Workers runtime. Preserve these behaviors and add runtime tests for OAuth callback, cookie/session persistence, refresh, logout, verified-email rejection, and admin revocation before deciding whether an auth migration is needed. Do not mechanically replace NextAuth v4 or combine the two app configurations.
+
+### Database: isolate the Workers client from the Node/Vercel client
+
+The current `@dzaroza/database` entrypoint eagerly constructs a standard `PrismaClient` singleton. This is the existing Node/Vercel path and must remain unchanged for the current deployment.
+
+For a Workers experiment, implement a separate, explicitly selected runtime entrypoint using Prisma's PostgreSQL driver adapter (`@prisma/adapter-pg`) with `pg` and a Hyperdrive connection string. Do not import `cloudflare:workers` from the shared Node entrypoint or expose Cloudflare-only runtime APIs to Vercel bundles. Resolve the Hyperdrive binding at the app/runtime boundary and inject the connection configuration into a Workers-specific database factory. Validate Prisma 6.19 compatibility, pool lifecycle, request concurrency and transaction behavior before connecting it to the Ops application.
+
+### Image handling
+
+The Marketing app currently declares remote image patterns for Google profile images and Vercel Blob. OpenNext build success alone does not establish that Next.js image optimization is equivalent on Workers. Verify optimized and unoptimized remote images in runtime Preview; if the image optimizer needs Cloudflare Images or a different loader, treat that as an explicit compatibility decision.
+
+### Runtime acceptance matrix
+
+| Area | Current assessment | Required evidence |
+|---|---|---|
+| NextAuth v4 | Unverified / high risk | Real Google OAuth Preview callback and session tests |
+| Ops Prisma | Node-only client today | Workers adapter + Hyperdrive runtime tests |
+| Tenant isolation | Existing DB constraints pass CI | Authenticated cross-tenant API E2E |
+| R2 documents | Wrangler binding declared only | Upload, private download, revision and deletion tests |
+| Midtrans | No Workers runtime proof | Sandbox create/notification/signature verification |
+| Images | Remote patterns configured | Worker runtime image optimization tests |
+
+These are implementation gates, not permission to deploy. Preview deployment remains approval-gated.
