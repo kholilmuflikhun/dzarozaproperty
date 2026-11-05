@@ -61,6 +61,13 @@ jobs:
           @opennextjs/cloudflare@1.20.16
           wrangler@4.157.0
 
+      - name: Install pinned Neon adapter for Ops Workers build
+        if: matrix.app == 'ops'
+        run: >-
+          pnpm add --filter "@dzaroza/database"
+          --save-dev --save-exact --lockfile=false
+          @prisma/adapter-neon@6.19.3
+
       - name: Build app for Cloudflare Workers
         run: pnpm --filter "${{ matrix.package }}" exec opennextjs-cloudflare build
 
