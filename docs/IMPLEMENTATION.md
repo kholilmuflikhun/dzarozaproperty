@@ -143,3 +143,32 @@ License secrets use cryptographically secure random bytes. Only SHA-256 hashes a
 - Quotation manager supports manual quotation creation, issuing, sending/rotating approval links, copying manual links, accepted quotation conversion and invoice creation.
 - Invoice manager supports manual invoice creation, issuing, PDF download, email delivery, Midtrans checkout and manual payment recording. Role enforcement remains on the API; UI visibility is not treated as authorization.
 - These UI pages are part of the same Phase 2 feature branch and must pass the full CI suite before the phase is considered ready for review.
+
+
+## Phase 4 — Property Portfolio & Asset Registry
+
+### Domain foundation
+- Added tenant-owned `Property` records with organization-scoped code uniqueness, property type/status, Indonesian address fields, optional coordinates, and land/building area.
+- Added `PropertyBuilding` records scoped to a property, with property-local code uniqueness and status/floor metadata.
+- Added `PropertyUnit` records scoped to a property and optionally a building, with unit type/status, floor, area, bedroom and bathroom metadata.
+- Added `PropertyAsset` records scoped to a property and optionally a building, with category, serial number, location, lifecycle status, acquisition date and purchase cost.
+- Composite foreign keys bind buildings, units and assets to the same organization/property. Database checks reject out-of-range coordinates and negative areas, floors, room counts and asset costs.
+- No owner/occupant profile is duplicated here; owner and occupancy relationships remain Phase 5. No existing Client, Project, Invoice, Payment or Document records are rewritten.
+
+### API foundation
+- `GET/POST /api/organizations/[organizationId]/properties`: tenant-authorized property listing with status/type/city filters, bounded limit and portfolio counts; creation is restricted to OWNER, ADMIN and PROJECT_MANAGER and audited atomically.
+- `GET/POST /api/organizations/[organizationId]/properties/[propertyId]/buildings`: tenant-scoped building listing and creation.
+- `GET/POST /api/organizations/[organizationId]/properties/[propertyId]/units`: tenant-scoped unit listing and creation, including validation that an optional building belongs to the same property and organization.
+- `GET/POST /api/organizations/[organizationId]/properties/[propertyId]/assets`: tenant-scoped asset listing and creation, including validation that an optional building belongs to the same property and organization.
+- Duplicate property-local codes return HTTP 409. Material create actions write AuditLog records in the same serializable transaction.
+
+### Phase 4 status and remaining exit criteria
+The initial schema, migration, and API foundation have been committed to `feat/property-portfolio-foundation`. This is an implementation-in-progress record, not a claim of production readiness.
+
+Remaining work:
+1. Prisma validation, generated-client/type checks, unit tests and PostgreSQL migration verification in CI.
+2. PostgreSQL-backed integration tests for composite tenant ownership, cross-organization and cross-property building references, and uniqueness.
+3. Property detail/update/archive plus building/unit/asset update and retirement workflows.
+4. Search and cursor pagination for larger portfolios.
+5. Responsive Property Portfolio UI with property overview and building/unit/asset tabs.
+6. Preview deployment, authenticated browser E2E, and user acceptance.
