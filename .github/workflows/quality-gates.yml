@@ -55,6 +55,13 @@ jobs:
           cache: pnpm
       - name: Install workspace dependencies
         run: pnpm install --frozen-lockfile
+      # open-next.config.ts is part of each app's TypeScript project. Install
+      # the exact Preview adapter in the CI workspace without changing manifests
+      # or the committed lockfile until the runtime experiment is accepted.
+      - name: Install pinned Cloudflare adapter for config typechecking
+        run: |
+          pnpm add --filter @dzaroza/marketing --save-dev --save-exact --lockfile=false @opennextjs/cloudflare@1.20.16
+          pnpm add --filter @dzaroza/ops --save-dev --save-exact --lockfile=false @opennextjs/cloudflare@1.20.16
       - name: Validate Prisma schema
         run: pnpm --filter @dzaroza/database exec prisma validate --schema prisma/schema.prisma
       - name: Generate Prisma client
