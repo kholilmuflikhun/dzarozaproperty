@@ -224,8 +224,10 @@ jobs:
         run: |
           set -euo pipefail
           duplicate_parents="$(psql "$DIRECT_URL" -v ON_ERROR_STOP=1 -Atc 'SELECT COUNT(*) FROM (SELECT "organizationId", "parentDocumentId" FROM "Document" WHERE "parentDocumentId" IS NOT NULL AND "deletedAt" IS NULL GROUP BY "organizationId", "parentDocumentId" HAVING COUNT(*) > 1) duplicates')"
+          duplicate_roots="$(psql "$DIRECT_URL" -v ON_ERROR_STOP=1 -Atc 'SELECT COUNT(*) FROM (SELECT "organizationId", "projectId", "documentType", "documentNumber" FROM "Document" WHERE "parentDocumentId" IS NULL AND "deletedAt" IS NULL AND "projectId" IS NOT NULL AND "documentType" IS NOT NULL AND "documentNumber" IS NOT NULL GROUP BY "organizationId", "projectId", "documentType", "documentNumber" HAVING COUNT(*) > 1) duplicates')"
           test "$duplicate_parents" = "0" || { echo "Cannot enforce revision chain uniqueness: $duplicate_parents parent documents have multiple active children."; exit 1; }
-          echo "Revision chain preflight passed: no active sibling revisions."
+          test "$duplicate_roots" = "0" || { echo "Cannot enforce root document uniqueness: $duplicate_roots project document identities have duplicate active roots."; exit 1; }
+          echo "Document identity preflight passed: no active sibling revisions or duplicate roots."
       - name: Apply pending Preview migrations
         run: pnpm --filter @dzaroza/database exec prisma migrate deploy --schema prisma/schema.prisma
       - name: Verify Prisma migration status
