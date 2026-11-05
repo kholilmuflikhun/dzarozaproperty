@@ -1,0 +1,44 @@
+# Cloudflare Workers Database Integration Readiness Audit
+
+Date: 2026-11-05
+Branch: `feat/cloudflare-preview-runtime-foundation`
+Pull request: #19
+
+## Decision
+
+Keep the Cloudflare runtime work isolated and additive. Do not route existing Ops handlers to the Workers Prisma client until the adapter is a permanent, lockfile-backed runtime dependency and an actual workerd request has passed database and tenant-isolation tests.
+
+The current Vercel/Node database path remains the production and rollback path.
+
+## Verified repository facts
+
+- `packages/database/src/index.ts` exports the existing module-level `@prisma/client` singleton. Existing Ops handlers import `prisma` from `@dzaroza/database`.
+- `packages/database/src/workers.ts` is a separate request-scoped factory using the generated `workerd` client and `PrismaNeon`. It is not exported from the package root and is not wired into Ops handlers.
+- `@prisma/adapter-neon` is not declared in `packages/database/package.json`; the Cloudflare workflows currently install it ephemerally for CI validation. Do not make this factory a runtime dependency until the package manifest and pnpm lockfile are updated together using pnpm.
+- The Ops documents API and project workspace API still use the established `prisma` singleton. The documents API explicitly declares `runtime = "nodejs"`; the project workspace route uses the default Next.js runtime.
+- Sampled project, workspace, documents, and organization summary handlers preserve organization-scoped lookups and call `requireTenantContext` or `requireTenantRole` before tenant data access. These query scopes and authorization helpers must remain unchanged during any runtime migration.
+
+## Integration constraints
+
+1. Do not replace the package root export or mutate the existing Node/Vercel singleton.
+2. Do not globally switch route runtimes or bulk-rewrite Prisma imports.
+3. Keep the Workers factory in its isolated module. A future route-level integration must obtain `env` and `ctx` inside the request handler through `getCloudflareContext()`, and must pass the pooled Preview Neon connection string without exposing it to clients.
+4. Keep database work awaited when the HTTP response depends on it. Schedule cleanup with the original `ctx.waitUntil(prisma.$disconnect())` method; do not destructure `waitUntil`.
+5. Test success and failure cleanup behavior, transactions, Decimal/JSON serialization, concurrency, and real Neon connectivity in `workerd`. Wrangler dry-run alone is a bundle check, not a runtime database test.
+6. Re-run tenant isolation tests with a legitimate organization member and a second tenant. Verify both allowed access and cross-tenant denial before considering any handler migration.
+
+## Recommended sequence
+
+- Persist pinned `@prisma/adapter-neon` as a runtime dependency and regenerate `pnpm-lock.yaml` with pnpm 10.18.0; never hand-edit the lockfile.
+- Add unit tests for the request-scoped factory, including operation rejection and disconnect scheduling.
+- Run OpenNext Preview locally and issue a real query against the Neon Preview branch.
+- Integrate one low-risk read-only Ops route behind a route-local runtime-aware database boundary only after the above checks pass.
+- Run authentication/session, tenant-isolation, R2/document, and browser E2E tests before expanding the integration.
+
+## Platform note
+
+Cloudflare's current documentation recommends vinext for new Next.js applications, while describing OpenNext as the adapter path for maintaining existing applications. This repository is using OpenNext as an isolated compatibility/Preview experiment for an existing Next.js monorepo; reassess the adapter choice before production adoption rather than treating this Preview foundation as a commitment to a platform migration.
+
+## Explicitly out of scope
+
+No Worker deployment, production database change, secret rotation, DNS/nameserver change, Vercel removal, PR merge, or tenant authorization change is authorized by this audit.
