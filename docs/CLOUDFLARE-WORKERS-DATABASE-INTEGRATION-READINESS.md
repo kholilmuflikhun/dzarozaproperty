@@ -17,6 +17,8 @@ The current Vercel/Node database path remains the production and rollback path.
 - `@prisma/adapter-neon` is not declared in `packages/database/package.json`; the Cloudflare workflows currently install it ephemerally for CI validation. Do not make this factory a runtime dependency until the package manifest and pnpm lockfile are updated together using pnpm.
 - The Ops documents API and project workspace API still use the established `prisma` singleton. The documents API explicitly declares `runtime = "nodejs"`; the project workspace route uses the default Next.js runtime.
 - Sampled project, workspace, documents, and organization summary handlers preserve organization-scoped lookups and call `requireTenantContext` or `requireTenantRole` before tenant data access. These query scopes and authorization helpers must remain unchanged during any runtime migration.
+- The Ops Next config currently externalizes `@prisma/client` only. OpenNext's workerd guidance lists Prisma's generated client and driver packages as runtime-sensitive packages; the final externalization list must be based on the generated Worker's actual dependency graph, not copied blindly from a different Prisma generator layout.
+- The Ops Next config does not currently call `initOpenNextCloudflareForDev()`. Local `next dev` therefore has not been configured to provide OpenNext's Cloudflare bindings/context. This must be added and tested before using local development to validate binding access.
 
 ## Integration constraints
 
@@ -26,10 +28,12 @@ The current Vercel/Node database path remains the production and rollback path.
 4. Keep database work awaited when the HTTP response depends on it. Schedule cleanup with the original `ctx.waitUntil(prisma.$disconnect())` method; do not destructure `waitUntil`.
 5. Test success and failure cleanup behavior, transactions, Decimal/JSON serialization, concurrency, and real Neon connectivity in `workerd`. Wrangler dry-run alone is a bundle check, not a runtime database test.
 6. Re-run tenant isolation tests with a legitimate organization member and a second tenant. Verify both allowed access and cross-tenant denial before considering any handler migration.
+7. Validate the actual built Worker bundle's package resolution for the generated Prisma client and Neon adapter. Add `serverExternalPackages` entries only where required by the generated package graph and OpenNext's workerd conditional-export guidance.
 
 ## Recommended sequence
 
 - Persist pinned `@prisma/adapter-neon` as a runtime dependency and regenerate `pnpm-lock.yaml` with pnpm 10.18.0; never hand-edit the lockfile.
+- Add and test `initOpenNextCloudflareForDev()` in the Ops Next config, without enabling remote bindings or changing production resources by default.
 - Add unit tests for the request-scoped factory, including operation rejection and disconnect scheduling.
 - Run OpenNext Preview locally and issue a real query against the Neon Preview branch.
 - Integrate one low-risk read-only Ops route behind a route-local runtime-aware database boundary only after the above checks pass.
