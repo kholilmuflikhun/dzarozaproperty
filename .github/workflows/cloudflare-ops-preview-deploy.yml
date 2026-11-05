@@ -1,0 +1,64 @@
+name: Cloudflare Ops Preview Deploy
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cloudflare-ops-preview-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy-ops-preview:
+    name: Build and deploy Ops to Cloudflare Preview
+    runs-on: ubuntu-latest
+    environment: cloudflare-preview
+    timeout-minutes: 40
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.18.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install locked monorepo dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install pinned Preview-only Cloudflare tooling
+        run: >-
+          pnpm add --filter "@dzaroza/ops"
+          --save-dev --save-exact --lockfile=false
+          @opennextjs/cloudflare@1.20.16
+          wrangler@4.157.0
+
+      - name: Install pinned Neon Prisma adapter
+        run: >-
+          pnpm add --filter "@dzaroza/database"
+          --save-dev --save-exact --lockfile=false
+          @prisma/adapter-neon@6.19.3
+
+      - name: Build OpenNext Worker
+        run: pnpm --filter "@dzaroza/ops" exec opennextjs-cloudflare build
+
+      - name: Validate Cloudflare Worker bundle
+        run: pnpm --filter "@dzaroza/ops" exec wrangler deploy --dry-run --outdir .wrangler-dry-run
+        working-directory: apps/ops
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Deploy Ops Preview Worker
+        run: pnpm exec wrangler deploy --config wrangler.jsonc
+        working-directory: apps/ops
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
