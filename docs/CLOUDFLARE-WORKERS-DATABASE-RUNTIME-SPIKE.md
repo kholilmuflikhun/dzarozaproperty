@@ -27,6 +27,8 @@ The existing package root, generated default client, and Vercel runtime must rem
 
 References:
 - https://www.prisma.io/docs/orm/v6/prisma-client/deployment/edge/deploy-to-cloudflare
+- https://www.prisma.io/docs/orm/v6/overview/databases/neon
+- https://www.prisma.io/docs/orm/v6/prisma-client/deployment/edge/deploy-to-cloudflare
 - https://www.prisma.io/docs/orm/v6/prisma-client/setup-and-configuration/no-rust-engine
 - https://developers.cloudflare.com/hyperdrive/examples/connect-to-postgres/postgres-drivers-and-libraries/prisma-orm/
 - https://developers.cloudflare.com/workers/framework-guides/web-apps/opennext/
@@ -45,13 +47,13 @@ generator workers {
 }
 ```
 
-The Workers-only adapter path should use `@prisma/adapter-neon` against the existing Neon Preview branch. Keep the adapter factory in a Workers-specific module and keep Cloudflare runtime binding retrieval at the Ops application boundary.
+The Workers-only adapter path uses `@prisma/adapter-neon@6.19.3` against the existing Neon Preview branch. An isolated factory now exists at `packages/database/src/workers.ts`; it creates a fresh client for each request and does not change the Node/Vercel package root. CI installs the adapter ephemerally for typechecking, without persisting package or lockfile changes. Keep Cloudflare runtime binding retrieval at the Ops application boundary.
 
 Important constraints:
 
 - Do not import `cloudflare:workers` in this OpenNext application or shared database package.
 - Do not replace `@dzaroza/database` root export or the existing Node/Vercel singleton.
-- Do not use a module-global Prisma client in the Workers path until request lifecycle and connection reuse are proven safe for the selected Neon adapter and OpenNext runtime.
+- Do not use a module-global Prisma client in the Workers path. Prisma's Cloudflare guidance warns that reusing a module-level client/socket across requests can hang subsequent requests; create the client per request and ensure `$disconnect()` is scheduled/awaited during request finalization. The factory deliberately leaves cleanup ownership to its caller.
 - Do not assume the `pg`/Hyperdrive lifecycle is interchangeable with the Neon serverless adapter.
 - Keep the Workers client output separate from the existing `@prisma/client` output.
 - Keep the same Prisma schema and migration history; this work must not create or apply DDL.
@@ -60,10 +62,10 @@ Important constraints:
 ## Implementation prerequisites
 
 1. **Completed in CI:** validate the existing schema and generate both Prisma clients with the repository's pinned Prisma toolchain. A byte-for-byte comparison of the generated Node client against the previous output has not been performed.
-2. Add exact compatible versions of `@prisma/adapter-neon` and any required Neon driver dependencies to the database package, only when the pnpm lockfile can be regenerated safely.
-3. Regenerate `pnpm-lock.yaml` with pnpm 10.18.0; never handcraft the lockfile.
-4. Add a Workers-only factory that receives the Neon Preview connection string from the OpenNext runtime boundary.
-5. Prove connection lifecycle, query behavior, transaction support, Decimal/JSON handling, and concurrency in workerd.
+2. **Compatibility scaffold added:** `packages/database/src/workers.ts` creates a request-scoped Prisma client with `PrismaNeon`; the exact adapter is installed ephemerally in Quality Gates for typechecking.
+3. Regenerate `pnpm-lock.yaml` with pnpm 10.18.0 before persisting the adapter dependency; never handcraft the lockfile.
+4. Wire the factory only at the Ops request/runtime boundary, using the documented OpenNext binding API and a pooled Neon Preview connection string. Ensure request-finalization cleanup calls `$disconnect()`.
+5. Prove connection lifecycle, query behavior, transaction support, Decimal/JSON handling, and concurrency in workerd; no live database connection test has passed yet.
 6. Verify OAuth callbacks, session persistence/refresh/logout, admin revocation, tenant isolation, R2 document lifecycle, and Midtrans Sandbox in the same runtime before considering app integration.
 7. Re-run Vercel Quality Gates and Cloudflare OpenNext build/dry-run.
 
