@@ -69,3 +69,8 @@ GitHub Actions menjalankan install, generate Prisma client, schema validation, d
 Phase tidak dianggap selesai hanya karena implementasi atau CI lama berhasil. Gunakan Definition of Done dalam [Engineering Governance](docs/ENGINEERING-GOVERNANCE.md), dan verifikasi workflow pada commit PR terkini, Preview deployment, migration history, security/integration checks, serta UAT.
 
 Lihat [Implementation Record](docs/IMPLEMENTATION.md) untuk arsitektur, migration plan, autentikasi, isolasi tenant, billing, lisensi, dan exit criteria.
+
+
+## Product direction
+
+Dzaroza Property OS dikembangkan sebagai platform Managerial Property yang dapat digunakan internal dan dipasarkan sebagai SaaS multi-tenant dengan lisensi serta langganan bulanan/tahunan. Lihat [Managerial Property Product Direction](docs/MANAGERIAL-PROPERTY-PRODUCT-DIRECTION.md) untuk UX, domain roadmap, model penggunaan, lisensi dan acceptance requirements. Fitur roadmap tidak dianggap tersedia sebelum implementasi dan validasi fase terkait selesai.
