@@ -29,7 +29,7 @@ export default async function OrganizationDashboard({ params }: { params: Promis
     prisma.property.count({ where: { organizationId } }),
     prisma.propertyUnit.count({ where: { organizationId } }),
     prisma.project.count({ where: { organizationId } }),
-    prisma.project.count({ where: { organizationId, status: { in: ["ACTIVE", "IN_PROGRESS"] } } }),
+    prisma.project.count({ where: { organizationId, status: "IN_PROGRESS" } }),
     prisma.invoice.count({ where: { organizationId } }),
     prisma.invoice.aggregate({ where: { organizationId, status: { not: "CANCELLED" } }, _sum: { total: true, paidAmount: true } }),
     prisma.project.findMany({
