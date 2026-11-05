@@ -1,6 +1,14 @@
 generator client {
   provider = "prisma-client-js"
 }
+
+// Isolated Cloudflare Workers client; the default Node/Vercel client remains unchanged.
+generator workers {
+  provider   = "prisma-client"
+  output     = "../generated/workers"
+  engineType = "client"
+  runtime    = "workerd"
+}
 datasource db {
   provider = "postgresql"
   url = env("DATABASE_URL")
