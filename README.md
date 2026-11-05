@@ -12,6 +12,12 @@ Monorepo untuk website publik Dzaroza Property, Project & Business Operating Sys
 | `packages/database` | Prisma ORM dan PostgreSQL schema/migrations |
 | `packages/shared` | Shared domain contracts |
 
+## Product continuity
+
+Dzaroza Property OS dikembangkan sebagai satu produk berkelanjutan. Semua phase dan permintaan baru wajib memperluas fondasi yang ada, mempertahankan arsitektur, kontrak domain, identitas visual, navigasi, dan alur kerja yang sudah disepakati. Update harus kompatibel secara default; perubahan breaking atau arsitektural memerlukan ADR, analisis dampak, rencana migrasi/rollback, dan persetujuan eksplisit.
+
+**Dokumen wajib:** [Engineering Governance](docs/ENGINEERING-GOVERNANCE.md). Dokumen tersebut menjadi acuan untuk semua pengembangan, review, Definition of Done, dan rilis dari phase awal sampai final.
+
 ## Prasyarat dan setup lokal
 
 - Node.js 22+
@@ -60,6 +66,6 @@ Gunakan workspace install root, aktifkan akses ke file workspace di luar root di
 
 GitHub Actions menjalankan install, generate Prisma client, schema validation, database migration, typecheck, unit tests dan production builds. Workflow mengunggah lockfile pnpm dan initial migration yang dihasilkan sebagai artifact agar dapat ditinjau dan dikomit setelah hasil CI diverifikasi.
 
-Phase 0/1 belum dianggap selesai sampai workflow hijau, migration tercatat, website preview berhasil diuji, dan security/integration checks memenuhi kriteria pada `docs/IMPLEMENTATION.md`.
+Phase tidak dianggap selesai hanya karena implementasi atau CI lama berhasil. Gunakan Definition of Done dalam [Engineering Governance](docs/ENGINEERING-GOVERNANCE.md), dan verifikasi workflow pada commit PR terkini, Preview deployment, migration history, security/integration checks, serta UAT.
 
-Lihat `docs/IMPLEMENTATION.md` untuk arsitektur, migration plan, autentikasi, isolasi tenant, billing, lisensi, dan exit criteria.
+Lihat [Implementation Record](docs/IMPLEMENTATION.md) untuk arsitektur, migration plan, autentikasi, isolasi tenant, billing, lisensi, dan exit criteria.
