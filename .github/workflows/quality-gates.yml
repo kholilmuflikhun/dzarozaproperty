@@ -158,3 +158,59 @@ jobs:
           done
       - name: Verify Prisma migration status
         run: pnpm --filter @dzaroza/database exec prisma migrate status --schema prisma/schema.prisma
+
+  reconcile-project-workspace-preview-prisma-history:
+    if: >-
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/feat/project-workspace-document-engine' &&
+      contains(github.event.head_commit.message, 'reconcile Project Workspace Preview Prisma history')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DATABASE_URL: ${{ secrets.PREVIEW_DATABASE_URL }}
+      DIRECT_URL: ${{ secrets.PREVIEW_DIRECT_URL }}
+    steps:
+      - name: Checkout project workspace branch
+        uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.18.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Validate Preview credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$DATABASE_URL" || { echo "PREVIEW_DATABASE_URL is missing"; exit 1; }
+          test -n "$DIRECT_URL" || { echo "PREVIEW_DIRECT_URL is missing"; exit 1; }
+      - name: Preflight applied Project Workspace schema
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+          project_tables="$(psql "$DIRECT_URL" -v ON_ERROR_STOP=1 -Atc "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='public' AND table_name IN ('ProjectWorkspace','ProjectWorkItem','PaymentTerm','ChangeOrder','ChangeOrderItem','ProgressReport')")"
+          document_columns="$(psql "$DIRECT_URL" -v ON_ERROR_STOP=1 -Atc "SELECT COUNT(*) FROM information_schema.columns WHERE table_schema='public' AND table_name='Document' AND column_name IN ('documentType','documentNumber','version','metadata','parentDocumentId')")"
+          revision_fk="$(psql "$DIRECT_URL" -v ON_ERROR_STOP=1 -Atc "SELECT COUNT(*) FROM information_schema.table_constraints WHERE table_schema='public' AND table_name='Document' AND constraint_name='Document_organizationId_parentDocumentId_fkey' AND constraint_type='FOREIGN KEY'")"
+          revision_index="$(psql "$DIRECT_URL" -v ON_ERROR_STOP=1 -Atc "SELECT COUNT(*) FROM pg_indexes WHERE schemaname='public' AND indexname='Document_organizationId_parentDocumentId_version_key'")"
+          document_type="$(psql "$DIRECT_URL" -v ON_ERROR_STOP=1 -Atc "SELECT COUNT(*) FROM pg_type WHERE typnamespace='public'::regnamespace AND typname='ProjectDocumentType'")"
+          test "$project_tables" = "6" || { echo "Expected 6 project workspace tables; found $project_tables"; exit 1; }
+          test "$document_columns" = "5" || { echo "Expected 5 document metadata/revision columns; found $document_columns"; exit 1; }
+          test "$revision_fk" = "1" || { echo "Tenant-scoped revision foreign key is missing"; exit 1; }
+          test "$revision_index" = "1" || { echo "Revision unique index is missing"; exit 1; }
+          test "$document_type" = "1" || { echo "ProjectDocumentType enum is missing"; exit 1; }
+          echo "Preview schema preflight passed; existing DDL will be reconciled without reapplying migrations."
+      - name: Record migrations already applied to Neon Preview
+        shell: bash
+        run: |
+          set -euo pipefail
+          for migration in 20261105000000_project_workspace_document_engine 20261106000000_document_revision_chains; do
+            echo "Recording already-applied migration: $migration"
+            pnpm --filter @dzaroza/database exec prisma migrate resolve --applied "$migration" --schema prisma/schema.prisma
+          done
+      - name: Verify Prisma migration status
+        run: pnpm --filter @dzaroza/database exec prisma migrate status --schema prisma/schema.prisma
