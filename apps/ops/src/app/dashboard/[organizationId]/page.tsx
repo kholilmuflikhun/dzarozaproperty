@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   ArrowRight, Building2, BriefcaseBusiness, FileText, ReceiptText, Wallet,
-  Home, Layers3, Users, ChartNoAxesCombined, Clock3, Plus, ShieldCheck
+  Home, Clock3, Plus, ShieldCheck
 } from "lucide-react";
 import { prisma } from "@dzaroza/database";
 
