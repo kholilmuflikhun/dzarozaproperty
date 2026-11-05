@@ -62,6 +62,10 @@ jobs:
         run: |
           pnpm add --filter @dzaroza/marketing --save-dev --save-exact --lockfile=false @opennextjs/cloudflare@1.20.16
           pnpm add --filter @dzaroza/ops --save-dev --save-exact --lockfile=false @opennextjs/cloudflare@1.20.16
+      # Validate the isolated Workers client against the exact Prisma 6.19.3 Neon adapter.
+      # Keep the adapter ephemeral until the runtime spike is accepted and pnpm-lock.yaml can be regenerated.
+      - name: Install pinned Neon adapter for Workers client typechecking
+        run: pnpm add --filter @dzaroza/database --save-dev --save-exact --lockfile=false @prisma/adapter-neon@6.19.3
       - name: Validate Prisma schema
         run: pnpm --filter @dzaroza/database exec prisma validate --schema prisma/schema.prisma
       - name: Generate Prisma client
