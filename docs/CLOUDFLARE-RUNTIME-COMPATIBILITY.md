@@ -58,3 +58,40 @@ The workflow uses Node 22 and pnpm 10.18.0, installs the frozen monorepo lockfil
 - Cloudflare Next.js on Workers: https://developers.cloudflare.com/workers/framework-guides/web-apps/nextjs/
 - vinext project and compatibility caveats: https://github.com/cloudflare/vinext
 - Cloudflare Prisma + Hyperdrive: https://developers.cloudflare.com/hyperdrive/examples/connect-to-postgres/postgres-drivers-and-libraries/prisma-orm/
+
+
+## Executed scan results — 2026-11-05
+
+GitHub Actions Cloudflare Runtime Compatibility run #2 completed successfully on PR #18's merge ref. The scan itself reports findings:
+
+| App | Overall | Libraries | Config | Notes |
+|---|---:|---:|---:|---|
+| Marketing | 92% | 2/3 | 1/2 | NextAuth v4 flagged; next/image partial (image resizing needs an optimizer) |
+| Ops | 93% | 3/4 | 3/3 | NextAuth v4 flagged |
+
+Both apps report NextAuth v4 as an issue because it relies on Next.js API route internals. Treat this as a blocker until auth parity is demonstrated in an isolated Workers Preview. The scan's green workflow conclusion means the checks completed, not that compatibility passed.
+
+The detailed output and recommended controls are in [CLOUDFLARE-VINEXT-SCAN-RESULTS.md](./CLOUDFLARE-VINEXT-SCAN-RESULTS.md).
+
+## OpenNext candidate assessment
+
+OpenNext is not the default recommendation for a new Workers app; Cloudflare recommends vinext for new Next.js applications. OpenNext remains a documented path for maintaining an existing Next.js app when a vinext compatibility gap blocks migration. Evaluate it only as an isolated, additive Preview experiment. Do not change the production runtime or auth provider based on documentation claims alone.
+
+Repository auth inspection found:
+
+- Marketing: NextAuth v4 Google provider, JWT sessions, getServerSession, SessionProvider, and an admin-email allowlist.
+- Ops: NextAuth v4 Google provider, JWT sessions (8-hour max age), sign-in callback requiring verified Google email, Prisma user upsert, JWT callback querying Prisma user and recalculating platform-admin privilege, custom /login page, and session fields for user ID/platform-admin.
+- Both apps expose NextAuth route handlers at /api/auth/[...nextauth].
+
+These flows have materially different authorization responsibilities. Any candidate runtime must prove callback, cookies, JWT/session, database access, admin revocation, tenant context and cross-tenant denial. No auth rewrite is approved.
+
+## Prisma / Hyperdrive constraint
+
+The shared database package currently instantiates PrismaClient without a driver adapter. Cloudflare's current Prisma + Hyperdrive guidance requires a driver adapter such as @prisma/adapter-pg with pg and the Hyperdrive connection string. Treat this as a separate compatibility workstream. The adapter must be introduced behind the existing @dzaroza/database public API, with an explicit runtime-specific construction strategy and regression tests for Vercel/Node. Do not mutate the existing singleton until this design and Preview credentials are ready.
+
+## Current decision
+
+- Vercel remains the active host and rollback path.
+- vinext is not approved for migration while NextAuth is flagged.
+- OpenNext may be tested in a separate Preview branch/configuration; it is not yet verified as compatible with this repository.
+- No app dependencies, auth implementation, Prisma client construction, deployment target, secrets, DNS or Production resources were changed by this assessment.
