@@ -26,6 +26,8 @@ const querySchema = z.object({
   status: z.nativeEnum(PropertyStatus).optional(),
   propertyType: z.nativeEnum(PropertyType).optional(),
   city: z.string().trim().min(1).max(120).optional(),
+  q: z.string().trim().min(1).max(160).optional(),
+  cursor: z.string().trim().min(1).max(64).optional(),
   limit: z.coerce.number().int().min(1).max(100).default(50),
 });
 
@@ -36,14 +38,23 @@ export async function GET(request: NextRequest, context: { params: Promise<{ org
     await requireTenantContext(organizationId);
     const parsed = querySchema.safeParse(Object.fromEntries(new URL(request.url).searchParams));
     if (!parsed.success) return NextResponse.json({ error: "Filter properti tidak valid.", issues: parsed.error.flatten() }, { status: 400 });
-    const { limit, ...filters } = parsed.data;
+    const { limit, cursor, q, ...filters } = parsed.data;
     const properties = await prisma.property.findMany({
-      where: { organizationId, ...filters },
+      where: { organizationId, ...filters, ...(q ? { OR: [
+        { code: { contains: q, mode: "insensitive" } },
+        { name: { contains: q, mode: "insensitive" } },
+        { city: { contains: q, mode: "insensitive" } },
+        { addressLine: { contains: q, mode: "insensitive" } },
+      ] } : {}) },
       include: { _count: { select: { buildings: true, units: true, assets: true } } },
       orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
-      take: limit,
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+      take: limit + 1,
     });
-    return NextResponse.json({ properties, pagination: { limit, hasMore: properties.length === limit } });
+    const hasMore = properties.length > limit;
+    if (hasMore) properties.pop();
+    const nextCursor = hasMore ? properties.at(-1)?.id ?? null : null;
+    return NextResponse.json({ properties, pagination: { limit, hasMore, nextCursor } });
   } catch (error) {
     const result = toHttpError(error);
     return NextResponse.json({ error: result.message }, { status: result.status });
