@@ -52,7 +52,7 @@ export default function PropertyDetailPage() {
     if (!property) return;
     setSaving(true); setError(""); setNotice("");
     const form = new FormData(event.currentTarget);
-    const payload = Object.fromEntries(form.entries());
+    const payload: Record<string, unknown> = Object.fromEntries(form.entries());
     for (const key of ["landArea", "buildingArea"]) {
       const value = payload[key];
       payload[key] = typeof value === "string" && value.trim() !== "" ? Number(value) : null;
