@@ -73,3 +73,18 @@ Cloudflare's current documentation recommends vinext for new Next.js application
 ## Explicitly out of scope
 
 No Worker deployment, production database change, secret rotation, DNS/nameserver change, Vercel removal, PR merge, or tenant authorization change is authorized by this audit.
+
+
+## Follow-up verification — commit `fd2203260ad671f0a539d60df8ac7f7443eedc1a`
+
+Checked on 2026-11-05:
+- PR #19 remains **Open + Draft**.
+- All three PR-triggered GitHub Actions workflows for this exact commit completed successfully: Cloudflare Runtime Compatibility, Cloudflare Preview Runtime Build, and Monorepo quality gates.
+- Both `apps/marketing/package.json` and `apps/ops/package.json` still pin `next` to `16.4.3`.
+- The current stable npm release checked for this follow-up is Next.js `16.4.5`. This satisfies the OpenNext Cloudflare `1.20.16` minimum supported version and is the target for the paired app upgrade. Do not use a canary release for this compatibility fix.
+- No dependency manifest or lockfile was changed in this follow-up. The connected repository actions can read and update text files, but the current execution environment has no repository working tree or pnpm runtime and no GitHub Actions workflow-dispatch/command-execution action. Therefore the lockfile cannot be regenerated and validated safely from this session. Updating only the two manifests would break the frozen-lockfile CI contract; manually editing `pnpm-lock.yaml` is prohibited.
+- Vercel's PR status comments currently report `api-deployments-free-per-day` for Preview deployments. Treat this as an external deployment quota issue, separate from the successful GitHub Actions checks.
+
+### Required next execution step
+
+Run the paired upgrade in a repository working tree with pnpm `10.18.0`: set `next` to exact `16.4.5` in both app manifests, regenerate the root `pnpm-lock.yaml`, inspect the diff to ensure only intended Next.js resolutions/importers changed, then run frozen install, typecheck, tests, production builds, OpenNext builds, and Wrangler dry-run. Commit the manifests and generated lockfile together to this Preview branch. Until that step is completed, the security/compatibility gate remains **open** and no Workers route integration or deployment is approved.
