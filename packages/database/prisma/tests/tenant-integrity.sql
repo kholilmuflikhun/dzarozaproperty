@@ -106,6 +106,38 @@ BEGIN
   EXCEPTION WHEN foreign_key_violation THEN
     NULL;
   END;
-END $$;
+
+  BEGIN
+    INSERT INTO "PropertyBuilding" ("id","organizationId","propertyId","code","name","createdAt","updatedAt")
+    VALUES ('building-invalid','tenant-a','property-b','BLD-X','Cross tenant building',NOW(),NOW());
+    RAISE EXCEPTION 'Tenant isolation failure: PropertyBuilding accepted a foreign Property';
+  EXCEPTION WHEN foreign_key_violation THEN
+    NULL;
+  END;
+
+  BEGIN
+    INSERT INTO "PropertyUnit" ("id","organizationId","propertyId","buildingId","code","unitType","createdAt","updatedAt")
+    VALUES ('unit-invalid-building','tenant-a','property-a','building-b','UNIT-X','HOUSE',NOW(),NOW());
+    RAISE EXCEPTION 'Tenant isolation failure: PropertyUnit accepted a foreign Building';
+  EXCEPTION WHEN foreign_key_violation THEN
+    NULL;
+  END;
+
+  BEGIN
+    INSERT INTO "PropertyAsset" ("id","organizationId","propertyId","buildingId","code","name","category","createdAt","updatedAt")
+    VALUES ('asset-invalid-building','tenant-a','property-a','building-b','ASSET-X','Cross tenant asset','FACILITY',NOW(),NOW());
+    RAISE EXCEPTION 'Tenant isolation failure: PropertyAsset accepted a foreign Building';
+  EXCEPTION WHEN foreign_key_violation THEN
+    NULL;
+  END;
+
+  BEGIN
+    INSERT INTO "Property" ("id","organizationId","code","name","propertyType","latitude","country","createdAt","updatedAt")
+    VALUES ('property-invalid-coordinate','tenant-a','PROP-INVALID','Invalid Coordinate','LAND',120,'Indonesia',NOW(),NOW());
+    RAISE EXCEPTION 'Property integrity failure: out-of-range latitude accepted';
+  EXCEPTION WHEN check_violation THEN
+    NULL;
+  END;
+\nEND $;
 
 ROLLBACK;
