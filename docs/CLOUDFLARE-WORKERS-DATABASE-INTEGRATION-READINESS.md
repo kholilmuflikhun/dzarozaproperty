@@ -35,6 +35,18 @@ The current Vercel/Node database path remains the production and rollback path.
 - The Ops Next config currently externalizes `@prisma/client` only. OpenNext's workerd guidance lists Prisma's generated client and driver packages as runtime-sensitive packages; the final externalization list must be based on the generated Worker's actual dependency graph, not copied blindly from a different Prisma generator layout.
 - The Ops Next config does not currently call `initOpenNextCloudflareForDev()`. Local `next dev` therefore has not been configured to provide OpenNext's Cloudflare bindings/context. This must be added and tested before using local development to validate binding access.
 
+## Security and adapter compatibility gate — 2026-11-05
+
+The pinned OpenNext Cloudflare adapter is @opennextjs/cloudflare@1.20.16. Its release notes raise the supported Next.js floor to **15.5.29 or 16.4.5** to include the November 3 security fixes. Both apps/marketing and apps/ops currently pin Next.js **16.4.3**, so the current build passing does not establish that this version is within the adapter's supported security floor.
+
+Before any Workers runtime pilot or Preview deployment:
+- Upgrade both Next.js app dependencies together to a supported patched version (at minimum 16.4.5, after checking the currently supported patch release).
+- Regenerate pnpm-lock.yaml using the repository's pinned pnpm 10.18.0; do not hand-edit it.
+- Re-run all monorepo checks and both OpenNext builds, then verify the adapter peer dependency is satisfied without warnings.
+- Keep this change isolated in the existing Preview PR; do not change Production deployment configuration.
+
+Reference: OpenNext Cloudflare 1.20.16 release notes and npm package metadata: https://github.com/opennextjs/opennextjs-cloudflare/releases and https://www.npmjs.com/package/@opennextjs/cloudflare.
+
 ## Integration constraints
 
 1. Do not replace the package root export or mutate the existing Node/Vercel singleton.
