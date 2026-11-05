@@ -61,6 +61,54 @@ enum ProjectDocumentType {
   INVOICE
   HANDOVER
 }
+
+enum PropertyType {
+  RESIDENTIAL
+  APARTMENT
+  COMMERCIAL
+  INDUSTRIAL
+  MIXED_USE
+  LAND
+  OTHER
+}
+
+enum PropertyStatus {
+  DRAFT
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+}
+
+enum BuildingStatus {
+  ACTIVE
+  INACTIVE
+  MAINTENANCE
+}
+
+enum PropertyUnitType {
+  HOUSE
+  APARTMENT
+  SHOP
+  OFFICE
+  WAREHOUSE
+  PARKING
+  LAND
+  OTHER
+}
+
+enum PropertyUnitStatus {
+  AVAILABLE
+  OCCUPIED
+  RESERVED
+  UNDER_MAINTENANCE
+  INACTIVE
+}
+
+enum PropertyAssetStatus {
+  ACTIVE
+  IN_MAINTENANCE
+  RETIRED
+}
 model User {
   id String @id @default(cuid())
   email String @unique
@@ -101,6 +149,10 @@ model Organization {
   expenses Expense[]
   auditLogs AuditLog[]
   documents Document[]
+  properties Property[]
+  propertyBuildings PropertyBuilding[]
+  propertyUnits PropertyUnit[]
+  propertyAssets PropertyAsset[]
 }
 model Membership {
   id String @id @default(cuid())
@@ -575,4 +627,107 @@ model Document {
   @@index([organizationId,projectId])
   @@index([organizationId,invoiceId])
   @@index([uploadedById])
+}
+
+ 
+model Property {
+  id String @id @default(cuid())
+  organizationId String
+  code String
+  name String
+  propertyType PropertyType
+  status PropertyStatus @default(DRAFT)
+  description String?
+  addressLine String?
+  village String?
+  district String?
+  city String?
+  province String?
+  postalCode String?
+  country String @default("Indonesia")
+  latitude Decimal? @db.Decimal(10,7)
+  longitude Decimal? @db.Decimal(10,7)
+  landArea Decimal? @db.Decimal(14,2)
+  buildingArea Decimal? @db.Decimal(14,2)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  organization Organization @relation(fields:[organizationId],references:[id],onDelete:Cascade)
+  buildings PropertyBuilding[]
+  units PropertyUnit[]
+  assets PropertyAsset[]
+  @@unique([organizationId,id])
+  @@unique([organizationId,code])
+  @@index([organizationId,status,propertyType])
+  @@index([organizationId,city])
+}
+
+model PropertyBuilding {
+  id String @id @default(cuid())
+  organizationId String
+  propertyId String
+  code String
+  name String
+  status BuildingStatus @default(ACTIVE)
+  floors Int?
+  description String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  organization Organization @relation(fields:[organizationId],references:[id],onDelete:Cascade)
+  property Property @relation(fields:[organizationId,propertyId],references:[organizationId,id],onDelete:Cascade)
+  units PropertyUnit[]
+  assets PropertyAsset[]
+  @@unique([organizationId,id])
+  @@unique([organizationId,propertyId,id])
+  @@unique([organizationId,propertyId,code])
+  @@index([organizationId,propertyId,status])
+}
+
+model PropertyUnit {
+  id String @id @default(cuid())
+  organizationId String
+  propertyId String
+  buildingId String?
+  code String
+  name String?
+  unitType PropertyUnitType
+  status PropertyUnitStatus @default(AVAILABLE)
+  floorLabel String?
+  area Decimal? @db.Decimal(14,2)
+  bedrooms Int?
+  bathrooms Int?
+  description String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  organization Organization @relation(fields:[organizationId],references:[id],onDelete:Cascade)
+  property Property @relation(fields:[organizationId,propertyId],references:[organizationId,id],onDelete:Cascade)
+  building PropertyBuilding? @relation(fields:[organizationId,propertyId,buildingId],references:[organizationId,propertyId,id],onDelete:NoAction)
+  @@unique([organizationId,id])
+  @@unique([organizationId,propertyId,code])
+  @@index([organizationId,propertyId,status])
+  @@index([organizationId,buildingId])
+}
+
+model PropertyAsset {
+  id String @id @default(cuid())
+  organizationId String
+  propertyId String
+  buildingId String?
+  code String
+  name String
+  category String
+  status PropertyAssetStatus @default(ACTIVE)
+  serialNumber String?
+  locationLabel String?
+  description String?
+  acquiredAt DateTime?
+  purchaseCost Decimal? @db.Decimal(14,2)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  organization Organization @relation(fields:[organizationId],references:[id],onDelete:Cascade)
+  property Property @relation(fields:[organizationId,propertyId],references:[organizationId,id],onDelete:Cascade)
+  building PropertyBuilding? @relation(fields:[organizationId,propertyId,buildingId],references:[organizationId,propertyId,id],onDelete:NoAction)
+  @@unique([organizationId,id])
+  @@unique([organizationId,propertyId,code])
+  @@index([organizationId,propertyId,status])
+  @@index([organizationId,buildingId])
 }
