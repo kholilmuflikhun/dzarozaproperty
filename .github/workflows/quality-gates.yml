@@ -156,6 +156,15 @@ jobs:
             echo "Recording already-applied migration: $migration"
             pnpm --filter @dzaroza/database exec prisma migrate resolve --applied "$migration" --schema prisma/schema.prisma
           done
+      - name: Preflight document revision chain uniqueness
+        shell: bash
+        run: |
+          set -euo pipefail
+          duplicate_parents="$(psql "$DIRECT_URL" -v ON_ERROR_STOP=1 -Atc 'SELECT COUNT(*) FROM (SELECT "organizationId", "parentDocumentId" FROM "Document" WHERE "parentDocumentId" IS NOT NULL AND "deletedAt" IS NULL GROUP BY "organizationId", "parentDocumentId" HAVING COUNT(*) > 1) duplicates')"
+          test "$duplicate_parents" = "0" || { echo "Cannot enforce revision chain uniqueness: $duplicate_parents parent documents have multiple active children."; exit 1; }
+          echo "Revision chain preflight passed: no active sibling revisions."
+      - name: Apply pending Preview migrations
+        run: pnpm --filter @dzaroza/database exec prisma migrate deploy --schema prisma/schema.prisma
       - name: Verify Prisma migration status
         run: pnpm --filter @dzaroza/database exec prisma migrate status --schema prisma/schema.prisma
 
