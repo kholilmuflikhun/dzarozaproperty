@@ -139,6 +139,6 @@ BEGIN
     NULL;
   END;
 
-END $;
+END $$;
 
 ROLLBACK;
