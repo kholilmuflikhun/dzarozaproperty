@@ -107,6 +107,14 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ org
       if (!project) return null;
       const existingInvoice = await tx.invoice.findFirst({ where: { organizationId, projectId }, select: { id: true } });
       if (existingInvoice) return { kind: "invoices-locked" as const };
+      // Check every invoice lock before the first write. Returning a tagged result
+      // from an interactive transaction commits prior writes; it does not roll back.
+      const invoicedTerm = await tx.paymentTerm.findFirst({
+        where: { organizationId, projectId, invoiceId: { not: null } },
+        select: { id: true },
+      });
+      if (invoicedTerm) return { kind: "terms-locked" as const };
+
       const rawWorkspace = input.workspace;
       const workspaceData = {
         ...rawWorkspace,
@@ -124,8 +132,6 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ org
           data: workItems.map((item) => ({ organizationId, projectId, ...item })),
         });
       }
-      const invoicedTerm = await tx.paymentTerm.findFirst({ where: { organizationId, projectId, invoiceId: { not: null } }, select: { id: true } });
-      if (invoicedTerm) return { kind: "terms-locked" as const };
       await tx.paymentTerm.deleteMany({ where: { organizationId, projectId } });
       if (input.paymentTerms.length) {
         await tx.paymentTerm.createMany({
