@@ -1,18 +1,27 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { mockDisconnect, mockClient, mockPrismaClientConstructor } = vi.hoisted(() => {
+const {
+  mockDisconnect,
+  mockClient,
+  mockPrismaClientConstructor,
+  mockNeonAdapterConstructor,
+} = vi.hoisted(() => {
   const mockDisconnect = vi.fn<() => Promise<void>>().mockResolvedValue(undefined);
   const mockClient = { $disconnect: mockDisconnect };
   const mockPrismaClientConstructor = vi.fn();
-  return { mockDisconnect, mockClient, mockPrismaClientConstructor };
+  const mockNeonAdapterConstructor = vi.fn();
+  return {
+    mockDisconnect,
+    mockClient,
+    mockPrismaClientConstructor,
+    mockNeonAdapterConstructor,
+  };
 });
 
 vi.mock("@prisma/adapter-neon", () => ({
   PrismaNeon: class PrismaNeonMock {
-    readonly options: unknown;
-
     constructor(options: unknown) {
-      this.options = options;
+      mockNeonAdapterConstructor(options);
     }
   },
 }));
@@ -38,6 +47,7 @@ describe("Workers Prisma request lifecycle", () => {
     expect(() => createWorkersPrismaClient("  ")).toThrow(
       "A Neon connection string is required for the Workers Prisma client.",
     );
+    expect(mockNeonAdapterConstructor).not.toHaveBeenCalled();
     expect(mockPrismaClientConstructor).not.toHaveBeenCalled();
   });
 
@@ -45,11 +55,13 @@ describe("Workers Prisma request lifecycle", () => {
     const client = createWorkersPrismaClient("postgresql://preview.example/db");
 
     expect(client).toBe(mockClient);
+    expect(mockNeonAdapterConstructor).toHaveBeenCalledExactlyOnceWith({
+      connectionString: "postgresql://preview.example/db",
+    });
     expect(mockPrismaClientConstructor).toHaveBeenCalledTimes(1);
-    const [{ adapter }] = mockPrismaClientConstructor.mock.calls[0] as [
-      { adapter: { options: { connectionString: string } } },
-    ];
-    expect(adapter.options).toEqual({ connectionString: "postgresql://preview.example/db" });
+    expect(mockPrismaClientConstructor).toHaveBeenCalledWith({
+      adapter: expect.any(Object),
+    });
   });
 
   it("awaits successful work and schedules disconnect on the original execution context", async () => {
