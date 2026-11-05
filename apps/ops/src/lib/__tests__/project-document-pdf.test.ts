@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildProjectDocumentPdf } from "./project-document-pdf";
+import { buildProjectDocumentPdf } from "../project-document-pdf";
 
 const sample = {
   title: "Surat Perjanjian Kerja",
