@@ -1,0 +1,81 @@
+name: Cloudflare Preview Runtime Build
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - feat/ops-ux-dashboard-foundation
+    paths:
+      - "apps/marketing/**"
+      - "apps/ops/**"
+      - "packages/database/**"
+      - "packages/shared/**"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - ".github/workflows/cloudflare-preview-runtime.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cloudflare-preview-runtime-\${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  open-next-build:
+    name: OpenNext Preview build (\${{ matrix.app }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - app: marketing
+            package: "@dzaroza/marketing"
+          - app: ops
+            package: "@dzaroza/ops"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.18.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install locked monorepo dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Keep adapter tooling ephemeral until both app builds are proven.
+      # This intentionally does not commit dependency or lockfile changes.
+      - name: Install pinned Preview-only adapter tooling
+        run: >-
+          pnpm add --filter "\${{ matrix.package }}"
+          --save-dev --save-exact --lockfile=false
+          @opennextjs/cloudflare@1.20.16
+          wrangler@4.157.0
+
+      - name: Build app for Cloudflare Workers
+        run: pnpm --filter "\${{ matrix.package }}" exec opennextjs-cloudflare build
+
+      - name: Validate Worker bundle without deploying
+        run: >-
+          pnpm --filter "\${{ matrix.package }}" exec wrangler deploy
+          --dry-run --outdir .wrangler-dry-run
+
+      - name: Upload build diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cloudflare-preview-\${{ matrix.app }}
+          path: |
+            apps/\${{ matrix.app }}/.open-next/
+            apps/\${{ matrix.app }}/.wrangler/
+          if-no-files-found: ignore
+          retention-days: 7
