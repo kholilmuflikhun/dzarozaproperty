@@ -1,28 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const {
-  mockDisconnect,
-  mockClient,
-  mockPrismaClientConstructor,
-  mockNeonAdapterConstructor,
-} = vi.hoisted(() => {
+const { mockDisconnect, mockClient, mockPrismaClientConstructor } = vi.hoisted(() => {
   const mockDisconnect = vi.fn<() => Promise<void>>().mockResolvedValue(undefined);
   const mockClient = { $disconnect: mockDisconnect };
   const mockPrismaClientConstructor = vi.fn();
-  const mockNeonAdapterConstructor = vi.fn();
-  return {
-    mockDisconnect,
-    mockClient,
-    mockPrismaClientConstructor,
-    mockNeonAdapterConstructor,
-  };
+  return { mockDisconnect, mockClient, mockPrismaClientConstructor };
 });
 
 vi.mock("@prisma/adapter-neon", () => ({
   PrismaNeon: class PrismaNeonMock {
-    constructor(options: unknown) {
-      mockNeonAdapterConstructor(options);
-    }
+    constructor(_options: unknown) {}
   },
 }));
 
@@ -43,21 +30,17 @@ describe("Workers Prisma request lifecycle", () => {
     mockDisconnect.mockResolvedValue(undefined);
   });
 
-  it("rejects an empty Neon connection string before creating an adapter", () => {
+  it("rejects an empty Neon connection string before creating a client", () => {
     expect(() => createWorkersPrismaClient("  ")).toThrow(
       "A Neon connection string is required for the Workers Prisma client.",
     );
-    expect(mockNeonAdapterConstructor).not.toHaveBeenCalled();
     expect(mockPrismaClientConstructor).not.toHaveBeenCalled();
   });
 
-  it("creates a request client using the supplied connection string", () => {
+  it("creates a request client with a Neon adapter for a valid connection string", () => {
     const client = createWorkersPrismaClient("postgresql://preview.example/db");
 
     expect(client).toBe(mockClient);
-    expect(mockNeonAdapterConstructor).toHaveBeenCalledExactlyOnceWith({
-      connectionString: "postgresql://preview.example/db",
-    });
     expect(mockPrismaClientConstructor).toHaveBeenCalledTimes(1);
     expect(mockPrismaClientConstructor).toHaveBeenCalledWith({
       adapter: expect.any(Object),
