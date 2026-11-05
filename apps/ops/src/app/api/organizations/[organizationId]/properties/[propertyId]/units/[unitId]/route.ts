@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { MembershipRole, Prisma, PropertyUnitStatus, PropertyUnitType, prisma } from "@dzaroza/database";
+import { BuildingStatus, MembershipRole, Prisma, PropertyUnitStatus, PropertyUnitType, prisma } from "@dzaroza/database";
 import { z } from "zod";
 import { requireTenantRole, toHttpError } from "@/lib/tenant";
 
