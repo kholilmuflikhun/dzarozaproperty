@@ -72,7 +72,7 @@ export async function DELETE(_request: NextRequest, context: Context) {
     const result = await prisma.$transaction(async (tx) => {
       const current = await tx.propertyUnit.findFirst({ where: { id: unitId, organizationId, propertyId } });
       if (!current) return { kind: "not-found" as const };
-      if ([PropertyUnitStatus.OCCUPIED, PropertyUnitStatus.RESERVED].includes(current.status)) return { kind: "occupied" as const };
+      if (isProtectedUnitStatus(current.status)) return { kind: "occupied" as const };
       if (current.status === PropertyUnitStatus.INACTIVE) return { kind: "inactive" as const, unit: current };
       const unit = await tx.propertyUnit.update({
         where: { organizationId_id: { organizationId, id: unitId } }, data: { status: PropertyUnitStatus.INACTIVE },
