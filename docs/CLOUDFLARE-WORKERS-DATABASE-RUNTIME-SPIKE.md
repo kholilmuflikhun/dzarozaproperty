@@ -118,3 +118,8 @@ export async function GET() {
 This is an integration pattern only; it is not yet wired into application routes. OpenNext runs Next.js using its Node.js runtime on Workers, so an existing `runtime = "nodejs"` declaration is not by itself a reason to switch the route to Edge. Do not add a global runtime switch.
 
 The Ops Wrangler config must receive `DATABASE_URL` as a Cloudflare Worker secret (pooled Neon Preview connection string); do not put credentials in `wrangler.jsonc`, source code, or client bundles. Before enabling this path, make the adapter dependencies reproducible in the workspace manifest and `pnpm-lock.yaml`, then validate local Next dev, `opennextjs-cloudflare preview`, and real Preview Worker execution.
+
+
+### Local development prerequisite
+
+Before testing `getCloudflareContext()` under `next dev`, add `initOpenNextCloudflareForDev()` to the relevant Next.js config, using the same pinned adapter version. Keep this isolated to the Cloudflare development path and verify it does not alter the normal Vercel build. For runtime validation, use the adapter's `opennextjs-cloudflare preview` command after the build; Wrangler dry-run validates the bundle but does not execute request handlers or prove Neon connectivity.
