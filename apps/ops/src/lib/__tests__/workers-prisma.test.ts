@@ -8,7 +8,12 @@ const { mockDisconnect, mockClient, mockNeonConstructor } = vi.hoisted(() => {
 });
 
 vi.mock("@prisma/adapter-neon", () => ({
-  PrismaNeon: mockNeonConstructor,
+  PrismaNeon: class PrismaNeonMock {
+    constructor(options: unknown) {
+      mockNeonConstructor(options);
+      return { options };
+    }
+  },
 }));
 
 vi.mock("../../../../../packages/database/generated/workers/client", () => ({
@@ -23,9 +28,6 @@ describe("Workers Prisma request lifecycle", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockDisconnect.mockResolvedValue(undefined);
-    mockNeonConstructor.mockImplementation(function PrismaNeonMock(options: unknown) {
-      return { options };
-    });
   });
 
   it("rejects an empty Neon connection string before creating an adapter", () => {
