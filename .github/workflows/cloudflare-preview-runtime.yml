@@ -18,12 +18,12 @@ permissions:
   contents: read
 
 concurrency:
-  group: cloudflare-preview-runtime-\${{ github.ref }}
+  group: cloudflare-preview-runtime-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   open-next-build:
-    name: OpenNext Preview build (\${{ matrix.app }})
+    name: OpenNext Preview build (${{ matrix.app }})
     runs-on: ubuntu-latest
     timeout-minutes: 35
     strategy:
@@ -56,26 +56,26 @@ jobs:
       # This intentionally does not commit dependency or lockfile changes.
       - name: Install pinned Preview-only adapter tooling
         run: >-
-          pnpm add --filter "\${{ matrix.package }}"
+          pnpm add --filter "${{ matrix.package }}"
           --save-dev --save-exact --lockfile=false
           @opennextjs/cloudflare@1.20.16
           wrangler@4.157.0
 
       - name: Build app for Cloudflare Workers
-        run: pnpm --filter "\${{ matrix.package }}" exec opennextjs-cloudflare build
+        run: pnpm --filter "${{ matrix.package }}" exec opennextjs-cloudflare build
 
       - name: Validate Worker bundle without deploying
         run: >-
-          pnpm --filter "\${{ matrix.package }}" exec wrangler deploy
+          pnpm --filter "${{ matrix.package }}" exec wrangler deploy
           --dry-run --outdir .wrangler-dry-run
 
       - name: Upload build diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: cloudflare-preview-\${{ matrix.app }}
+          name: cloudflare-preview-${{ matrix.app }}
           path: |
-            apps/\${{ matrix.app }}/.open-next/
-            apps/\${{ matrix.app }}/.wrangler/
+            apps/${{ matrix.app }}/.open-next/
+            apps/${{ matrix.app }}/.wrangler/
           if-no-files-found: ignore
           retention-days: 7
