@@ -162,10 +162,10 @@ jobs:
   reconcile-project-workspace-preview-prisma-history:
     if: >-
       (github.event_name == 'push' &&
-       github.ref == 'refs/heads/feat/project-workspace-document-engine' &&
+       (github.ref == 'refs/heads/feat/project-workspace-document-engine' || github.ref == 'refs/heads/feat/property-portfolio-foundation') &&
        contains(github.event.head_commit.message, 'reconcile Project Workspace Preview Prisma history')) ||
       (github.event_name == 'pull_request' &&
-       github.event.pull_request.head.ref == 'feat/project-workspace-document-engine')
+       (github.event.pull_request.head.ref == 'feat/project-workspace-document-engine' || github.event.pull_request.head.ref == 'feat/property-portfolio-foundation'))
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
