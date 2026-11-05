@@ -88,3 +88,10 @@ Checked on 2026-11-05:
 ### Required next execution step
 
 Run the paired upgrade in a repository working tree with pnpm `10.18.0`: set `next` to exact `16.4.5` in both app manifests, regenerate the root `pnpm-lock.yaml`, inspect the diff to ensure only intended Next.js resolutions/importers changed, then run frozen install, typecheck, tests, production builds, OpenNext builds, and Wrangler dry-run. Commit the manifests and generated lockfile together to this Preview branch. Until that step is completed, the security/compatibility gate remains **open** and no Workers route integration or deployment is approved.
+
+
+## Patch target reconfirmed — 2026-11-05
+
+The npm registry currently tags `next@16.4.5` as `latest`; the Next.js stable release index identifies `16.4.5` (2026-11-03) as the November security release. The newer `16.5.0-canary.*` builds are prereleases and are not the target for this production-stability upgrade.
+
+Upgrade target is therefore fixed at exact `16.4.5` for both app importers. Keep React/React DOM and other dependencies unchanged unless the regenerated lockfile or CI demonstrates a concrete peer/dependency requirement. References: https://www.npmjs.com/package/next and https://github.com/vercel/next.js/releases.
