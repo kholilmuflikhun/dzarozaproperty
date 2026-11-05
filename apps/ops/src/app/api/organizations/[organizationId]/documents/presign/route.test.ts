@@ -161,6 +161,15 @@ describe("tenant-scoped R2 presign API", () => {
   });
 
   it("returns a conflict when concurrent revision creation violates the database guard", async () => {
+    findFirst
+      .mockResolvedValueOnce({
+        id: "doc-parent",
+        projectId: "project-a",
+        documentType: "WORK_AGREEMENT",
+        documentNumber: "SPK/001/2026",
+        version: 2,
+      })
+      .mockResolvedValueOnce(null);
     create.mockRejectedValueOnce({ code: "P2002" });
     const response = await POST(request({
       action: "upload",
