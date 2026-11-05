@@ -18,6 +18,7 @@ const schema = z.object({
 
 type Context = { params: Promise<{ organizationId: string; propertyId: string; unitId: string }> };
 const valid = (...ids: string[]) => ids.every((id) => id.length > 0 && id.length <= 64);
+const isProtectedUnitStatus = (status: PropertyUnitStatus) => status === PropertyUnitStatus.OCCUPIED || status === PropertyUnitStatus.RESERVED;
 
 export async function PATCH(request: NextRequest, context: Context) {
   try {
@@ -32,7 +33,7 @@ export async function PATCH(request: NextRequest, context: Context) {
     const result = await prisma.$transaction(async (tx) => {
       const current = await tx.propertyUnit.findFirst({ where: { id: unitId, organizationId, propertyId } });
       if (!current) return { kind: "not-found" as const };
-      if ((input.status === PropertyUnitStatus.INACTIVE || input.status === PropertyUnitStatus.UNDER_MAINTENANCE) && [PropertyUnitStatus.OCCUPIED, PropertyUnitStatus.RESERVED].includes(current.status)) {
+      if ((input.status === PropertyUnitStatus.INACTIVE || input.status === PropertyUnitStatus.UNDER_MAINTENANCE) && isProtectedUnitStatus(current.status)) {
         return { kind: "occupied" as const };
       }
       if (input.buildingId) {
