@@ -75,7 +75,10 @@ export function buildProjectDocumentPdf(input: ProjectPdfInput) {
   const pageIds: number[] = [];
   pages.forEach((page, index) => {
     const pageId = 4 + index * 2; const streamId = pageId + 1; pageIds.push(pageId);
-    const commands = page.map((line, row) => `BT /F1 9 Tf 48 ${790 - row * 16} Td (${safePdfText(line)}) Tj ET`).join("\n") + "\n";
+    const commands = [
+      ...page.map((line, row) => `BT /F1 9 Tf 48 ${790 - row * 16} Td (${safePdfText(line)}) Tj ET`),
+      `BT /F1 8 Tf 48 35 Td (${safePdfText(input.number)} | Halaman ${index + 1} dari ${pages.length}) Tj ET`,
+    ].join("\n") + "\n";
     objects[pageId] = `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents ${streamId} 0 R >>`;
     objects[streamId] = `<< /Length ${Buffer.byteLength(commands, "binary")} >>\nstream\n${commands}endstream`;
   });
