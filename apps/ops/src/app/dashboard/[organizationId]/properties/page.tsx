@@ -23,6 +23,10 @@ export default function PropertiesPage() {
   const [name,setName] = useState("");
   const [propertyType,setPropertyType] = useState("RESIDENTIAL");
   const [city,setCity] = useState("");
+  const [search,setSearch] = useState("");
+  const [activeSearch,setActiveSearch] = useState("");
+  const [nextCursor,setNextCursor] = useState<string | null>(null);
+  const [loadingMore,setLoadingMore] = useState(false);
   const [province,setProvince] = useState("");
   const [addressLine,setAddressLine] = useState("");
   const [loading,setLoading] = useState(true);
@@ -34,14 +38,32 @@ export default function PropertiesPage() {
   const load = useCallback(async () => {
     setLoading(true); setError("");
     try {
-      const response = await fetch(`${base}/properties`,{cache:"no-store"});
+      const query = new URLSearchParams({ limit: "24" });
+      if (activeSearch) query.set("q", activeSearch);
+      const response = await fetch(`${base}/properties?${query.toString()}`,{cache:"no-store"});
       const payload = await response.json();
       if(!response.ok) throw new Error(payload.error ?? "Gagal memuat portofolio properti.");
       setProperties(payload.properties ?? []);
+      setNextCursor(payload.pagination?.nextCursor ?? null);
     } catch(e) { setError(e instanceof Error ? e.message : "Gagal memuat data."); }
     finally { setLoading(false); }
-  },[base]);
+  },[base,activeSearch]);
   useEffect(()=>{void load()},[load]);
+
+  async function loadMore() {
+    if (!nextCursor || loadingMore) return;
+    setLoadingMore(true); setError("");
+    try {
+      const query = new URLSearchParams({ limit: "24", cursor: nextCursor });
+      if (activeSearch) query.set("q", activeSearch);
+      const response = await fetch(`${base}/properties?${query.toString()}`, { cache: "no-store" });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error ?? "Gagal memuat halaman berikutnya.");
+      setProperties((current) => [...current, ...(payload.properties ?? [])]);
+      setNextCursor(payload.pagination?.nextCursor ?? null);
+    } catch (e) { setError(e instanceof Error ? e.message : "Gagal memuat halaman berikutnya."); }
+    finally { setLoadingMore(false); }
+  }
 
   async function createProperty(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setSaving(true); setError(""); setNotice("");
@@ -79,7 +101,15 @@ export default function PropertiesPage() {
       </form>
     </section>
     <section className="mt-8">
-      <div className="mb-4 flex items-center justify-between"><div><h2 className="text-lg font-bold text-neutral-950">Daftar properti</h2><p className="mt-1 text-sm text-neutral-500">Ringkasan jumlah gedung, unit, dan aset terdaftar.</p></div><span className="rounded-full bg-neutral-100 px-3 py-1 text-xs font-semibold text-neutral-600">{properties.length} properti</span></div>
+      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+        <div><h2 className="text-lg font-bold text-neutral-950">Daftar properti</h2><p className="mt-1 text-sm text-neutral-500">Ringkasan jumlah gedung, unit, dan aset terdaftar.</p></div>
+        <form onSubmit={(event)=>{event.preventDefault();setActiveSearch(search.trim());}} className="flex w-full gap-2 sm:w-auto">
+          <input value={search} onChange={(event)=>setSearch(event.target.value)} placeholder="Cari kode, nama, kota…" aria-label="Cari properti" className="min-h-10 min-w-0 flex-1 rounded-xl border border-neutral-300 px-3 text-sm sm:w-64"/>
+          <button className="min-h-10 rounded-xl border border-neutral-200 px-4 text-sm font-semibold text-neutral-700">Cari</button>
+          {activeSearch && <button type="button" onClick={()=>{setSearch("");setActiveSearch("");}} className="min-h-10 rounded-xl px-3 text-sm text-neutral-500">Reset</button>}
+        </form>
+      </div>
+      <div className="mb-4 flex justify-end"><span className="rounded-full bg-neutral-100 px-3 py-1 text-xs font-semibold text-neutral-600">{properties.length} properti dimuat</span></div>
       {loading?<p className="rounded-xl border border-neutral-200 bg-white p-6 text-sm text-neutral-500">Memuat portofolio…</p>:properties.length===0?<div className="rounded-2xl border border-dashed border-neutral-300 bg-white px-6 py-12 text-center"><Building2 className="mx-auto text-neutral-300" size={34}/><p className="mt-3 font-semibold text-neutral-800">Belum ada properti</p><p className="mt-1 text-sm text-neutral-500">Daftarkan properti pertama untuk mulai membangun portofolio.</p></div>:<div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {properties.map(property=><article key={property.id} className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
           <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="text-xs font-bold tracking-wide text-orange-600">{property.code}</p><h3 className="mt-1 truncate font-semibold text-neutral-950">{property.name}</h3><p className="mt-1 text-xs text-neutral-500">{types.find(([v])=>v===property.propertyType)?.[1]??property.propertyType}</p></div><span className="rounded-full bg-neutral-100 px-2.5 py-1 text-[11px] font-semibold text-neutral-600">{statusLabel[property.status]??property.status}</span></div>
@@ -92,6 +122,7 @@ export default function PropertiesPage() {
           <Link href={`/dashboard/${encodeURIComponent(organizationId)}/properties/${encodeURIComponent(property.id)}`} className="mt-4 inline-flex min-h-10 items-center justify-center rounded-xl border border-neutral-200 px-4 py-2 text-sm font-semibold text-neutral-700 transition hover:border-orange-300 hover:text-orange-700">Lihat detail properti</Link>
         </article>)}
       </div>}
+      {!loading && nextCursor && <div className="mt-5 text-center"><button type="button" onClick={()=>void loadMore()} disabled={loadingMore} className="min-h-11 rounded-xl border border-neutral-200 bg-white px-5 py-2.5 text-sm font-semibold text-neutral-700 disabled:opacity-50">{loadingMore ? "Memuat…" : "Muat lebih banyak"}</button></div>}
     </section>
   </main>;
 }
