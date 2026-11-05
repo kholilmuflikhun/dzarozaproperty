@@ -160,6 +160,23 @@ describe("tenant-scoped R2 presign API", () => {
     expect(createPresignedUploadUrl).not.toHaveBeenCalled();
   });
 
+  it("returns a conflict when concurrent revision creation violates the database guard", async () => {
+    create.mockRejectedValueOnce({ code: "P2002" });
+    const response = await POST(request({
+      action: "upload",
+      fileName: "revision.pdf",
+      contentType: "application/pdf",
+      size: 1024,
+      projectId: "project-a",
+      documentType: "WORK_AGREEMENT",
+      documentNumber: "SPK/001/2026",
+      parentDocumentId: "doc-parent",
+    }), context);
+
+    expect(response.status).toBe(409);
+    expect(createPresignedUploadUrl).toHaveBeenCalledOnce();
+  });
+
   it("does not issue a download URL for a missing or foreign tenant document", async () => {
     const response = await POST(request({
       action: "download", documentId: "doc-foreign",
