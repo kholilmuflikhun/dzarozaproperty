@@ -170,5 +170,5 @@ Remaining work:
 2. PostgreSQL-backed integration tests for composite tenant ownership, cross-organization and cross-property building references, and uniqueness.
 3. Property detail/update/archive plus building/unit/asset update and retirement workflows.
 4. Search and cursor pagination for larger portfolios.
-5. Responsive Property Portfolio UI with property overview and building/unit/asset tabs.
-6. Preview deployment, authenticated browser E2E, and user acceptance.
+5. Initial responsive Property Portfolio UI with property creation, summary counts, empty/loading/error/success states, and dashboard navigation is implemented.
+6. Property detail/update/archive UI, building/unit/asset management tabs, authenticated browser E2E, and user acceptance remain outstanding.
