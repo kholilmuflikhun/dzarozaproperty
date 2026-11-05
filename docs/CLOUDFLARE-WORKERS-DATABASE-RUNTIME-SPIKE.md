@@ -96,3 +96,25 @@ The current application is not ready to switch its shared database import to the
 - The Workers generator and `withWorkersPrisma()` are isolated and are not wired into these existing routes.
 
 Do not replace the package root export or globally switch route runtimes as part of this spike. The next integration step must introduce an explicit runtime-aware database boundary while preserving the Node/Vercel singleton, and prove it with route-level tests on both runtime paths. Audit all Ops Prisma consumers and runtime declarations before changing any route. Keep tenant authorization helpers and query scopes unchanged.
+
+
+## Verified OpenNext request-context contract (2026-11-05)
+
+The pinned OpenNext adapter's public context API exposes `env`, `cf`, and the current Workers `ctx`. Route handlers can use:
+
+```ts
+import { getCloudflareContext } from "@opennextjs/cloudflare";
+
+export async function GET() {
+  const { env, ctx } = getCloudflareContext();
+  return withWorkersPrisma(
+    env.DATABASE_URL,
+    ctx,
+    (prisma) => prisma.organization.findMany(),
+  );
+}
+```
+
+This is an integration pattern only; it is not yet wired into application routes. OpenNext runs Next.js using its Node.js runtime on Workers, so an existing `runtime = "nodejs"` declaration is not by itself a reason to switch the route to Edge. Do not add a global runtime switch.
+
+The Ops Wrangler config must receive `DATABASE_URL` as a Cloudflare Worker secret (pooled Neon Preview connection string); do not put credentials in `wrangler.jsonc`, source code, or client bundles. Before enabling this path, make the adapter dependencies reproducible in the workspace manifest and `pnpm-lock.yaml`, then validate local Next dev, `opennextjs-cloudflare preview`, and real Preview Worker execution.
