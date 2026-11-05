@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@dzaroza/database";
 
 const modules = [
+  { href: "properties", eyebrow: "Property management", title: "Portofolio Properti", description: "Kelola kawasan, gedung, unit, dan aset properti dalam satu registry organisasi.", icon: Building2, accent: "bg-orange-50 text-orange-700" },
   { href: "projects", eyebrow: "Operasional", title: "Proyek & Pekerjaan", description: "Kelola pekerjaan properti, jadwal, nilai kontrak, progres, perubahan pekerjaan, dan dokumen.", icon: BriefcaseBusiness, accent: "bg-orange-50 text-orange-700" },
   { href: "quotations", eyebrow: "Komersial", title: "Penawaran", description: "Susun penawaran layanan, kirim persetujuan, dan lanjutkan pekerjaan dari penawaran yang diterima.", icon: FileText, accent: "bg-neutral-100 text-neutral-800" },
   { href: "invoices", eyebrow: "Keuangan", title: "Tagihan & Pembayaran", description: "Kelola invoice, pembayaran, status pelunasan, dan dokumen penagihan.", icon: ReceiptText, accent: "bg-orange-50 text-orange-700" },
