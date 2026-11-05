@@ -43,13 +43,17 @@ pnpm --filter @dzaroza/marketing dev
 pnpm --filter @dzaroza/ops dev
 ```
 
-## Deployment Vercel
+## Deployment
 
-Buat project terpisah dari repository ini:
+Deployment saat ini tetap mempertahankan Vercel sebagai jalur rollback sampai migrasi Cloudflare tervalidasi. Buat project terpisah dari repository ini:
 - Public website: Root Directory `apps/marketing`
 - Business OS: Root Directory `apps/ops`
 
-Gunakan workspace install root, aktifkan akses ke file workspace di luar root directory bila diminta, dan set environment variables pada project yang tepat. Worker harus dideploy pada runtime yang mendukung proses persisten. Jangan ubah domain production sebelum preview build dan smoke test lulus.
+Gunakan workspace install root, aktifkan akses ke file workspace di luar root directory bila diminta, dan set environment variables pada project yang tepat. Worker background processing harus dideploy pada runtime yang mendukung proses persisten.
+
+Target infrastruktur berikutnya adalah Cloudflare Workers untuk aplikasi, Cloudflare R2 untuk private object storage, Neon PostgreSQL tetap menjadi database, dan Jagoan Hosting tetap menjadi pengelola/registrar domain. Migrasi dilakukan bertahap melalui Preview; jangan mengubah DNS/nameserver atau domain production sebelum compatibility, E2E, rollback plan, dan persetujuan cutover lulus.
+
+Lihat [Cloudflare Infrastructure Migration Plan](docs/INFRASTRUCTURE-MIGRATION-CLOUDFLARE.md) dan [ADR-0001](docs/adr/0001-cloudflare-platform-migration.md). Dokumen ini adalah rencana dan batas persetujuan, bukan klaim bahwa Worker atau DNS production telah dipindahkan.
 
 ## Security and SaaS model
 
@@ -69,7 +73,6 @@ GitHub Actions menjalankan install, generate Prisma client, schema validation, d
 Phase tidak dianggap selesai hanya karena implementasi atau CI lama berhasil. Gunakan Definition of Done dalam [Engineering Governance](docs/ENGINEERING-GOVERNANCE.md), dan verifikasi workflow pada commit PR terkini, Preview deployment, migration history, security/integration checks, serta UAT.
 
 Lihat [Implementation Record](docs/IMPLEMENTATION.md) untuk arsitektur, migration plan, autentikasi, isolasi tenant, billing, lisensi, dan exit criteria.
-
 
 ## Product direction
 
