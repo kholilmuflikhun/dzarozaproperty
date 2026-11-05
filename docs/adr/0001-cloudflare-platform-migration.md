@@ -49,3 +49,12 @@ This is an infrastructure-level change (Class C) and must be staged. The request
 ## Approval boundary
 
 The project owner has requested Cloudflare migration. This ADR approves the staged migration work and Preview validation. It does not approve Production deployment, DNS/nameserver changes, production secrets rotation, or removal of Vercel. Those remain explicit release decisions.
+
+
+## Compatibility evidence update — 2026-11-05
+
+The vinext compatibility workflow ran successfully (scan execution) on PR #18. Its reports are not a compatibility pass: Marketing scored 92% and Ops 93%, with NextAuth v4 flagged in both applications. Marketing also reports partial next/image support. See [Cloudflare scan results](../CLOUDFLARE-VINEXT-SCAN-RESULTS.md).
+
+Cloudflare's current documentation positions vinext as the recommended path for new Next.js Workers applications and OpenNext as a maintenance path for existing OpenNext apps until vinext compatibility allows migration. Therefore OpenNext is only an experimental candidate for an isolated Preview validation here, not a replacement decision. The repository has not been migrated to either adapter.
+
+Authentication inspection confirms different responsibilities in Marketing and Ops (Google JWT sessions/admin allowlist versus Google verified-email sign-in, Prisma user synchronization, platform-admin re-evaluation and custom login). No authentication provider rewrite is approved. The shared Prisma singleton also lacks a Workers-specific driver adapter; evaluate Prisma + Hyperdrive separately before runtime Preview.
