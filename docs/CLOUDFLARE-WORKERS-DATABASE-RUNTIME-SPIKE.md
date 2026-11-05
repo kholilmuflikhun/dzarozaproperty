@@ -34,7 +34,7 @@ References:
 
 ## Decision: additive Neon-first Workers client
 
-Keep the existing generator and root export intact. Add a second generator to the same schema only after a local pnpm environment is available to generate and validate it:
+Keep the existing generator and root export intact. A second generator has now been added to the same schema on PR #19. On commit `5afee8b62ae4cbba4a9259326646abbcb1d0c1b2`, the Monorepo Quality Gates workflow completed Prisma schema validation and both-client generation successfully. This verifies schema/generator compatibility in CI; it does not yet verify a Workers database connection, adapter behavior, or runtime execution:
 
 ```prisma
 generator workers {
@@ -59,8 +59,8 @@ Important constraints:
 
 ## Implementation prerequisites
 
-1. Generate both Prisma clients from the existing schema with Prisma 6.19.3 and confirm the current Node client output is unchanged.
-2. Add exact compatible versions of `@prisma/adapter-neon` and any required Neon driver dependencies to the database package.
+1. **Completed in CI:** validate the existing schema and generate both Prisma clients with the repository's pinned Prisma toolchain. A byte-for-byte comparison of the generated Node client against the previous output has not been performed.
+2. Add exact compatible versions of `@prisma/adapter-neon` and any required Neon driver dependencies to the database package, only when the pnpm lockfile can be regenerated safely.
 3. Regenerate `pnpm-lock.yaml` with pnpm 10.18.0; never handcraft the lockfile.
 4. Add a Workers-only factory that receives the Neon Preview connection string from the OpenNext runtime boundary.
 5. Prove connection lifecycle, query behavior, transaction support, Decimal/JSON handling, and concurrency in workerd.
