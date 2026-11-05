@@ -85,3 +85,14 @@ If testing shows the Neon serverless adapter is unsuitable for the target worklo
 ## Decision gate
 
 This is a compatibility decision, not authorization to switch infrastructure. Cloudflare remains Preview-only until the full runtime E2E acceptance suite passes. PR #19 remains Draft until its scope is complete and reviewed.
+
+
+## Ops integration boundary audit (2026-11-05)
+
+The current application is not ready to switch its shared database import to the Workers client:
+
+- `packages/database/src/index.ts` exports a module-level `PrismaClient` singleton from `@prisma/client` for the existing Node/Vercel runtime.
+- Ops API routes currently import `prisma` from `@dzaroza/database`; at least the Project Workspace document API route explicitly declares `export const runtime = "nodejs"`.
+- The Workers generator and `withWorkersPrisma()` are isolated and are not wired into these existing routes.
+
+Do not replace the package root export or globally switch route runtimes as part of this spike. The next integration step must introduce an explicit runtime-aware database boundary while preserving the Node/Vercel singleton, and prove it with route-level tests on both runtime paths. Audit all Ops Prisma consumers and runtime declarations before changing any route. Keep tenant authorization helpers and query scopes unchanged.
