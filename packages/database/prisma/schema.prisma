@@ -1,6 +1,14 @@
 generator client {
   provider = "prisma-client-js"
 }
+
+// Isolated Cloudflare Workers client; the default Node/Vercel client remains unchanged.
+generator workers {
+  provider   = "prisma-client"
+  output     = "../generated/workers"
+  engineType = "client"
+  runtime    = "workerd"
+}
 datasource db {
   provider = "postgresql"
   url = env("DATABASE_URL")
@@ -52,6 +60,15 @@ enum ProjectStatus {
   CANCELED
   ARCHIVED
 }
+enum ProjectDocumentType {
+  QUOTATION
+  WORK_AGREEMENT
+  PAYMENT_SCHEDULE
+  CHANGE_ORDER
+  PROGRESS_REPORT
+  INVOICE
+  HANDOVER
+}
 model User {
   id String @id @default(cuid())
   email String @unique
@@ -81,6 +98,11 @@ model Organization {
   clients Client[]
   leads Lead[]
   projects Project[]
+  projectWorkspaces ProjectWorkspace[]
+  projectWorkItems ProjectWorkItem[]
+  paymentTerms PaymentTerm[]
+  changeOrders ChangeOrder[]
+  progressReports ProgressReport[]
   quotations Quotation[]
   invoices Invoice[]
   payments PaymentTransaction[]
@@ -260,9 +282,139 @@ model Project {
   invoices Invoice[]
   expenses Expense[]
   documents Document[]
+  workspace ProjectWorkspace?
+  workItems ProjectWorkItem[]
+  paymentTerms PaymentTerm[]
+  changeOrders ChangeOrder[]
+  progressReports ProgressReport[]
   @@unique([organizationId,code])
   @@index([organizationId,status])
 }
+model ProjectWorkspace {
+  id String @id @default(cuid())
+  organizationId String
+  projectId String
+  businessName String?
+  businessAddress String?
+  businessPhone String?
+  businessEmail String?
+  businessOwnerName String?
+  clientAddress String?
+  siteAddress String?
+  quotationDate DateTime?
+  quotationValidDays Int @default(14)
+  spkSignedAt DateTime?
+  durationDays Int?
+  documentSequence Int @default(1)
+  bankName String?
+  bankAccountNumber String?
+  bankAccountName String?
+  maintenanceDays Int @default(30)
+  notes String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  organization Organization @relation(fields:[organizationId],references:[id],onDelete:Cascade)
+  project Project @relation(fields:[organizationId,projectId],references:[organizationId,id],onDelete:Cascade)
+  @@unique([organizationId,projectId])
+  @@index([organizationId,updatedAt])
+}
+
+model ProjectWorkItem {
+  id String @id @default(cuid())
+  organizationId String
+  projectId String
+  description String
+  quantity Decimal @db.Decimal(14,3)
+  unit String
+  unitPrice Decimal @db.Decimal(14,2)
+  lineTotal Decimal @db.Decimal(14,2)
+  category String @default("WORK")
+  sortOrder Int @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  organization Organization @relation(fields:[organizationId],references:[id],onDelete:Cascade)
+  project Project @relation(fields:[organizationId,projectId],references:[organizationId,id],onDelete:Cascade)
+  @@index([organizationId,projectId,sortOrder])
+}
+
+model PaymentTerm {
+  id String @id @default(cuid())
+  organizationId String
+  projectId String
+  sequence Int
+  name String
+  condition String
+  percentage Decimal @db.Decimal(5,2)
+  amount Decimal @db.Decimal(14,2)
+  status String @default("UNPAID")
+  dueAt DateTime?
+  invoiceId String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  organization Organization @relation(fields:[organizationId],references:[id],onDelete:Cascade)
+  project Project @relation(fields:[organizationId,projectId],references:[organizationId,id],onDelete:Cascade)
+  @@unique([organizationId,projectId,sequence])
+  @@index([organizationId,projectId,status])
+}
+
+model ChangeOrder {
+  id String @id @default(cuid())
+  organizationId String
+  projectId String
+  number String
+  status String @default("DRAFT")
+  reason String?
+  notes String?
+  addedTotal Decimal @default(0) @db.Decimal(14,2)
+  deductedTotal Decimal @default(0) @db.Decimal(14,2)
+  netTotal Decimal @default(0) @db.Decimal(14,2)
+  agreedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  organization Organization @relation(fields:[organizationId],references:[id],onDelete:Cascade)
+  project Project @relation(fields:[organizationId,projectId],references:[organizationId,id],onDelete:Cascade)
+  items ChangeOrderItem[]
+  @@unique([organizationId,number])
+  @@unique([organizationId,id])
+  @@index([organizationId,projectId,createdAt])
+}
+
+model ChangeOrderItem {
+  id String @id @default(cuid())
+  organizationId String
+  changeOrderId String
+  kind String
+  description String
+  quantity Decimal @db.Decimal(14,3)
+  unit String
+  unitPrice Decimal @db.Decimal(14,2)
+  lineTotal Decimal @db.Decimal(14,2)
+  sortOrder Int @default(0)
+  changeOrder ChangeOrder @relation(fields:[organizationId,changeOrderId],references:[organizationId,id],onDelete:Cascade)
+  @@index([organizationId,changeOrderId,sortOrder])
+}
+
+model ProgressReport {
+  id String @id @default(cuid())
+  organizationId String
+  projectId String
+  reportNumber String
+  weekStart DateTime
+  weekEnd DateTime
+  overallProgress Int
+  completedItems Json
+  nextWeekPlans Json
+  blockers String?
+  clientDecision String?
+  paymentStatus String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  organization Organization @relation(fields:[organizationId],references:[id],onDelete:Cascade)
+  project Project @relation(fields:[organizationId,projectId],references:[organizationId,id],onDelete:Cascade)
+  @@unique([organizationId,reportNumber])
+  @@index([organizationId,projectId,weekStart])
+}
+
 model Quotation {
   id String @id @default(cuid())
   organizationId String
@@ -410,6 +562,10 @@ model Document {
   checksumSha256 String?
   etag String?
   status DocumentStatus @default(PENDING_UPLOAD)
+  documentType ProjectDocumentType?
+  documentNumber String?
+  version Int @default(1)
+  metadata Json?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   deletedAt DateTime?
@@ -417,7 +573,13 @@ model Document {
   project Project? @relation(fields:[organizationId,projectId],references:[organizationId,id],onDelete:NoAction)
   invoice Invoice? @relation(fields:[organizationId,invoiceId],references:[organizationId,id],onDelete:NoAction)
   uploadedBy User? @relation(fields:[uploadedById],references:[id],onDelete:SetNull)
+  parentDocumentId String?
+  parentDocument Document? @relation("DocumentRevisions", fields:[organizationId,parentDocumentId], references:[organizationId,id], onDelete:NoAction)
+  revisions Document[] @relation("DocumentRevisions")
+  @@unique([organizationId,id])
+  @@unique([organizationId,parentDocumentId,version])
   @@index([organizationId,status,createdAt])
+  @@index([organizationId,parentDocumentId,version])
   @@index([organizationId,projectId])
   @@index([organizationId,invoiceId])
   @@index([uploadedById])

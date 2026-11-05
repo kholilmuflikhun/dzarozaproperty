@@ -1,11 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { requireTenantContext, createPresignedUploadUrl, createPresignedDownloadUrl, createTenantDocumentKey, findFirst, create } = vi.hoisted(() => ({
+const { requireTenantContext, createPresignedUploadUrl, createPresignedDownloadUrl, createTenantDocumentKey, findFirst, findProject, create } = vi.hoisted(() => ({
   requireTenantContext: vi.fn(),
   createPresignedUploadUrl: vi.fn(),
   createPresignedDownloadUrl: vi.fn(),
   createTenantDocumentKey: vi.fn(),
   findFirst: vi.fn(),
+  findProject: vi.fn(),
   create: vi.fn(),
 }));
 
@@ -25,7 +26,7 @@ vi.mock("@/lib/r2-storage", () => ({
   createTenantDocumentKey,
 }));
 
-vi.mock("@dzaroza/database", () => ({ prisma: { document: { findFirst, create } } }));
+vi.mock("@dzaroza/database", () => ({ ProjectDocumentType: { QUOTATION: "QUOTATION", WORK_AGREEMENT: "WORK_AGREEMENT", PAYMENT_SCHEDULE: "PAYMENT_SCHEDULE", CHANGE_ORDER: "CHANGE_ORDER", PROGRESS_REPORT: "PROGRESS_REPORT", INVOICE: "INVOICE", HANDOVER: "HANDOVER" }, prisma: { document: { findFirst, create }, project: { findFirst: findProject } } }));
 
 import { POST } from "./route";
 
@@ -43,9 +44,11 @@ describe("tenant-scoped R2 presign API", () => {
     createPresignedDownloadUrl.mockReset();
     createTenantDocumentKey.mockReset();
     findFirst.mockReset();
+    findProject.mockReset();
     create.mockReset();
     create.mockResolvedValue({ id: "doc-a" });
     findFirst.mockResolvedValue(null);
+    findProject.mockResolvedValue({ id: "project-a" });
     requireTenantContext.mockResolvedValue({ organizationId: "org-a", userId: "user-a", role: "STAFF" });
     createTenantDocumentKey.mockReturnValue("organizations/org-a/documents/random/file.pdf");
     createPresignedUploadUrl.mockResolvedValue({
@@ -81,6 +84,68 @@ describe("tenant-scoped R2 presign API", () => {
         status: "PENDING_UPLOAD",
       }),
     }));
+  });
+
+  it("creates a tenant-scoped revision with the next version and preserved document identity", async () => {
+    findFirst
+      .mockResolvedValueOnce({
+        id: "doc-parent",
+        projectId: "project-a",
+        documentType: "WORK_AGREEMENT",
+        documentNumber: "SPK/001/2026",
+        version: 2,
+      })
+      .mockResolvedValueOnce(null);
+    const response = await POST(request({
+      action: "upload",
+      fileName: "spk-v3.pdf",
+      contentType: "application/pdf",
+      size: 2048,
+      projectId: "project-a",
+      documentType: "WORK_AGREEMENT",
+      documentNumber: "SPK/001/2026",
+      parentDocumentId: "doc-parent",
+    }), context);
+
+    expect(response.status).toBe(200);
+    expect(findFirst).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: "doc-parent", organizationId: "org-a", status: "AVAILABLE", deletedAt: null },
+    }));
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        parentDocumentId: "doc-parent",
+        version: 3,
+        projectId: "project-a",
+        documentType: "WORK_AGREEMENT",
+        documentNumber: "SPK/001/2026",
+      }),
+    }));
+  });
+
+  it("rejects a revision when the selected parent already has a newer child", async () => {
+    findFirst
+      .mockResolvedValueOnce({
+        id: "doc-parent",
+        projectId: "project-a",
+        documentType: "WORK_AGREEMENT",
+        documentNumber: "SPK/001/2026",
+        version: 1,
+      })
+      .mockResolvedValueOnce({ id: "doc-child" });
+    const response = await POST(request({
+      action: "upload",
+      fileName: "spk-old.pdf",
+      contentType: "application/pdf",
+      size: 1024,
+      projectId: "project-a",
+      documentType: "WORK_AGREEMENT",
+      documentNumber: "SPK/001/2026",
+      parentDocumentId: "doc-parent",
+    }), context);
+
+    expect(response.status).toBe(409);
+    expect(createPresignedUploadUrl).not.toHaveBeenCalled();
+    expect(create).not.toHaveBeenCalled();
   });
 
   it("rejects files with unsupported types or excessive sizes", async () => {
