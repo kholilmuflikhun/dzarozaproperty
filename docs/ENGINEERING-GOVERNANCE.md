@@ -105,3 +105,22 @@ A queued workflow, an older green run, a successful local build, or a schema-onl
 ## Final product principle
 
 The final Dzaroza Property OS must feel like one coherent platform: one identity, one navigation language, one design system, consistent domain rules, predictable data contracts and secure tenant boundaries. New capabilities are layered onto that foundation as controlled updates—not as disconnected redesigns or parallel implementations.
+
+
+## Dzaroza UI/UX baseline
+
+The approved product visual direction is **white + charcoal/black + orange accent**. This is the consistent baseline for all new screens and incremental UI updates.
+
+- Primary page surfaces: white; secondary work surfaces: subtle neutral gray.
+- Structural navigation and high-contrast surfaces: charcoal/near-black (`#111827`).
+- Primary action, active navigation, focus/highlight and key emphasis: orange (`#F97316`).
+- Body text uses high-contrast charcoal; muted text and borders remain neutral. Semantic colors (success, warning, danger) retain their meaning and are not replaced by orange.
+- Reuse the existing Tailwind/Lucide stack. Do not introduce a competing component library or new visual framework.
+- Desktop: persistent sidebar with clear active navigation and a constrained, readable content canvas.
+- Tablet/iPad: preserve the same information hierarchy with adaptive navigation and two-column layouts only where content remains readable.
+- Mobile: single-column content, compact header, horizontally scrollable primary navigation where needed, large touch targets, forms grouped into clear sections, and sticky primary actions only when they do not obscure content.
+- All breakpoints must avoid horizontal page overflow. Wide data tables may use a contained horizontal scroll region; document previews must scale to viewport while retaining A4 print dimensions.
+- Forms, previews and workflows inspired by Proyek Sat-Set should be adapted to property management concepts and existing Dzaroza domain models; never copy construction-only language or duplicate project data models.
+- New and updated screens must provide loading, empty, error, success, disabled and permission-denied states, visible focus states, keyboard access and appropriate labels.
+
+Treat this visual baseline as an approved product decision. Future changes should refine it compatibly rather than changing the palette or layout language without an ADR.
