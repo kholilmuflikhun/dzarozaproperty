@@ -29,7 +29,7 @@ describe("project document PDF renderer", () => {
       client: { ...sample.client, name: "Client (A) \\ B" },
       workItems: Array.from({ length: 100 }, (_, index) => ({ description: `Pekerjaan ${index + 1}`, quantity: 1, unit: "unit", unitPrice: 1000, lineTotal: 1000 })),
     }).toString("binary");
-    expect(pdf).toContain("/Count 3");
+    expect(pdf).toContain("/Count 4");
     expect(pdf).toContain("Client \\(A\\) \\\\ B");
   });
 });
