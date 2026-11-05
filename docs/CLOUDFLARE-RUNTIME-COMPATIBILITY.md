@@ -95,3 +95,15 @@ The shared database package currently instantiates PrismaClient without a driver
 - vinext is not approved for migration while NextAuth is flagged.
 - OpenNext may be tested in a separate Preview branch/configuration; it is not yet verified as compatible with this repository.
 - No app dependencies, auth implementation, Prisma client construction, deployment target, secrets, DNS or Production resources were changed by this assessment.
+
+ 
+## Current-head verification update — 2026-11-05
+ 
+PR #18 head `fc197273c30d080e615fee33b1a69a7e603dd182` was rechecked after the compatibility assessment.
+ 
+- Monorepo quality gates run #460 completed successfully: Preview migration-history reconciliation, Prisma schema/client generation, migration checks, tenant-scoped database constraints, TypeScript, unit tests, both production builds, public-site smoke test and Ops login smoke test all passed.
+- Cloudflare Runtime Compatibility run #4 completed successfully. This is a successful scan execution only; the earlier compatibility findings (NextAuth v4 in both apps and partial Marketing image optimization) remain unresolved.
+- Vercel status checks still report `build-rate-limit` for the public app, Ops Preview app and Blob default project. This is a Vercel infrastructure/quota block; it is not evidence that a new Vercel Preview deployment was produced.
+- Repository tree inventory at this head found no app-level `middleware.ts`, `proxy.ts`, Wrangler config, OpenNext config or Cloudflare app runtime config. The only Cloudflare workflow is the compatibility scanner; the existing `apps/worker` remains a separate Node/tsx foundation.
+ 
+The successful quality-gates run does not replace browser E2E/UAT or Workers runtime validation. The next safe implementation gate is a separate Cloudflare Preview build experiment with independent app configs and environment bindings; do not add adapter or Prisma dependencies until the exact build/runtime test can be executed and the auth gap has an explicit mitigation.
