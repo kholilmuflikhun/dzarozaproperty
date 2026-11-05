@@ -165,6 +165,13 @@ export async function POST(
       },
     });
   } catch (error) {
+    const code = typeof error === "object" && error !== null && "code" in error ? error.code : undefined;
+    if (code === "P2002" || code === "P2034") {
+      return NextResponse.json(
+        { error: "Revisi dokumen baru saja dibuat oleh proses lain. Muat ulang arsip dan pilih versi terbaru." },
+        { status: 409 },
+      );
+    }
     const result = toHttpError(error);
     return NextResponse.json({ error: result.message }, { status: result.status });
   }
