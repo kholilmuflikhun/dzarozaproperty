@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@dzaroza/database";
+import { Prisma, ProjectDocumentType, prisma } from "@dzaroza/database";
 import { requireTenantContext, toHttpError } from "@/lib/tenant";
 import {
   createPresignedDownloadUrl,
@@ -27,6 +27,14 @@ const requestSchema = z.discriminatedUnion("action", [
     fileName: z.string().trim().min(1).max(180),
     contentType: z.enum(allowedContentTypes),
     size: z.number().int().positive().max(MAX_FILE_SIZE_BYTES),
+    projectId: z.string().trim().min(1).max(64).optional(),
+    documentType: z.nativeEnum(ProjectDocumentType).optional(),
+    documentNumber: z.string().trim().max(120).optional(),
+    metadata: z.record(z.string(), z.unknown()).optional(),
+    parentDocumentId: z.string().trim().min(1).max(64).optional(),
+  }).refine((value) => !value.documentType || Boolean(value.projectId), {
+    message: "Dokumen bertipe proyek wajib terhubung ke proyek.",
+    path: ["projectId"],
   }),
   z.object({
     action: z.literal("download"),
@@ -62,6 +70,46 @@ export async function POST(
     }
 
     if (parsed.data.action === "upload") {
+      if (parsed.data.projectId) {
+        const project = await prisma.project.findFirst({
+          where: { id: parsed.data.projectId, organizationId },
+          select: { id: true },
+        });
+        if (!project) {
+          return NextResponse.json({ error: "Proyek tidak ditemukan pada organisasi ini." }, { status: 404 });
+        }
+      }
+
+      let parent: { id: string; projectId: string | null; documentType: ProjectDocumentType | null; documentNumber: string | null; version: number } | null = null;
+      if (parsed.data.parentDocumentId) {
+        parent = await prisma.document.findFirst({
+          where: {
+            id: parsed.data.parentDocumentId,
+            organizationId,
+            status: "AVAILABLE",
+            deletedAt: null,
+          },
+          select: { id: true, projectId: true, documentType: true, documentNumber: true, version: true },
+        });
+        if (!parent) {
+          return NextResponse.json({ error: "Dokumen induk tidak ditemukan pada organisasi ini." }, { status: 404 });
+        }
+        if (
+          parent.projectId !== (parsed.data.projectId ?? null)
+          || parent.documentType !== (parsed.data.documentType ?? null)
+          || parent.documentNumber !== (parsed.data.documentNumber ?? null)
+        ) {
+          return NextResponse.json({ error: "Revisi harus mempertahankan proyek, jenis, dan nomor dokumen induk." }, { status: 409 });
+        }
+        const existingChild = await prisma.document.findFirst({
+          where: { organizationId, parentDocumentId: parent.id, status: { in: ["PENDING_UPLOAD", "AVAILABLE"] }, deletedAt: null },
+          select: { id: true },
+        });
+        if (existingChild) {
+          return NextResponse.json({ error: "Dokumen induk bukan versi terbaru. Pilih revisi terakhir dari arsip." }, { status: 409 });
+        }
+      }
+
       const objectKey = createTenantDocumentKey(organizationId, parsed.data.fileName);
       const signed = await createPresignedUploadUrl(objectKey, 300, parsed.data.contentType);
       const document = await prisma.document.create({
@@ -73,6 +121,12 @@ export async function POST(
           contentType: parsed.data.contentType,
           sizeBytes: BigInt(parsed.data.size),
           status: "PENDING_UPLOAD",
+          projectId: parsed.data.projectId ?? null,
+          documentType: parsed.data.documentType ?? null,
+          documentNumber: parsed.data.documentNumber ?? null,
+          metadata: parsed.data.metadata as Prisma.InputJsonValue | undefined,
+          parentDocumentId: parent?.id ?? null,
+          version: parent ? parent.version + 1 : 1,
         },
         select: { id: true },
       });
@@ -111,6 +165,13 @@ export async function POST(
       },
     });
   } catch (error) {
+    const code = typeof error === "object" && error !== null && "code" in error ? error.code : undefined;
+    if (code === "P2002" || code === "P2034") {
+      return NextResponse.json(
+        { error: "Revisi dokumen baru saja dibuat oleh proses lain. Muat ulang arsip dan pilih versi terbaru." },
+        { status: 409 },
+      );
+    }
     const result = toHttpError(error);
     return NextResponse.json({ error: result.message }, { status: result.status });
   }
