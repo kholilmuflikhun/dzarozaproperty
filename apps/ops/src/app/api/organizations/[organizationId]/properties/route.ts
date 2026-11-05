@@ -34,7 +34,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ org
     const { organizationId } = await context.params;
     if (!organizationId || organizationId.length > 64) return NextResponse.json({ error: "Organisasi tidak valid." }, { status: 400 });
     await requireTenantContext(organizationId);
-    const parsed = querySchema.safeParse(Object.fromEntries(request.nextUrl.searchParams));
+    const parsed = querySchema.safeParse(Object.fromEntries(new URL(request.url).searchParams));
     if (!parsed.success) return NextResponse.json({ error: "Filter properti tidak valid.", issues: parsed.error.flatten() }, { status: 400 });
     const { limit, ...filters } = parsed.data;
     const properties = await prisma.property.findMany({
