@@ -89,7 +89,7 @@ export default function PropertiesPage() {
             <div><p className="flex items-center gap-1 text-[10px] text-neutral-400"><Home size={12}/> Unit</p><p className="mt-1 text-lg font-bold text-neutral-900">{property._count?.units??0}</p></div>
             <div><p className="flex items-center gap-1 text-[10px] text-neutral-400"><Package size={12}/> Aset</p><p className="mt-1 text-lg font-bold text-neutral-900">{property._count?.assets??0}</p></div>
           </div>
-          <p className="mt-4 text-xs text-neutral-400">Detail dan pengelolaan gedung/unit/aset menjadi lanjutan Phase 4.</p>
+          <Link href={`/dashboard/${encodeURIComponent(organizationId)}/properties/${encodeURIComponent(property.id)}`} className="mt-4 inline-flex min-h-10 items-center justify-center rounded-xl border border-neutral-200 px-4 py-2 text-sm font-semibold text-neutral-700 transition hover:border-orange-300 hover:text-orange-700">Lihat detail properti</Link>
         </article>)}
       </div>}
     </section>
