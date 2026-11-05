@@ -18,10 +18,14 @@
 
 - The connected Cloudflare account is accessible.
 - R2 buckets already exist: dzaroza-ops-dev, dzaroza-ops-preview, and dzaroza-ops-prod.
-- No Cloudflare DNS zones were returned for the connected account.
-- No Worker scripts were returned for the account.
-- Therefore, R2 provisioning is not the blocker; Worker deployment and domain routing are not yet configured in this account.
-- This inventory is read-only. No resource, DNS, nameserver, bucket or production setting was changed.
+- Created the `dzaroza-property` workers.dev subdomain.
+- Created Worker script `dzaroza-ops-preview`, bound to the existing private `dzaroza-ops-preview` R2 bucket. This is a bootstrap/health-check Worker only; it deliberately returns HTTP 503 for application routes until the real Next.js bundle is validated and deployed. It is not the production application.
+- Created Cloudflare DNS Zone for `dzarozaproperty.id` (Zone ID: `e2bf381eeb509807b6cd5d7e0e3f8aa1`), currently `pending`.
+- Assigned Cloudflare nameservers: `keanu.ns.cloudflare.com` and `mckenzie.ns.cloudflare.com`.
+- Cloudflare reports original registrar as PT Jagoan Hosting Indonesia and original authoritative nameservers as `ns1.vercel-dns.com` and `ns2.vercel-dns.com`.
+- Ran Cloudflare DNS scan; 10 website-related records were discovered/imported (6 A, 3 CAA, 1 CNAME). The A records point to Vercel infrastructure; `_domainconnect` points to Vercel DNS. No MX or TXT records were returned by this scan. This is not proof that mail/security TXT records do not exist at the current authoritative DNS provider.
+- The Cloudflare zone is not authoritative yet. Nameservers remain unchanged at Vercel DNS. Do not switch nameservers until the full current DNS zone (including mail MX, SPF, DKIM, DMARC, verification TXT, subdomains and DNSSEC/DS status) has been exported and compared.
+- No database migration, Production deployment, DNS nameserver change, or Production resource modification was performed.
 
 ## Runtime migration strategy
 
@@ -47,14 +51,16 @@
 
 ## Domain and DNS
 
-Jagoan Hosting remains the domain registrar/provider. Cloudflare Workers custom domains generally require the hostname to be managed through Cloudflare DNS. Since the connected Cloudflare account currently has no zones, the safe sequence is:
+Jagoan Hosting remains the domain registrar/provider. Cloudflare Workers custom domains generally require the hostname to be managed through Cloudflare DNS. Cloudflare Zone `dzarozaproperty.id` now exists in pending state. Its assigned nameservers are `keanu.ns.cloudflare.com` and `mckenzie.ns.cloudflare.com`. The registrar remains Jagoan Hosting and the currently reported authoritative nameservers are still Vercel DNS. The safe sequence is:
 
-1. Keep the current domain and DNS configuration untouched.
-2. Validate the app on a Cloudflare workers.dev Preview hostname.
-3. Identify the exact production hostname and DNS records currently used at Jagoan Hosting.
-4. Review whether nameserver delegation to Cloudflare is required for the selected Workers custom-domain setup. Registrar ownership remains at Jagoan even if authoritative DNS is later delegated.
-5. Prepare a record-by-record migration and rollback plan, including email MX, SPF, DKIM, DMARC, verification TXT records and all existing subdomains.
-6. Obtain explicit approval before changing nameservers or DNS records.
+1. Keep the current domain and DNS configuration untouched; Cloudflare zone remains pending.
+2. Use the Worker bootstrap only for isolated Preview checks; deploy the actual Next.js application only after runtime compatibility passes.
+3. Export the complete live DNS zone from the currently authoritative provider (currently reported as Vercel DNS), not merely the 10 records found by Cloudflare's scan.
+4. Confirm email provider records: MX, SPF, DKIM selectors, DMARC, mail/autodiscover records and any third-party verification TXT records. The DNS scan did not return these, so do not infer they are unnecessary.
+5. Check DNSSEC DS at the .id registry/registrar and plan its safe handling before delegation.
+6. Compare every source record with Cloudflare's imported records; preserve TTLs and proxy settings intentionally. Review Vercel apex/www/wildcard records before changing anything.
+7. Registrar ownership remains at Jagoan even if authoritative DNS is later delegated to Cloudflare.
+8. Obtain explicit approval before changing nameservers or DNS records.
 
 ## Free-tier and cost controls
 
