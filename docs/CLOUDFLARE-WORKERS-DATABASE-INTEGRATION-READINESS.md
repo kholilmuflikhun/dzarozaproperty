@@ -4,6 +4,10 @@ Date: 2026-11-05
 Branch: `feat/cloudflare-preview-runtime-foundation`
 Pull request: #19
 
+## CI update — commit `7352cb9ecf6d2a5e47cb1892de246bbe846ba486`
+
+The latest PR checks are green: both OpenNext Preview builds, Vinext compatibility scan, and the `validate` workflow (Prisma schema/client, Preview migration and tenant constraints, TypeScript, unit tests, production builds, and smoke tests). The Workers Prisma lifecycle test now checks the Prisma client construction contract without relying on undocumented adapter internals. This is CI/build validation only; it does not prove a live workerd-to-Neon request.
+
 ## Latest CI verification
 
 Commit `b5460e696427886ca7d77c0e8679529ab867bcac` passed all three workflow runs:
