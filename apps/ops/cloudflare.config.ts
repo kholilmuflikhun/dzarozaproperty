@@ -4,7 +4,7 @@ export default defineConfig({
   worker: defineWorker({
     name: "dzaroza-ops-preview",
     entrypoint: "vinext/server/fetch-handler",
-    compatibilityDate: "2026-11-04",
+    compatibilityDate: "2026-11-07",
     compatibilityFlags: ["nodejs_compat"],
     assets: {
       htmlHandling: "none",
@@ -13,6 +13,7 @@ export default defineConfig({
     },
     env: {
       ASSETS: bindings.assets(),
+      DOCUMENTS: bindings.r2({ name: "dzaroza-ops-preview" }),
     },
   }),
 });
