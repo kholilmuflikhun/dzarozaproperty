@@ -72,7 +72,7 @@ export default function Footer() {
           <p>© {year} Dzaroza Property. Seluruh hak cipta dilindungi.</p>
           <div className="flex items-center gap-4">
             <a href="/privasi" className="hover:text-orange-400">Kebijakan Privasi</a>
-            <p>Dibangun dengan Next.js, Tailwind CSS &amp; NextAuth.</p>
+            <p>Dibangun dengan Next.js, Tailwind CSS &amp; Better Auth.</p>
           </div>
         </div>
       </div>

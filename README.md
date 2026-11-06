@@ -255,5 +255,5 @@ Di bagian atas `lib/data.ts`:
 | --- | --- |
 | `npm run dev` | Menjalankan server pengembangan vinext/Cloudflare lokal |
 | `npm run build` | Menjalankan build produksi vinext |
-| `npm run deploy:vinext` | Build dan deploy aplikasi ke Cloudflare Workers |
+| `npm run deploy:vinext` | Deploy hasil build ke Cloudflare Workers |
 | `npm run lint` | Menjalankan pemeriksaan kode dan gaya penulisan menggunakan ESLint |
