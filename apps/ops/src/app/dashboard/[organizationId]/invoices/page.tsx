@@ -16,6 +16,16 @@ type Invoice = {
   quotation?: { id: string; number: string } | null;
 };
 
+type ApiError = { error?: string };
+type InvoiceListResponse = ApiError & { invoices?: Invoice[] };
+type InvoiceCreateResponse = ApiError & { invoice: { number: string } };
+type CheckoutResponse = ApiError & { redirectUrl?: string };
+type MessageResponse = ApiError & { message?: string };
+
+async function readJson<T>(response: Response): Promise<T> {
+  return response.json() as Promise<T>;
+}
+
 const money = (value: string | number) => new Intl.NumberFormat("id-ID", {
   style: "currency", currency: "IDR", maximumFractionDigits: 0,
 }).format(Number(value));
@@ -45,7 +55,7 @@ export default function InvoiceManagementPage() {
     setError("");
     try {
       const response = await fetch(endpoint, { cache: "no-store" });
-      const payload = await response.json();
+      const payload = await readJson<InvoiceListResponse>(response);
       if (!response.ok) throw new Error(payload.error ?? "Gagal memuat invoice.");
       setInvoices(payload.invoices ?? []);
     } catch (cause) {
@@ -70,7 +80,7 @@ export default function InvoiceManagementPage() {
           items: [{ description: description.trim(), quantity: Number(quantity), unitPrice: Number(unitPrice) }],
         }),
       });
-      const payload = await response.json();
+      const payload = await readJson<InvoiceCreateResponse>(response);
       if (!response.ok) throw new Error(payload.error ?? "Invoice gagal dibuat.");
       setNotice(`Invoice ${payload.invoice.number} berhasil dibuat sebagai Draft.`);
       setProjectId(""); setDescription(""); setQuantity("1"); setUnitPrice("");
@@ -88,7 +98,7 @@ export default function InvoiceManagementPage() {
       if (action === "pdf") {
         const response = await fetch(`${endpoint}/${invoice.id}/pdf`);
         if (!response.ok) {
-          const payload = await response.json();
+          const payload = await readJson<ApiError>(response);
           throw new Error(payload.error ?? "PDF invoice gagal dibuat.");
         }
         const blob = await response.blob();
@@ -100,7 +110,7 @@ export default function InvoiceManagementPage() {
         setNotice("PDF invoice berhasil disiapkan.");
       } else if (action === "checkout") {
         const response = await fetch(`${endpoint}/${invoice.id}/checkout`, { method: "POST" });
-        const payload = await response.json();
+        const payload = await readJson<CheckoutResponse>(response);
         if (!response.ok) throw new Error(payload.error ?? "Checkout gagal dibuat.");
         if (payload.redirectUrl) window.location.assign(payload.redirectUrl);
         else throw new Error("URL pembayaran tidak tersedia.");
@@ -111,7 +121,7 @@ export default function InvoiceManagementPage() {
           method: "POST", headers: { "content-type": "application/json" },
           body: JSON.stringify({ invoiceId: invoice.id, amount }),
         });
-        const payload = await response.json();
+        const payload = await readJson<ApiError>(response);
         if (!response.ok) throw new Error(payload.error ?? "Pembayaran gagal dicatat.");
         setNotice(`Pembayaran ${money(amount)} berhasil dicatat.`);
         setPayments((current) => ({ ...current, [invoice.id]: "" }));
@@ -120,13 +130,13 @@ export default function InvoiceManagementPage() {
         const response = await fetch(`${endpoint}/${invoice.id}`, {
           method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "issue" }),
         });
-        const payload = await response.json();
+        const payload = await readJson<ApiError>(response);
         if (!response.ok) throw new Error(payload.error ?? "Invoice gagal diterbitkan.");
         setNotice(`Invoice ${invoice.number} berhasil diterbitkan.`);
         await loadInvoices();
       } else {
         const response = await fetch(`${endpoint}/${invoice.id}/send`, { method: "POST" });
-        const payload = await response.json();
+        const payload = await readJson<MessageResponse>(response);
         if (!response.ok) throw new Error(payload.error ?? "Email invoice gagal dikirim.");
         setNotice(payload.message ?? "Invoice berhasil dikirim ke klien.");
       }
