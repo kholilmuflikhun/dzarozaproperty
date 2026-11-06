@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { Star, Quote, ChevronLeft, ChevronRight } from "lucide-react";
 import SectionHeading from "./SectionHeading";
@@ -85,6 +85,28 @@ export default function Testimonials() {
 
   const currentItems = pages[safePage] ?? [];
 
+  // Swipe (Pointer Events: sentuh, stylus, drag mouse) — geser kiri = berikutnya
+  const swipeStart = useRef<{ x: number; y: number } | null>(null);
+  const SWIPE_THRESHOLD = 40; // px minimal supaya dianggap swipe, bukan tap
+
+  function handlePointerDown(e: React.PointerEvent<HTMLDivElement>) {
+    swipeStart.current = { x: e.clientX, y: e.clientY };
+  }
+
+  function handlePointerUp(e: React.PointerEvent<HTMLDivElement>) {
+    if (!swipeStart.current) return;
+    const deltaX = e.clientX - swipeStart.current.x;
+    const deltaY = e.clientY - swipeStart.current.y;
+    swipeStart.current = null;
+    if (Math.abs(deltaX) < SWIPE_THRESHOLD || Math.abs(deltaX) < Math.abs(deltaY)) return;
+    if (deltaX < 0) goNext();
+    else goPrev();
+  }
+
+  function handlePointerCancel() {
+    swipeStart.current = null;
+  }
+
   return (
     <section id="testimoni" className="section-pad bg-white">
       <div className="container-content">
@@ -101,7 +123,13 @@ export default function Testimonials() {
           onTouchStart={() => setPaused(true)}
           onTouchEnd={() => setPaused(false)}
         >
-          <div key={safePage} className="grid animate-fade-in sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div
+            key={safePage}
+            onPointerDown={handlePointerDown}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerCancel}
+            className="grid animate-fade-in touch-pan-y select-none sm:grid-cols-2 lg:grid-cols-4 gap-6"
+          >
             {currentItems.map((t) => (
               <div key={t.id} className="rounded-xl2 border border-charcoal-100 bg-cream-soft p-6">
                 <Quote className="text-orange-500/40" size={26} />
