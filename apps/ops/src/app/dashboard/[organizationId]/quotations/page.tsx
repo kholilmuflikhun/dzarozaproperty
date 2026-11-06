@@ -101,8 +101,9 @@ export default function QuotationManagementPage() {
       }
       const payload = await readJson<QuotationActionResponse>(response);
       if (!response.ok) throw new Error(payload.error ?? "Aksi quotation gagal.");
-      if (action === "approval" && payload.approval?.url) {
-        setApprovalLinks((current) => ({ ...current, [quotation.id]: payload.approval.url }));
+      const approvalUrl = payload.approval?.url;
+      if (action === "approval" && approvalUrl) {
+        setApprovalLinks((current) => ({ ...current, [quotation.id]: approvalUrl }));
         setNotice("Link persetujuan siap dibagikan. Salin dan kirim hanya kepada kontak klien terverifikasi.");
       } else if (action === "approval") setNotice(payload.message ?? "Link persetujuan dikirim melalui email klien.");
       else if (action === "convert") setNotice(`Proyek ${payload.project?.code ?? quotation.number} berhasil dibuat.`);
