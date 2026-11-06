@@ -1,0 +1,74 @@
+name: Cloudflare Vinext Preview build
+
+on:
+  pull_request:
+    branches:
+      - feat/cloudflare-vinext-runtime
+    paths:
+      - "apps/ops/**"
+      - "packages/database/**"
+      - "packages/shared/**"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - ".github/workflows/cloudflare-vinext-preview.yml"
+  push:
+    branches:
+      - feat/cloudflare-vinext-runtime
+    paths:
+      - "apps/ops/**"
+      - "packages/database/**"
+      - "packages/shared/**"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - ".github/workflows/cloudflare-vinext-preview.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cloudflare-vinext-preview-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build Ops for Cloudflare Workers
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.18.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.18.0
+          cache: pnpm
+
+      - name: Verify toolchain
+        run: |
+          node --version
+          pnpm --version
+          test "$(pnpm --version)" = "10.18.0"
+
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm db:generate
+
+      - name: Build Vinext application
+        run: pnpm --filter @dzaroza/ops build:vinext
+
+      - name: TypeScript validation
+        run: pnpm --filter @dzaroza/ops typecheck
+
+      - name: Verify generated Cloudflare build output
+        run: |
+          test -d apps/ops/dist
+          test -d apps/ops/.cloudflare
