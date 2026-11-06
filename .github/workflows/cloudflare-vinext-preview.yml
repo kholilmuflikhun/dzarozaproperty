@@ -3,6 +3,7 @@ name: Cloudflare Vinext Preview build
 on:
   pull_request:
     branches:
+      - feat/cloudflare-better-auth
       - feat/cloudflare-vinext-runtime
     paths:
       - "apps/ops/**"
