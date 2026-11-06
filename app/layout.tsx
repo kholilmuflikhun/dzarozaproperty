@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Space_Grotesk, Inter } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
-import Providers from "@/components/Providers";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import FloatingWhatsApp from "@/components/FloatingWhatsApp";
@@ -50,12 +49,10 @@ export default function RootLayout({
     <html lang="id" className={`${spaceGrotesk.variable} ${inter.variable}`}>
       <body className="bg-white text-charcoal-950">
         <OrganizationSchema />
-        <Providers>
-          <Navbar />
-          <main>{children}</main>
-          <Footer />
-          <FloatingWhatsApp />
-        </Providers>
+        <Navbar />
+        <main>{children}</main>
+        <Footer />
+        <FloatingWhatsApp />
 
         {/* Midtrans Snap.js — sandbox atau production tergantung env,
             dipanggil oleh PurchaseButton.tsx lewat window.snap.pay() */}

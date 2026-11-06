@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { CreditCard, Loader2, Clock } from "lucide-react";
+import { authClient } from "@/lib/auth-client";
 import { primaryWhatsApp, type ProductStatus } from "@/lib/data";
 import ComingSoonModal from "./ComingSoonModal";
 
@@ -30,7 +30,7 @@ export default function PurchaseButton({
   releaseDate,
   className = "",
 }: Props) {
-  const { data: session } = useSession();
+  const { data: session } = authClient.useSession();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");

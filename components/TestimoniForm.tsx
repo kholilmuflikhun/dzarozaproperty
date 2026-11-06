@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { useSession, signIn, signOut } from "next-auth/react";
+import { authClient } from "@/lib/auth-client";
 import { Star, Send, Loader2, CheckCircle2, LogOut } from "lucide-react";
 
 type Status = "idle" | "loading" | "success" | "error";
 
 export default function TestimoniForm() {
-  const { data: session, status: authStatus } = useSession();
+  const { data: session, isPending } = authClient.useSession();
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -77,17 +77,17 @@ export default function TestimoniForm() {
       </p>
 
       {/* --- Login with Google: opsional --- */}
-      {authStatus === "loading" && (
+      {isPending && (
         <div className="mt-5 flex items-center gap-2 text-sm text-charcoal-400">
           <Loader2 size={16} className="animate-spin" />
           Memuat sesi...
         </div>
       )}
 
-      {authStatus !== "loading" && !session?.user && (
+      {!isPending && !session?.user && (
         <button
           type="button"
-          onClick={() => signIn("google")}
+          onClick={() => authClient.signIn.social({ provider: "google" })}
           className="mt-5 inline-flex items-center gap-3 rounded-full border border-charcoal-200 bg-white px-5 py-3 text-sm font-semibold text-charcoal-800 hover:border-orange-500 hover:text-orange-700 transition-colors"
         >
           <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
@@ -119,7 +119,7 @@ export default function TestimoniForm() {
           </div>
           <button
             type="button"
-            onClick={() => signOut()}
+            onClick={() => authClient.signOut()}
             className="flex items-center gap-1 text-xs font-semibold text-charcoal-400 hover:text-orange-700"
           >
             <LogOut size={13} />

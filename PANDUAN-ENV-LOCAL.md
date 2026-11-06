@@ -15,7 +15,7 @@ UPSTASH_REDIS_REST_URL="https://...upstash.io"
 UPSTASH_REDIS_REST_TOKEN="..."
 ```
 
-Gunakan database development terpisah dari production jika memungkinkan. Environment di Vercel harus dikonfigurasi secara terpisah.
+Gunakan database development terpisah dari production jika memungkinkan. Secrets produksi harus ditambahkan ke Cloudflare Worker, bukan di-commit ke repo.
 
 ## 2. Buat `UPLOAD_SECRET` yang kuat
 
@@ -33,20 +33,25 @@ UPLOAD_SECRET="tempel-hasil-secret-di-sini"
 
 Jangan gunakan teks contoh di atas sebagai secret sebenarnya. Jika sedang merotasi secret dan admin masih membutuhkan secret lama, simpan sementara di `UPLOAD_SECRET_PREVIOUS`. Jika tidak, variabel tersebut boleh dikosongkan.
 
-## 3. Atur URL lokal
+## 3. Konfigurasikan Better Auth dan URL
 
-Untuk menjalankan aplikasi di komputer sendiri, atur kedua URL berikut ke localhost:
+Better Auth menyimpan sesi dan akun OAuth di binding D1 `AUTH_DB`. Jalankan migrasi SQL pada `migrations/0001_better_auth.sql` ke database D1 sebelum menggunakan login. `GOOGLE_CLIENT_ID` dan `GOOGLE_CLIENT_SECRET` dipakai untuk login Google.
+
+Generate secret auth dengan perintah yang sama seperti `UPLOAD_SECRET` di atas, lalu isi variabel berikut:
+
+Untuk development lokal, gunakan URL localhost:
 
 ```env
 NEXT_PUBLIC_SITE_URL="http://localhost:3000"
-NEXTAUTH_URL="http://localhost:3000"
+BETTER_AUTH_URL="http://localhost:3000"
+BETTER_AUTH_SECRET="tempel-secret-acak-minimal-32-karakter"
 ```
 
-Saat deployment, atur keduanya ke domain production yang benar, misalnya:
+Saat deployment, atur URL ke domain production yang sama:
 
 ```env
 NEXT_PUBLIC_SITE_URL="https://domain-anda"
-NEXTAUTH_URL="https://domain-anda"
+BETTER_AUTH_URL="https://domain-anda"
 ```
 
 Jika menggunakan Google OAuth, tambahkan redirect URI yang sesuai di konfigurasi OAuth Google. Untuk pengembangan lokal, biasanya:
@@ -74,4 +79,4 @@ Setelah mengubah `.env.local`, hentikan server development jika sedang berjalan,
 npm run dev
 ```
 
-Next.js membaca variabel lingkungan saat server dimulai, sehingga perubahan tidak selalu diterapkan sampai server direstart.
+Server development membaca variabel lingkungan saat dimulai, sehingga perubahan tidak selalu diterapkan sampai server direstart.

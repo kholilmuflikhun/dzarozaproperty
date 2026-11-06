@@ -1,8 +1,10 @@
 # Dzaroza Property — Company Profile, Portofolio & Penjualan Produk Digital
 
-Next.js 16.4 (App Router) + TypeScript + Tailwind CSS 4 + NextAuth.js (Google Login) + Google Sheets API + Midtrans Snap + Vercel Blob + Upstash Redis + Google Analytics.
+Next.js App Router via vinext + Vite + Cloudflare Workers + TypeScript + Tailwind CSS 4 + Better Auth (Google OAuth/D1) + Google Sheets API + Midtrans Snap + Vercel Blob + Upstash Redis + Google Analytics.
 
 ## Menjalankan Proyek
+
+Gunakan Node.js `22.23+`, `24.22+`, atau `26.12+` (versi yang didukung Cloudflare CLI; lihat `.nvmrc` untuk versi yang disarankan).
 
 ```bash
 npm install
@@ -17,7 +19,7 @@ Buka <http://localhost:3000>
 ```text
 dzaroza-property/
 ├── app/
-│   ├── layout.tsx                                  # Root layout: Providers (NextAuth), Navbar, Footer, Floating WA, GA script
+│   ├── layout.tsx                                  # Root layout: Better Auth, Navbar, Footer, Floating WA, GA script
 │   ├── page.tsx                                    # Halaman utama — semua section (Hero, Products, Services, Portfolio, Testimonials, CompanyProfile, FAQ)
 │   ├── not-found.tsx
 │   ├── globals.css
@@ -28,9 +30,10 @@ dzaroza-property/
 │   ├── privasi/page.tsx                            # Halaman Kebijakan Privasi (/privasi)
 │   ├── admin/
 │   │   ├── layout.tsx                              # Guard: wajib login admin (ADMIN_EMAILS)
+│   │   ├── login/page.tsx                          # Login Google admin
 │   │   └── upload/page.tsx                         # Halaman upload file ke Vercel Blob (/admin/upload)
 │   └── api/
-│       ├── auth/[...nextauth]/route.ts             # Google Login (NextAuth)
+│       ├── auth/[...all]/route.ts                  # Handler Better Auth
 │       ├── testimoni/route.ts                      # POST/GET testimoni ⇄ Google Sheets
 │       ├── order/route.ts                          # POST pengajuan order layanan ⇄ Google Sheets
 │       ├── upload/route.ts                         # Token client upload ke Vercel Blob (maks. 500 MB)
@@ -61,11 +64,12 @@ dzaroza-property/
 │   ├── FAQ.tsx                                     # Accordion FAQ dari lib/data.ts
 │   ├── OrganizationSchema.tsx                      # JSON-LD structured data (SEO)
 │   ├── WhatsAppIcon.tsx                            # Ikon WA resmi (reusable)
-│   ├── Providers.tsx                               # SessionProvider (NextAuth)
 │   └── SectionHeading.tsx
 ├── lib/
 │   ├── data.ts                                     # Semua data statis (produk, jasa, portofolio, tim, testimoni, FAQ)
-│   ├── auth.ts                                     # authOptions NextAuth (Google Provider) + getAdminSession()
+│   ├── auth.ts                                     # Better Auth Google OAuth, D1, dan sesi admin
+│   ├── auth-client.ts                              # Client React Better Auth
+│   ├── auth-schema.ts                              # Skema Drizzle untuk tabel autentikasi D1
 │   ├── gdrive.ts                                   # Helper URL foto Google Drive → next/image
 │   ├── redis.ts                                    # Upstash Redis client + Order CRUD (saveOrder, getOrder, updateOrder)
 │   ├── rate-limit.ts                               # Rate limiter (Upstash sliding-window / in-memory fallback)
@@ -74,8 +78,9 @@ dzaroza-property/
 │   ├── testimonialStats.ts                         # Kalkulasi statistik rating agregat
 │   └── useColumns.ts                               # Custom hook jumlah kolom grid responsif
 ├── types/
-│   ├── next-auth.d.ts                              # Perluasan tipe session.user.id
 │   └── midtrans-client.d.ts                        # Type declaration untuk midtrans-client
+├── migrations/
+│   └── 0001_better_auth.sql                        # Skema Better Auth untuk Cloudflare D1
 ├── public/
 │   ├── images/
 │   │   ├── brand/
@@ -86,7 +91,9 @@ dzaroza-property/
 │   │   └── products/{ebook-cover,eclass-thumb,webinar-cover}.svg
 │   ├── llms.txt                                    # Panduan untuk AI/LLM crawler
 │   └── googlee83260135c75e4d1.html                 # Verifikasi Google Search Console
-├── postcss.config.js                               # Integrasi Tailwind CSS 4
+├── postcss.config.cjs                              # Integrasi Tailwind CSS 4
+├── cloudflare.config.ts                            # Worker, D1, Response Store, dan Images
+├── vite.config.ts                                  # Integrasi vinext dan Cloudflare Vite
 ├── next.config.js                                  # CSP headers, image remotePatterns
 └── package.json
 ```
@@ -95,17 +102,17 @@ dzaroza-property/
 
 | Variabel | Untuk apa | Cara dapatkan |
 | --- | --- | --- |
-| `NEXT_PUBLIC_SITE_URL` | URL situs — dipakai `metadataBase`, sitemap, dan SEO | `http://localhost:3000` untuk dev; URL Vercel/domain kustom untuk produksi |
-| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Login with Google di form testimoni | [Google Cloud Console → Credentials](https://console.cloud.google.com/apis/credentials), buat OAuth Client ID tipe "Web application", redirect URI: `http://localhost:3000/api/auth/callback/google` |
-| `NEXTAUTH_URL` | URL callback NextAuth | `http://localhost:3000` untuk dev; URL produksi untuk deployment |
-| `NEXTAUTH_SECRET` | Enkripsi sesi NextAuth | `openssl rand -base64 32` |
+| `NEXT_PUBLIC_SITE_URL` | URL situs — dipakai `metadataBase`, sitemap, dan SEO | `http://localhost:3000` untuk dev; URL Cloudflare/domain kustom untuk produksi |
+| `BETTER_AUTH_URL` | URL dasar Better Auth | `http://localhost:3000` untuk dev; URL produksi untuk deployment |
+| `BETTER_AUTH_SECRET` | Secret sesi Better Auth, minimal 32 karakter | `openssl rand -base64 32` |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Login Google Better Auth | [Google Cloud Console → Credentials](https://console.cloud.google.com/apis/credentials), OAuth Client ID tipe "Web application", redirect URI: `https://domain-anda/api/auth/callback/google` |
 | `ADMIN_EMAILS` | Email yang boleh akses `/admin/upload` | Daftar email dipisah koma, mis. `admin@example.com` |
 | `GOOGLE_SHEETS_CLIENT_EMAIL` / `GOOGLE_SHEETS_PRIVATE_KEY` | Kirim data testimoni ke Google Sheets | Buat Service Account di Google Cloud Console → aktifkan **Google Sheets API** → generate JSON key |
 | `GOOGLE_SHEETS_SPREADSHEET_ID` | ID spreadsheet tujuan | Ambil dari URL sheet: `docs.google.com/spreadsheets/d/**ID_INI**/edit` — lalu **share** sheet ke email service account (role Editor) |
 | `GOOGLE_SHEETS_RANGE` | Range tab testimoni | Default: `Testimoni!A:G` |
 | `GOOGLE_SHEETS_ORDER_RANGE` | Range tab pengajuan order layanan | Default: `Order!A:G`; gunakan tab terpisah bernama `Order` |
 | `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` | Penyimpanan order checkout & rate-limiting global | Buat database di [console.upstash.com](https://console.upstash.com/), salin REST URL dan token; wajib untuk checkout |
-| `BLOB_READ_WRITE_TOKEN` | Upload foto/video ke Vercel Blob | Buka Vercel Dashboard → Storage → Create Database → **Blob** → hubungkan ke project; jalankan `vercel env pull .env.local` untuk dev lokal |
+| `BLOB_READ_WRITE_TOKEN` | Upload foto/video ke Vercel Blob | Token Vercel Blob; tetap diperlukan meskipun aplikasi berjalan di Cloudflare Workers |
 | `UPLOAD_SECRET` | Kata sandi halaman `/admin/upload` | String acak panjang buatan sendiri |
 | `UPLOAD_SECRET_PREVIOUS` | Secret lama sementara saat rotasi secret upload | Opsional; hapus setelah admin beralih ke secret baru |
 | `MIDTRANS_SERVER_KEY` / `MIDTRANS_CLIENT_KEY` | Payment Gateway Midtrans Snap | [dashboard.midtrans.com](https://dashboard.midtrans.com) → Settings → Access Keys. Gunakan prefix `SB-` untuk sandbox |
@@ -223,34 +230,30 @@ Di bagian atas `lib/data.ts`:
 - `instagramAccounts`: Daftar tautan akun Instagram resmi.
 - `contactEmail`: Alamat email kontak resmi Dzaroza Property.
 
-## Panduan Deployment ke Vercel
+## Panduan Deployment ke Cloudflare Workers
 
-1. **Import Repository:** Hubungkan repository GitHub ini ke Vercel. Framework preset akan otomatis terdeteksi sebagai **Next.js**.
-2. **Aktifkan Vercel Blob Storage:**
-   - Di dashboard project Vercel, buka menu **Storage** → **Create Database** → pilih **Blob**.
-   - Hubungkan Blob storage tersebut ke project ini (`BLOB_READ_WRITE_TOKEN` akan otomatis terpasang).
-3. **Atur Environment Variables di Vercel:**
-   - `NEXT_PUBLIC_SITE_URL`: Domain website Anda (misal `https://dzarozaproperty.id` atau `https://dzaroza-property.vercel.app`).
-   - `NEXTAUTH_URL`: Domain yang sama dengan `NEXT_PUBLIC_SITE_URL`.
-   - `NEXTAUTH_SECRET`: String acak aman (`openssl rand -base64 32`).
-   - `ADMIN_EMAILS`: Email admin untuk izin akses `/admin/upload`.
-   - `UPLOAD_SECRET` (dan opsional `UPLOAD_SECRET_PREVIOUS` saat rotasi): Secret upload untuk `/admin/upload`.
-   - `GOOGLE_CLIENT_ID` & `GOOGLE_CLIENT_SECRET`: Kredensial OAuth Google untuk login.
-   - `GOOGLE_SHEETS_CLIENT_EMAIL`, `GOOGLE_SHEETS_PRIVATE_KEY`, `GOOGLE_SHEETS_SPREADSHEET_ID`: Kredensial Google Sheets API untuk testimoni dan pengajuan order layanan.
-   - `GOOGLE_SHEETS_RANGE` dan `GOOGLE_SHEETS_ORDER_RANGE`: Range tab Testimoni dan Order (opsional, gunakan default jika nama tab sesuai).
-   - `MIDTRANS_SERVER_KEY`, `MIDTRANS_CLIENT_KEY`, `NEXT_PUBLIC_MIDTRANS_CLIENT_KEY`, `MIDTRANS_IS_PRODUCTION`, `NEXT_PUBLIC_MIDTRANS_IS_PRODUCTION`: Kredensial dan mode Midtrans Snap.
-   - `UPSTASH_REDIS_REST_URL` & `UPSTASH_REDIS_REST_TOKEN`: Kredensial Upstash Redis, wajib untuk checkout.
-   - `NEXT_PUBLIC_GA_MEASUREMENT_ID`: ID Google Analytics (opsional).
-4. **Daftarkan Webhook Midtrans:**
+1. **Autentikasi CLI:** Jalankan `npx cf auth login` dari repository.
+2. **Siapkan secrets Worker:** Tambahkan `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, kredensial Google OAuth, Google Sheets, Midtrans, Upstash Redis, dan Vercel Blob lewat Cloudflare. Jangan commit nilainya.
+3. **Konfigurasikan Google OAuth:** Tambahkan callback `https://domain-anda/api/auth/callback/google` pada OAuth Client ID.
+4. **Siapkan database D1:** Buat database `dzaroza-property-auth` dengan `npx cf d1 create --name dzaroza-property-auth`, lalu gunakan `npx cf d1 list` untuk mendapatkan database ID. Terapkan migrasi sebelum login digunakan:
+
+   ```powershell
+   npx cf d1 migrations apply <DATABASE_ID> --dir migrations
+   ```
+
+   Binding D1 bernama `AUTH_DB` dikonfigurasi di `cloudflare.config.ts`.
+5. **Deploy cache:** Untuk konfigurasi Response Store mode service-binding, deploy Worker cache satu kali dengan `npm run deploy:response-store`.
+6. **Build dan deploy aplikasi:** Jalankan `npm run build`, lalu `npm run deploy:vinext`. Perintah deploy memakai hasil build yang sudah ada.
+7. **Daftarkan Webhook Midtrans:**
    - Buka dashboard Midtrans → **Settings** → **Configuration** → isi **Payment Notification URL** dengan:
      `https://domain-anda.com/api/checkout/notification`
-5. **Jalankan Deployment:** Klik **Deploy**. Setelah proses selesai, website siap diakses.
+8. **Periksa domain:** Sambungkan domain produksi ke Worker, lalu isi `NEXT_PUBLIC_SITE_URL` dan `BETTER_AUTH_URL` dengan URL tersebut.
 
 ## Daftar Perintah (Scripts)
 
 | Perintah | Fungsi |
 | --- | --- |
-| `npm run dev` | Menjalankan server pengembangan lokal di `http://localhost:3000` |
-| `npm run build` | Menjalankan proses kompilasi dan build produksi Next.js |
-| `npm run start` | Menjalankan server produksi dari hasil build |
+| `npm run dev` | Menjalankan server pengembangan vinext/Cloudflare lokal |
+| `npm run build` | Menjalankan build produksi vinext |
+| `npm run deploy:vinext` | Build dan deploy aplikasi ke Cloudflare Workers |
 | `npm run lint` | Menjalankan pemeriksaan kode dan gaya penulisan menggunakan ESLint |

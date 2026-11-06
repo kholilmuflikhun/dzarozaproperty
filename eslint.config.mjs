@@ -48,7 +48,7 @@ export default [
     },
   },
   {
-    files: ["next.config.js", "postcss.config.js"],
+    files: ["next.config.js", "postcss.config.js", "postcss.config.cjs"],
     languageOptions: {
       sourceType: "commonjs",
       globals: {

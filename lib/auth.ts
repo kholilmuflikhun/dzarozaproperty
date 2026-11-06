@@ -1,31 +1,46 @@
-import type { NextAuthOptions } from "next-auth";
-import GoogleProvider from "next-auth/providers/google";
-import { getServerSession } from "next-auth";
+import { env } from "cloudflare:workers";
+import { drizzleAdapter } from "@better-auth/drizzle-adapter";
+import { betterAuth } from "better-auth";
+import { drizzle } from "drizzle-orm/d1";
+import * as schema from "./auth-schema";
 
-// Konfigurasi NextAuth — dipakai oleh route handler dan (jika perlu) getServerSession.
-// Wajib isi GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, dan NEXTAUTH_SECRET di .env
-// (lihat .env.example). Dapatkan kredensial Google OAuth dari:
-// https://console.cloud.google.com/apis/credentials
-export const authOptions: NextAuthOptions = {
-  providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID ?? "",
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
+function requiredAuthConfig(name: string) {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`${name} belum dikonfigurasi.`);
+  }
+  return value;
+}
+
+export function getAuth() {
+  const baseURL = requiredAuthConfig("BETTER_AUTH_URL");
+  const secret = requiredAuthConfig("BETTER_AUTH_SECRET");
+  if (secret.length < 32) {
+    throw new Error("BETTER_AUTH_SECRET harus memiliki minimal 32 karakter.");
+  }
+
+  return betterAuth({
+    baseURL,
+    secret,
+    trustedOrigins: [baseURL],
+    database: drizzleAdapter(drizzle(env.AUTH_DB, { schema }), {
+      provider: "sqlite",
+      schema,
+      transaction: false,
     }),
-  ],
-  session: { strategy: "jwt" },
-  callbacks: {
-    async session({ session, token }) {
-      if (session.user) {
-        session.user.id = token.sub ?? "";
-      }
-      return session;
+    socialProviders: {
+      google: {
+        clientId: requiredAuthConfig("GOOGLE_CLIENT_ID"),
+        clientSecret: requiredAuthConfig("GOOGLE_CLIENT_SECRET"),
+      },
     },
-  },
-  pages: {
-    // Memakai halaman default NextAuth; ubah jika ingin custom sign-in page.
-  },
-};
+    emailAndPassword: { enabled: false },
+  });
+}
+
+export async function getAuthSession(requestHeaders: Headers) {
+  return getAuth().api.getSession({ headers: requestHeaders });
+}
 
 function getAdminEmails() {
   return (process.env.ADMIN_EMAILS ?? "")
@@ -38,7 +53,7 @@ export function isAdminEmail(email: string | null | undefined) {
   return Boolean(email && getAdminEmails().includes(email.toLowerCase()));
 }
 
-export async function getAdminSession() {
-  const session = await getServerSession(authOptions);
+export async function getAdminSession(requestHeaders: Headers) {
+  const session = await getAuthSession(requestHeaders);
   return isAdminEmail(session?.user?.email) ? session : null;
 }

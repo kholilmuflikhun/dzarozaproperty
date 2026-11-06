@@ -1,8 +1,7 @@
 import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import { NextResponse } from "next/server";
 import crypto from "crypto";
-import { getServerSession } from "next-auth";
-import { authOptions, isAdminEmail } from "@/lib/auth";
+import { getAuthSession, isAdminEmail } from "@/lib/auth";
 import { checkRateLimit, cleanupRateLimitEntries, getClientAddress } from "@/lib/rate-limit";
 
 // ---------------------------------------------------------------------------
@@ -33,7 +32,7 @@ import { checkRateLimit, cleanupRateLimitEntries, getClientAddress } from "@/lib
 
 export async function POST(request: Request): Promise<NextResponse> {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getAuthSession(request.headers);
     if (!session || !isAdminEmail(session.user?.email)) {
       return NextResponse.json({ error: "Login admin diperlukan." }, { status: 401 });
     }
