@@ -73,3 +73,15 @@ jobs:
         run: |
           test -d apps/ops/dist
           test -d apps/ops/.cloudflare
+
+      - name: Deploy Preview Worker
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/feat/cloudflare-vinext-runtime' && env.CLOUDFLARE_API_TOKEN != ''
+        working-directory: apps/ops
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: pnpm exec vinext-cloudflare deploy --skip-build
+
+      - name: Explain skipped deployment
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/feat/cloudflare-vinext-runtime' && env.CLOUDFLARE_API_TOKEN == ''
+        run: |
+          echo "::notice title=Cloudflare deployment skipped::Add the CLOUDFLARE_API_TOKEN GitHub Actions secret to enable Preview Worker deployment. Build and typecheck completed successfully."
