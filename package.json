@@ -11,9 +11,9 @@
     "dev:vinext": "vite dev --port 3000",
     "build:vinext": "vite build",
     "start:vinext": "vite preview",
-    "deploy:vinext": "cf deploy --prebuilt --mode production --worker dzaroza-property",
+    "deploy:vinext": "cf deploy --prebuilt --mode production --worker dzarozaproperty",
     "deploy:response-store": "cf deploy --prebuilt --mode production --worker dzaroza-property-response-store",
-    "deploy": "cf deploy --prebuilt --mode production --worker dzaroza-property"
+    "deploy": "cf deploy --prebuilt --mode production --worker dzarozaproperty"
   },
   "dependencies": {
     "@better-auth/drizzle-adapter": "^1.7.18",
