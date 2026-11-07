@@ -14,6 +14,20 @@ type Quotation = {
   project?: { id: string; code: string; name: string } | null;
   items: Array<{ id: string; description: string; quantity: string; lineTotal: string }>;
 };
+type ApiError = { error?: string };
+type QuotationListResponse = ApiError & { quotations?: Quotation[] };
+type QuotationCreateResponse = ApiError & { quotation: { number: string } };
+type QuotationActionResponse = ApiError & {
+  message?: string;
+  approval?: { url?: string };
+  project?: { code?: string };
+  invoice?: { number?: string };
+};
+
+async function readJson<T>(response: Response): Promise<T> {
+  return response.json() as Promise<T>;
+}
+
 const money = (value: string | number) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(Number(value));
 const labels: Record<string, string> = { DRAFT: "Draft", SENT: "Menunggu klien", ACCEPTED: "Disetujui", REJECTED: "Ditolak", CONVERTED: "Menjadi proyek" };
 
@@ -39,7 +53,7 @@ export default function QuotationManagementPage() {
     setLoading(true); setError("");
     try {
       const response = await fetch(endpoint, { cache: "no-store" });
-      const payload = await response.json();
+      const payload = await readJson<QuotationListResponse>(response);
       if (!response.ok) throw new Error(payload.error ?? "Gagal memuat quotation.");
       setQuotations(payload.quotations ?? []);
     } catch (cause) {
@@ -59,7 +73,7 @@ export default function QuotationManagementPage() {
           discount: Number(discount), tax: Number(tax),
         }),
       });
-      const payload = await response.json();
+      const payload = await readJson<QuotationCreateResponse>(response);
       if (!response.ok) throw new Error(payload.error ?? "Quotation gagal dibuat.");
       setNotice(`Quotation ${payload.quotation.number} berhasil dibuat sebagai Draft.`);
       setClientId(""); setProjectId(""); setDescription(""); setQuantity("1"); setUnitPrice(""); setDiscount("0"); setTax("0");
@@ -85,14 +99,15 @@ export default function QuotationManagementPage() {
           method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ quotationId: quotation.id }),
         });
       }
-      const payload = await response.json();
+      const payload = await readJson<QuotationActionResponse>(response);
       if (!response.ok) throw new Error(payload.error ?? "Aksi quotation gagal.");
-      if (action === "approval" && payload.approval?.url) {
-        setApprovalLinks((current) => ({ ...current, [quotation.id]: payload.approval.url }));
+      const approvalUrl = payload.approval?.url;
+      if (action === "approval" && approvalUrl) {
+        setApprovalLinks((current) => ({ ...current, [quotation.id]: approvalUrl }));
         setNotice("Link persetujuan siap dibagikan. Salin dan kirim hanya kepada kontak klien terverifikasi.");
       } else if (action === "approval") setNotice(payload.message ?? "Link persetujuan dikirim melalui email klien.");
-      else if (action === "convert") setNotice(`Proyek ${payload.project.code} berhasil dibuat.`);
-      else if (action === "invoice") setNotice(`Invoice ${payload.invoice.number} berhasil dibuat.`);
+      else if (action === "convert") setNotice(`Proyek ${payload.project?.code ?? quotation.number} berhasil dibuat.`);
+      else if (action === "invoice") setNotice(`Invoice ${payload.invoice?.number ?? quotation.number} berhasil dibuat.`);
       else setNotice("Quotation berhasil diterbitkan.");
       await load();
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Aksi quotation gagal."); }

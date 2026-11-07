@@ -10,6 +10,11 @@ type Quotation = {
   items: Array<{ description: string; quantity: string; unitPrice: string; lineTotal: string }>;
 };
 type ApprovalResponse = { quotation: Quotation; allowedDecisions: string[] };
+type ApprovalApiResponse = ApprovalResponse & { error?: string };
+
+async function readJson<T>(response: Response): Promise<T> {
+  return response.json() as Promise<T>;
+}
 
 const money = (value: string) => new Intl.NumberFormat("id-ID", {
   style: "currency", currency: "IDR", maximumFractionDigits: 0,
@@ -29,7 +34,7 @@ export default function ApprovalClient({ token }: { token: string }) {
         const response = await fetch(`/api/public/quotation-approvals/${encodeURIComponent(token)}`, {
           cache: "no-store", signal: controller.signal,
         });
-        const payload = await response.json();
+        const payload = await readJson<ApprovalApiResponse>(response);
         if (!response.ok) throw new Error(payload.error ?? "Tautan persetujuan tidak tersedia.");
         setData(payload);
       } catch (cause) {
@@ -53,7 +58,7 @@ export default function ApprovalClient({ token }: { token: string }) {
         cache: "no-store",
         body: JSON.stringify({ decision: nextDecision }),
       });
-      const payload = await response.json();
+      const payload = await readJson<{ error?: string }>(response);
       if (!response.ok) throw new Error(payload.error ?? "Keputusan belum dapat disimpan.");
       setDecision(nextDecision);
     } catch (cause) {

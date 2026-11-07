@@ -1,0 +1,89 @@
+name: Cloudflare Vinext Preview build
+
+on:
+  pull_request:
+    branches:
+      - feat/cloudflare-better-auth
+      - feat/cloudflare-vinext-runtime
+    paths:
+      - "apps/ops/**"
+      - "packages/database/**"
+      - "packages/shared/**"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - ".github/workflows/cloudflare-vinext-preview.yml"
+  push:
+    branches:
+      - feat/cloudflare-vinext-runtime
+    paths:
+      - "apps/ops/**"
+      - "packages/database/**"
+      - "packages/shared/**"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - ".github/workflows/cloudflare-vinext-preview.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cloudflare-vinext-preview-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build Ops for Cloudflare Workers
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CLOUDFLARE_DEPLOY_ENABLED: ${{ secrets.CLOUDFLARE_API_TOKEN != '' && vars.CLOUDFLARE_PREVIEW_RUNTIME_READY == 'true' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.18.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.18.0
+          cache: pnpm
+
+      - name: Verify toolchain
+        run: |
+          node --version
+          pnpm --version
+          test "$(pnpm --version)" = "10.18.0"
+
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm db:generate
+
+      - name: Build Vinext application
+        run: pnpm --filter @dzaroza/ops build:vinext
+
+      - name: TypeScript validation
+        run: pnpm --filter @dzaroza/ops typecheck
+
+      - name: Verify generated Cloudflare build output
+        run: |
+          test -d apps/ops/dist
+          test -d apps/ops/.cloudflare
+
+      - name: Deploy Preview Worker
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/feat/cloudflare-vinext-runtime' && env.CLOUDFLARE_DEPLOY_ENABLED == 'true'
+        working-directory: apps/ops
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: pnpm exec vinext-cloudflare deploy --skip-build
+
+      - name: Explain skipped deployment
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/feat/cloudflare-vinext-runtime' && env.CLOUDFLARE_DEPLOY_ENABLED == 'false'
+        run: |
+          echo "::notice title=Cloudflare deployment skipped::Configure the CLOUDFLARE_API_TOKEN secret and set the CLOUDFLARE_PREVIEW_RUNTIME_READY repository variable to true only after all Preview runtime secrets and the Preview URL are configured. Build and typecheck completed successfully."

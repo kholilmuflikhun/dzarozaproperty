@@ -1,0 +1,57 @@
+name: Initialize vinext Cloudflare Preview runtime
+
+on:
+  push:
+    branches: [feat/cloudflare-vinext-runtime]
+    paths:
+      - ".github/workflows/cloudflare-vinext-init.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: cloudflare-vinext-init
+  cancel-in-progress: false
+
+jobs:
+  initialize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/cloudflare-vinext-runtime
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.18.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install existing workspace
+        run: pnpm install --frozen-lockfile
+      - name: Initialize vinext for Cloudflare Workers
+        working-directory: apps/ops
+        run: >-
+          pnpm dlx vinext init
+          --platform=cloudflare
+          --name=dzaroza-ops-preview
+          --data-cache=none
+          --cdn-cache=none
+          --image-optimization=none
+      - name: Review generated files
+        run: |
+          git status --short
+          git diff --check
+          git diff --stat
+      - name: Commit generated Preview runtime configuration
+        run: |
+          git add -A apps/ops pnpm-lock.yaml
+          if git diff --cached --quiet; then
+            echo "No generated changes to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "feat(cloudflare): initialize vinext Preview runtime"
+          git push origin HEAD:feat/cloudflare-vinext-runtime
