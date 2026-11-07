@@ -1,6 +1,7 @@
 import { bindings, defineConfig, defineWorker } from "cf/config";
 
 export default defineConfig({
+  accountId: "223cdd4731ebaaad4fc827fe00f002a3",
   worker: defineWorker({
     name: "dzaroza-ops-preview",
     entrypoint: "vinext/server/fetch-handler",
