@@ -41,15 +41,6 @@ jobs:
           node-version: "22.23.0"
           cache: npm
 
-      - name: Verify deployment credentials
-        run: |
-          node --version
-          npm --version
-          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
-            echo "::error title=Missing Cloudflare API token::Add CLOUDFLARE_API_TOKEN to GitHub Actions repository secrets."
-            exit 1
-          fi
-
       - name: Install dependencies
         run: npm ci
 
@@ -61,6 +52,15 @@ jobs:
           NEXT_PUBLIC_MIDTRANS_IS_PRODUCTION: ${{ vars.NEXT_PUBLIC_MIDTRANS_IS_PRODUCTION || 'false' }}
           NEXT_PUBLIC_GA_MEASUREMENT_ID: ${{ vars.NEXT_PUBLIC_GA_MEASUREMENT_ID || '' }}
           NEXT_PUBLIC_WHATSAPP_PRIMARY: ${{ vars.NEXT_PUBLIC_WHATSAPP_PRIMARY || '' }}
+
+      - name: Verify deployment credentials
+        run: |
+          node --version
+          npm --version
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo "::error title=Missing Cloudflare API token::Add CLOUDFLARE_API_TOKEN to GitHub Actions repository secrets. Build validation passed; deployment is waiting for this secret."
+            exit 1
+          fi
 
       - name: Apply Better Auth D1 migrations
         run: npx cf d1 migrations apply 5db3b705-b4c0-41c7-a195-fa4d35f361a7 --dir migrations
