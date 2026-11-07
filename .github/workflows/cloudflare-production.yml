@@ -1,0 +1,72 @@
+name: Deploy Dzaroza Property to Cloudflare Workers
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "app/**"
+      - "components/**"
+      - "lib/**"
+      - "public/**"
+      - "migrations/**"
+      - "cloudflare.config.ts"
+      - "vite.config.ts"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/cloudflare-production.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dzaroza-property-cloudflare-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Build, migrate, and deploy production Workers
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.23.0"
+          cache: npm
+
+      - name: Verify deployment credentials
+        run: |
+          node --version
+          npm --version
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo "::error title=Missing Cloudflare API token::Add CLOUDFLARE_API_TOKEN to GitHub Actions repository secrets."
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application and auxiliary Response Store Worker
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL || 'https://dzarozaproperty.id' }}
+          NEXT_PUBLIC_MIDTRANS_CLIENT_KEY: ${{ vars.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY || '' }}
+          NEXT_PUBLIC_MIDTRANS_IS_PRODUCTION: ${{ vars.NEXT_PUBLIC_MIDTRANS_IS_PRODUCTION || 'false' }}
+          NEXT_PUBLIC_GA_MEASUREMENT_ID: ${{ vars.NEXT_PUBLIC_GA_MEASUREMENT_ID || '' }}
+          NEXT_PUBLIC_WHATSAPP_PRIMARY: ${{ vars.NEXT_PUBLIC_WHATSAPP_PRIMARY || '' }}
+
+      - name: Apply Better Auth D1 migrations
+        run: npx cf d1 migrations apply 5db3b705-b4c0-41c7-a195-fa4d35f361a7 --dir migrations
+
+      - name: Deploy Response Store Worker
+        run: npm run deploy:response-store
+
+      - name: Deploy Dzaroza Property application Worker
+        run: npm run deploy:vinext
