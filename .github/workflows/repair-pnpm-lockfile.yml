@@ -1,6 +1,13 @@
 name: Repair pnpm lockfile
 
 on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - package.json
+      - pnpm-lock.yaml
+      - .github/workflows/repair-pnpm-lockfile.yml
   push:
     branches:
       - fix/pnpm-lockfile-sync
