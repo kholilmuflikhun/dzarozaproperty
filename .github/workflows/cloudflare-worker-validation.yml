@@ -1,0 +1,111 @@
+name: Cloudflare Worker source map validation
+
+on:
+  push:
+    branches:
+      - fix/cloudflare-worker-sourcemap-limit
+    paths:
+      - "app/**"
+      - "components/**"
+      - "lib/**"
+      - "public/**"
+      - "migrations/**"
+      - "cloudflare.config.ts"
+      - "vite.config.ts"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/cloudflare-worker-validation.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "vite.config.ts"
+      - ".github/workflows/cloudflare-worker-validation.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cloudflare-worker-validation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Install and build Worker with per-Worker source map limits
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "26.12.0"
+
+      - name: Activate pinned pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@9.10.0 --activate
+          node --version
+          pnpm --version
+
+      - name: Install dependencies (frozen lockfile)
+        run: pnpm install --frozen-lockfile
+
+      - name: Build application and auxiliary Response Store Worker
+        run: pnpm run build
+        env:
+          NEXT_PUBLIC_SITE_URL: https://dzarozaproperty.id
+          NEXT_PUBLIC_MIDTRANS_CLIENT_KEY: ""
+          NEXT_PUBLIC_MIDTRANS_IS_PRODUCTION: "false"
+          NEXT_PUBLIC_GA_MEASUREMENT_ID: ""
+          NEXT_PUBLIC_WHATSAPP_PRIMARY: ""
+
+      - name: Verify encoded source map size per Worker
+        run: |
+          python3 <<'PY'
+          import base64
+          from pathlib import Path
+          import sys
+
+          limit = 60 * 1024 * 1024
+          workers_root = Path(".cloudflare/output/v0/workers")
+          workers = {
+              "application Worker": workers_root / "default" / "bundle",
+              "Response Store Worker": workers_root / "dzaroza-property-response-store" / "bundle",
+          }
+
+          failed = False
+          for name, root in workers.items():
+              if not root.is_dir():
+                  print(f"::error::{name} output directory not found: {root}")
+                  failed = True
+                  continue
+
+              maps = sorted(root.rglob("*.map"))
+              encoded_total = sum(len(base64.b64encode(path.read_bytes())) for path in maps)
+              raw_total = sum(path.stat().st_size for path in maps)
+
+              print(
+                  f"{name}: {len(maps)} source map(s), "
+                  f"{raw_total:,} raw bytes, {encoded_total:,} base64-encoded bytes "
+                  f"({encoded_total / 1024 / 1024:.2f} MiB)"
+              )
+              for path in maps:
+                  raw = path.stat().st_size
+                  encoded = len(base64.b64encode(path.read_bytes()))
+                  print(f"  - {path}: {raw:,} raw / {encoded:,} encoded bytes")
+
+              if encoded_total > limit:
+                  print(
+                      f"::error::{name} source maps exceed Cloudflare's "
+                      f"60 MiB encoded limit ({encoded_total:,} > {limit:,} bytes)"
+                  )
+                  failed = True
+
+          if failed:
+              sys.exit(1)
+
+          print("Source map size checks passed independently for both Workers.")
+          PY
