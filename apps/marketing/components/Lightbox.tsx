@@ -80,7 +80,7 @@ export default function Lightbox({ images, alt, title, subtitle, onClose }: Prop
         </button>
 
         {hasMultiple && (
-          <span className="absolute left-4 top-4 z-10 rounded-full bg-charcoal-950/70 px-3 py-1 text-xs font-semibold text-white">
+          <span aria-live="polite" aria-atomic="true" className="absolute left-4 top-4 z-10 rounded-full bg-charcoal-950/70 px-3 py-1 text-xs font-semibold text-white">
             {index + 1} / {images.length}
           </span>
         )}
@@ -90,8 +90,17 @@ export default function Lightbox({ images, alt, title, subtitle, onClose }: Prop
           onPointerDown={handlePointerDown}
           onPointerUp={handlePointerUp}
           onPointerCancel={() => { swipeStart.current = null; }}
+          role="region"
+          aria-label="Galeri foto"
+          aria-roledescription="carousel"
+          tabIndex={0}
+          onKeyDown={(event) => {
+            if (event.key === "ArrowLeft" && hasMultiple) { event.preventDefault(); goPrev(); }
+            if (event.key === "ArrowRight" && hasMultiple) { event.preventDefault(); goNext(); }
+          }}
         >
           <Image
+            key={images[index]}
             src={images[index]}
             alt={`${alt} — foto ${index + 1}`}
             fill
