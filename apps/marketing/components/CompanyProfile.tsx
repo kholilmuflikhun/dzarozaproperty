@@ -17,7 +17,7 @@ export default function CompanyProfile() {
               <Building2 size={15} aria-hidden="true" />
               Sejarah Singkat — Berdiri sejak {companyProfile.founded}
             </span>
-            <p className="mt-5 text-sm leading-8 text-white/75 sm:text-base">{companyProfile.history}</p>
+            <p className="mt-5 text-sm leading-relaxed text-white/75 sm:text-base sm:leading-relaxed">{companyProfile.history}</p>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
