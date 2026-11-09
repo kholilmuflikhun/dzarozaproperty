@@ -39,6 +39,7 @@ export default function Testimonials() {
   const [items, setItems] = useState<Testimonial[]>([]);
   const [page, setPage] = useState(0);
   const [paused, setPaused] = useState(false);
+  const [reducedMotion, setReducedMotion] = useState(false);
   // Kartu per slide mengikuti jumlah kolom grid aktif (mobile 1, tablet 2,
   // desktop 4) supaya tampilan carousel konsisten dengan layout grid semula.
   const columns = useColumns({ sm: 2, lg: 4 });
@@ -81,7 +82,7 @@ export default function Testimonials() {
       setPage((currentPage) => (currentPage + 1) % pages.length);
     }, AUTO_SLIDE_MS);
     return () => clearInterval(timer);
-  }, [pages.length, paused]);
+  }, [pages.length, paused, reducedMotion]);
 
   const currentItems = pages[safePage] ?? [];
 
@@ -128,7 +129,7 @@ export default function Testimonials() {
             onPointerDown={handlePointerDown}
             onPointerUp={handlePointerUp}
             onPointerCancel={handlePointerCancel}
-            className="grid animate-fade-in touch-pan-y select-none sm:grid-cols-2 lg:grid-cols-4 gap-6"
+            aria-live={paused || reducedMotion ? "polite" : "off"}\n            className="grid animate-fade-in touch-pan-y select-none gap-5 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4"
           >
             {currentItems.map((t) => (
               <div key={t.id} className="rounded-xl2 border border-charcoal-100 bg-cream-soft p-6">
