@@ -17,6 +17,55 @@ export default function Lightbox({ images, alt, title, subtitle, onClose }: Prop
   const [index, setIndex] = useState(0);
   const hasMultiple = images.length > 1;
   const swipeStart = useRef<{ x: number; y: number } | null>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    const previousActiveElement = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
+    const previousOverflow = document.body.style.overflow;
+
+    document.body.style.overflow = "hidden";
+    closeButtonRef.current?.focus();
+
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onClose();
+      }
+    }
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = previousOverflow;
+      previousActiveElement?.focus();
+    };
+  }, [onClose]);
+
+  function handleDialogKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
+    if (event.key !== "Tab") return;
+
+    const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
+      'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    );
+    if (!focusable?.length) {
+      event.preventDefault();
+      dialogRef.current?.focus();
+      return;
+    }
+
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
 
   function handlePointerDown(event: React.PointerEvent<HTMLDivElement>) {
     if (!hasMultiple || event.pointerType === "mouse") return;
@@ -34,7 +83,6 @@ export default function Lightbox({ images, alt, title, subtitle, onClose }: Prop
     const deltaY = event.clientY - swipeStart.current.y;
     swipeStart.current = null;
 
-    // Hanya anggap sebagai swipe jika gerakan horizontal dominan.
     if (Math.abs(deltaX) < 45 || Math.abs(deltaX) < Math.abs(deltaY) * 1.2) return;
     if (deltaX < 0) goNext();
     else goPrev();
@@ -47,31 +95,23 @@ export default function Lightbox({ images, alt, title, subtitle, onClose }: Prop
     setIndex((i) => (i + 1) % images.length);
   }
 
-  // Navigasi keyboard: panah kiri/kanan untuk ganti foto, Esc untuk tutup.
-  useEffect(() => {
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
-      if (hasMultiple && e.key === "ArrowLeft") {
-        setIndex((currentIndex) => (currentIndex - 1 + images.length) % images.length);
-      }
-      if (hasMultiple && e.key === "ArrowRight") {
-        setIndex((currentIndex) => (currentIndex + 1) % images.length);
-      }
-    }
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [hasMultiple, images.length, onClose]);
-
   return (
     <div
       className="fixed inset-0 z-[70] flex items-center justify-center bg-charcoal-950/90 p-4 sm:p-8"
       onClick={onClose}
     >
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title || "Galeri foto"}
+        tabIndex={-1}
+        onKeyDown={handleDialogKeyDown}
         className="relative max-w-2xl w-full overflow-hidden rounded-xl2 bg-white"
         onClick={(e) => e.stopPropagation()}
       >
         <button
+          ref={closeButtonRef}
           onClick={onClose}
           aria-label="Tutup"
           className="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-charcoal-950/70 text-white hover:bg-orange-500 transition-colors"
@@ -95,6 +135,7 @@ export default function Lightbox({ images, alt, title, subtitle, onClose }: Prop
           aria-roledescription="carousel"
           tabIndex={0}
           onKeyDown={(event) => {
+            if (event.target !== event.currentTarget) return;
             if (event.key === "ArrowLeft" && hasMultiple) { event.preventDefault(); goPrev(); }
             if (event.key === "ArrowRight" && hasMultiple) { event.preventDefault(); goNext(); }
           }}
