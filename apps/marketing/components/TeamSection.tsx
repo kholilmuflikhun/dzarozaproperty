@@ -149,7 +149,16 @@ export default function TeamSection() {
       <div className="relative">
         <div
           key={safePage}
-          className="flex animate-fade-in touch-pan-y flex-wrap justify-center gap-6"
+          role="region"
+          aria-label="Carousel anggota tim"
+          aria-roledescription="carousel"
+          tabIndex={0}
+          onKeyDown={(event) => {
+            if (event.target !== event.currentTarget) return;
+            if (event.key === "ArrowLeft" && canPrev) { event.preventDefault(); setPage(safePage - 1); }
+            if (event.key === "ArrowRight" && canNext) { event.preventDefault(); setPage(safePage + 1); }
+          }}
+          className="flex animate-carousel-enter touch-pan-y flex-wrap justify-center gap-6"
           onPointerDown={handlePointerDown}
           onPointerUp={handlePointerUp}
           onPointerCancel={handlePointerCancel}
