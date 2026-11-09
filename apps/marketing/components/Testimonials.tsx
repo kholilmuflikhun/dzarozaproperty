@@ -74,10 +74,18 @@ export default function Testimonials() {
     setPage((p) => (p + 1) % pages.length);
   }
 
-  // Auto-slide testimoni setiap beberapa detik, berhenti sementara saat
-  // pointer/jari user berada di area carousel supaya nyaman dibaca.
+  // Hormati preferensi reduced motion dari perangkat pengguna.
   useEffect(() => {
-    if (pages.length <= 1 || paused) return;
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => setReducedMotion(media.matches);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
+
+  // Auto-slide hanya berjalan jika pengguna tidak meminta reduced motion.
+  useEffect(() => {
+    if (pages.length <= 1 || paused || reducedMotion) return;
     const timer = setInterval(() => {
       setPage((currentPage) => (currentPage + 1) % pages.length);
     }, AUTO_SLIDE_MS);
