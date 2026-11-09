@@ -1,0 +1,73 @@
+name: Cloudflare Worker source map validation
+
+on:
+  push:
+    branches:
+      - fix/cloudflare-worker-sourcemap-limit
+    paths:
+      - "app/**"
+      - "components/**"
+      - "lib/**"
+      - "public/**"
+      - "migrations/**"
+      - "cloudflare.config.ts"
+      - "vite.config.ts"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/cloudflare-worker-validation.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "vite.config.ts"
+      - ".github/workflows/cloudflare-worker-validation.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cloudflare-worker-validation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Install and build Worker without oversized source maps
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "26.12.0"
+
+      - name: Activate pinned pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@9.10.0 --activate
+          node --version
+          pnpm --version
+
+      - name: Install dependencies (frozen lockfile)
+        run: pnpm install --frozen-lockfile
+
+      - name: Build application and auxiliary Response Store Worker
+        run: pnpm run build
+        env:
+          NEXT_PUBLIC_SITE_URL: https://dzarozaproperty.id
+          NEXT_PUBLIC_MIDTRANS_CLIENT_KEY: ""
+          NEXT_PUBLIC_MIDTRANS_IS_PRODUCTION: "false"
+          NEXT_PUBLIC_GA_MEASUREMENT_ID: ""
+          NEXT_PUBLIC_WHATSAPP_PRIMARY: ""
+
+      - name: Verify Worker source maps are not emitted
+        run: |
+          echo "Build completed. Inspecting Cloudflare output for oversized source maps."
+          if find .cloudflare/output -type f -name '*.map' -print -quit | grep -q .; then
+            echo "::error::Source map files are still present in Cloudflare build output."
+            find .cloudflare/output -type f -name '*.map' -printf '%p %s bytes\n'
+            exit 1
+          fi
+          echo "No source map files found in Cloudflare output."
