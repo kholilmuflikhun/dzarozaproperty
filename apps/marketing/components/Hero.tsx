@@ -40,7 +40,7 @@ export default async function Hero() {
               <span className="mt-1 block text-orange-400">Menjaga Amanah.</span>
             </h1>
 
-            <p className="mt-6 max-w-xl text-base leading-8 text-white/70 sm:text-lg">
+            <p className="mt-6 max-w-xl text-base leading-relaxed text-white/70 sm:text-lg">
               Dzaroza Property mengelola proyek bangun dan renovasi Anda dengan akad cost and fee 10% yang jelas sejak awal, serta membantu memasarkan tanah dan bangunan — transparan, tanpa gharar, sesuai syariat Islam.
             </p>
 
