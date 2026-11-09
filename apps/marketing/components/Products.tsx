@@ -78,7 +78,16 @@ export default function Products() {
             onPointerDown={handlePointerDown}
             onPointerUp={handlePointerUp}
             onPointerCancel={() => { swipeStart.current = null; }}
-            className="grid touch-pan-y gap-5 select-none md:grid-cols-2 md:gap-6"
+            role="region"
+            aria-label="Carousel produk digital"
+            aria-roledescription="carousel"
+            tabIndex={0}
+            onKeyDown={(event) => {
+              if (event.target !== event.currentTarget) return;
+              if (event.key === "ArrowLeft" && canPrev) { event.preventDefault(); setPage(safePage - 1); }
+              if (event.key === "ArrowRight" && canNext) { event.preventDefault(); setPage(safePage + 1); }
+            }}
+            className="grid animate-carousel-enter touch-pan-y gap-5 select-none md:grid-cols-2 md:gap-6"
           >
             {currentItems.map((product) => {
               const Icon = ICONS[product.type] ?? Package;
