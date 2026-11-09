@@ -15,15 +15,15 @@ export default function CarouselDots({ count, active, onSelect, className = "" }
   if (count <= 1) return null;
 
   return (
-    <div className={`flex items-center gap-2 ${className}`}>
+    <div className={`flex items-center gap-2 ${className}`} role="group" aria-label="Navigasi slide">
       {Array.from({ length: count }).map((_, i) => (
         <button
           key={i}
           type="button"
           onClick={() => onSelect(i)}
-          aria-label={`Ke slide ${i + 1}`}
-          aria-current={i === active}
-          className={`h-2 rounded-full bg-white mix-blend-difference transition-all ${
+          aria-label={`Ke slide ${i + 1} dari ${count}`}
+          aria-current={i === active ? "step" : undefined}
+          className={`h-2 rounded-full bg-white mix-blend-difference transition-[width,opacity] duration-300 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2 ${
             i === active ? "w-6 opacity-100" : "w-2 opacity-40 hover:opacity-70"
           }`}
         />

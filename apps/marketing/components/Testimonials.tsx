@@ -39,6 +39,7 @@ export default function Testimonials() {
   const [items, setItems] = useState<Testimonial[]>([]);
   const [page, setPage] = useState(0);
   const [paused, setPaused] = useState(false);
+  const [reducedMotion, setReducedMotion] = useState(false);
   // Kartu per slide mengikuti jumlah kolom grid aktif (mobile 1, tablet 2,
   // desktop 4) supaya tampilan carousel konsisten dengan layout grid semula.
   const columns = useColumns({ sm: 2, lg: 4 });
@@ -73,15 +74,23 @@ export default function Testimonials() {
     setPage((p) => (p + 1) % pages.length);
   }
 
-  // Auto-slide testimoni setiap beberapa detik, berhenti sementara saat
-  // pointer/jari user berada di area carousel supaya nyaman dibaca.
+  // Hormati preferensi reduced motion dari perangkat pengguna.
   useEffect(() => {
-    if (pages.length <= 1 || paused) return;
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => setReducedMotion(media.matches);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
+
+  // Auto-slide hanya berjalan jika pengguna tidak meminta reduced motion.
+  useEffect(() => {
+    if (pages.length <= 1 || paused || reducedMotion) return;
     const timer = setInterval(() => {
       setPage((currentPage) => (currentPage + 1) % pages.length);
     }, AUTO_SLIDE_MS);
     return () => clearInterval(timer);
-  }, [pages.length, paused]);
+  }, [pages.length, paused, reducedMotion]);
 
   const currentItems = pages[safePage] ?? [];
 
@@ -90,7 +99,13 @@ export default function Testimonials() {
   const SWIPE_THRESHOLD = 40; // px minimal supaya dianggap swipe, bukan tap
 
   function handlePointerDown(e: React.PointerEvent<HTMLDivElement>) {
+    const target = e.target as HTMLElement | null;
+    if (target?.closest("button, a, input, textarea, select, [role='button']")) {
+      swipeStart.current = null;
+      return;
+    }
     swipeStart.current = { x: e.clientX, y: e.clientY };
+    e.currentTarget.setPointerCapture(e.pointerId);
   }
 
   function handlePointerUp(e: React.PointerEvent<HTMLDivElement>) {
@@ -122,13 +137,27 @@ export default function Testimonials() {
           onMouseLeave={() => setPaused(false)}
           onTouchStart={() => setPaused(true)}
           onTouchEnd={() => setPaused(false)}
+          onFocusCapture={() => setPaused(true)}
+          onBlurCapture={(event) => {
+            if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setPaused(false);
+          }}
         >
           <div
             key={safePage}
             onPointerDown={handlePointerDown}
             onPointerUp={handlePointerUp}
             onPointerCancel={handlePointerCancel}
-            className="grid animate-fade-in touch-pan-y select-none sm:grid-cols-2 lg:grid-cols-4 gap-6"
+            aria-live={paused || reducedMotion ? "polite" : "off"}
+            role="region"
+            aria-label="Carousel testimoni"
+            aria-roledescription="carousel"
+            tabIndex={0}
+            onKeyDown={(event) => {
+              if (event.target !== event.currentTarget) return;
+              if (event.key === "ArrowLeft") { event.preventDefault(); goPrev(); }
+              if (event.key === "ArrowRight") { event.preventDefault(); goNext(); }
+            }}
+            className="grid animate-carousel-enter touch-pan-y select-none gap-5 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4"
           >
             {currentItems.map((t) => (
               <div key={t.id} className="rounded-xl2 border border-charcoal-100 bg-cream-soft p-6">

@@ -1,102 +1,110 @@
-import { Target, Eye, HeartHandshake, MapPin } from "lucide-react";
+import { Target, Eye, HeartHandshake, MapPin, Building2, ArrowUpRight } from "lucide-react";
 import SectionHeading from "./SectionHeading";
 import TeamSection from "./TeamSection";
 import { companyProfile } from "@/lib/data";
 
 export default function CompanyProfile() {
   return (
-    <section id="profil" className="section-pad bg-charcoal-950 text-white relative overflow-hidden">
-      <div className="absolute inset-0 blueprint-bg opacity-15" />
+    <section id="profil" className="section-pad relative overflow-hidden bg-charcoal-950 text-white">
+      <div className="pointer-events-none absolute inset-0 blueprint-bg opacity-15" aria-hidden="true" />
+      <div className="pointer-events-none absolute -right-48 top-0 h-96 w-96 rounded-full bg-orange-500/10 blur-3xl" aria-hidden="true" />
       <div className="relative container-content">
-        <SectionHeading
-          eyebrow="Company Profile"
-          title={`Mengenal ${companyProfile.name} Lebih Dekat`}
-          light
-        />
+        <SectionHeading eyebrow="Company Profile" title={`Mengenal ${companyProfile.name} Lebih Dekat`} light />
 
-        <div className="mt-12 grid lg:grid-cols-[1fr_1fr] gap-12 items-start">
-          <div>
-            <span className="text-xs font-semibold uppercase tracking-widest text-orange-400">
+        <div className="mt-10 grid items-start gap-8 lg:mt-12 lg:grid-cols-[0.9fr_1.1fr] lg:gap-12">
+          <div className="rounded-2xl border border-white/10 bg-white/[0.045] p-6 sm:p-8">
+            <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-orange-300">
+              <Building2 size={15} aria-hidden="true" />
               Sejarah Singkat — Berdiri sejak {companyProfile.founded}
             </span>
-            <p className="mt-3 text-sm sm:text-base text-white/70 leading-relaxed">
-              {companyProfile.history}
-            </p>
+            <p className="mt-5 text-sm leading-relaxed text-white/75 sm:text-base sm:leading-relaxed">{companyProfile.history}</p>
           </div>
 
-          <div className="grid sm:grid-cols-2 gap-5">
-            <div className="rounded-xl2 border border-white/10 bg-white/5 p-5">
-              <Eye size={20} className="text-orange-500" />
-              <p className="mt-3 text-sm font-bold">Visi</p>
-              <p className="mt-1.5 text-xs text-white/60 leading-relaxed">{companyProfile.vision}</p>
-            </div>
-            <div className="rounded-xl2 border border-white/10 bg-white/5 p-5">
-              <Target size={20} className="text-orange-500" />
-              <p className="mt-3 text-sm font-bold">Misi</p>
-              <ul className="mt-1.5 space-y-1.5 text-xs text-white/60 leading-relaxed">
-                {companyProfile.mission.map((m) => (
-                  <li key={m} className="flex gap-2">
-                    <span className="mt-1 h-1 w-1 shrink-0 rounded-full bg-orange-500" />
-                    {m}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <article className="rounded-2xl border border-white/10 bg-white/[0.045] p-6 transition-colors hover:border-orange-400/40">
+              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-orange-500/15 text-orange-300">
+                <Eye size={21} aria-hidden="true" />
+              </span>
+              <h3 className="mt-5 text-base font-bold">Visi</h3>
+              <p className="mt-3 text-sm leading-7 text-white/70">{companyProfile.vision}</p>
+            </article>
+            <article className="rounded-2xl border border-white/10 bg-white/[0.045] p-6 transition-colors hover:border-orange-400/40">
+              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-orange-500/15 text-orange-300">
+                <Target size={21} aria-hidden="true" />
+              </span>
+              <h3 className="mt-5 text-base font-bold">Misi</h3>
+              <ul className="mt-3 space-y-3 text-sm leading-6 text-white/70">
+                {companyProfile.mission.map((mission) => (
+                  <li key={mission} className="flex items-start gap-2.5">
+                    <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-orange-400" />
+                    <span>{mission}</span>
                   </li>
                 ))}
               </ul>
-            </div>
+            </article>
           </div>
         </div>
 
-        <div className="mt-16">
-          <div className="flex items-center gap-2 mb-6">
-            <MapPin size={20} className="text-orange-500" />
-            <h3 className="text-lg font-bold">Lokasi Kantor</h3>
+        <div className="mt-14 sm:mt-16">
+          <div className="mb-6 flex items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-500/15 text-orange-300">
+              <MapPin size={19} aria-hidden="true" />
+            </span>
+            <div>
+              <h3 className="text-lg font-bold">Lokasi Kantor</h3>
+              <p className="mt-0.5 text-xs text-white/55">Temukan lokasi dan informasi kantor kami</p>
+            </div>
           </div>
-          <div className="grid lg:grid-cols-[1fr_1.2fr] gap-6 items-start">
-            <div className="rounded-xl2 border border-white/10 bg-white/5 p-5">
-              <p className="text-sm text-white/70 leading-relaxed">{companyProfile.address}</p>
+          <div className="grid items-stretch gap-5 lg:grid-cols-[0.8fr_1.2fr]">
+            <div className="flex flex-col justify-between rounded-2xl border border-white/10 bg-white/[0.045] p-6">
+              <p className="text-sm leading-7 text-white/75">{companyProfile.address}</p>
               <a
                 href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(companyProfile.address)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-4 inline-flex items-center gap-2 rounded-full border border-white/20 px-4 py-2 text-xs font-semibold hover:bg-orange-500 hover:border-orange-500 hover:text-charcoal-950 transition-colors"
+                className="mt-6 inline-flex min-h-11 w-fit items-center justify-center gap-2 rounded-xl border border-white/20 px-4 py-3 text-sm font-semibold text-white transition-colors hover:border-orange-400 hover:bg-orange-500 hover:text-charcoal-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300"
               >
-                <MapPin size={14} />
-                Buka di Google Maps
+                <MapPin size={15} aria-hidden="true" /> Buka di Google Maps <ArrowUpRight size={15} aria-hidden="true" />
               </a>
             </div>
-            <div className="overflow-hidden rounded-xl2 border border-white/10">
+            <div className="min-h-[260px] overflow-hidden rounded-2xl border border-white/10 bg-charcoal-900 sm:min-h-[320px]">
               <iframe
                 src={companyProfile.mapEmbedUrl}
+                title="Lokasi Kantor Dzaroza Property"
                 width="100%"
-                height="280"
-                style={{ border: 0 }}
+                height="100%"
+                style={{ border: 0, minHeight: 320 }}
                 loading="lazy"
                 referrerPolicy="no-referrer-when-downgrade"
-                title="Lokasi Kantor Dzaroza Property"
+                allowFullScreen
               />
             </div>
           </div>
         </div>
 
-        <div className="mt-16">
-          <div className="flex items-center gap-2 mb-6">
-            <HeartHandshake size={20} className="text-orange-500" />
-            <h3 className="text-lg font-bold">Nilai Perusahaan</h3>
+        <div className="mt-14 sm:mt-16">
+          <div className="mb-6 flex items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-500/15 text-orange-300">
+              <HeartHandshake size={19} aria-hidden="true" />
+            </span>
+            <div>
+              <h3 className="text-lg font-bold">Nilai Perusahaan</h3>
+              <p className="mt-0.5 text-xs text-white/55">Prinsip yang menjadi dasar setiap pekerjaan</p>
+            </div>
           </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {companyProfile.values.map((v, i) => (
-              <div key={v.title} className="rounded-xl2 border border-white/10 bg-white/5 p-5">
-                <span className="font-display text-2xl font-bold text-orange-500/40">
-                  {String(i + 1).padStart(2, "0")}
-                </span>
-                <p className="mt-2 text-sm font-bold">{v.title}</p>
-                <p className="mt-1 text-xs text-white/60 leading-relaxed">{v.desc}</p>
-              </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {companyProfile.values.map((value, index) => (
+              <article key={value.title} className="rounded-2xl border border-white/10 bg-white/[0.045] p-5 transition-all hover:-translate-y-1 hover:border-orange-400/40">
+                <span className="font-display text-2xl font-bold text-orange-400/70">{String(index + 1).padStart(2, "0")}</span>
+                <h4 className="mt-3 text-base font-bold">{value.title}</h4>
+                <p className="mt-2 text-sm leading-6 text-white/65">{value.desc}</p>
+              </article>
             ))}
           </div>
         </div>
 
-        <div className="mt-16">
-          <h3 className="text-lg font-bold mb-6">Tim Dzaroza Property</h3>
+        <div className="mt-14 sm:mt-16">
+          <h3 className="mb-6 text-lg font-bold">Tim Dzaroza Property</h3>
           <TeamSection />
         </div>
       </div>

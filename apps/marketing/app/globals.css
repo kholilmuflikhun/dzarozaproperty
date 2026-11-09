@@ -26,52 +26,53 @@
   --color-cream-soft: #F7F6F4;
   --color-cream-muted: #F0EFEC;
 
-  --font-display: var(--font-space-grotesk), sans-serif;
-  --font-body: var(--font-inter), sans-serif;
+  --font-display: var(--font-plus-jakarta-sans), sans-serif;
+  --font-body: var(--font-plus-jakarta-sans), sans-serif;
   --background-size-blueprint: 32px 32px;
   --shadow-card: 0 1px 2px rgba(15, 15, 16, 0.04), 0 8px 24px -8px rgba(15, 15, 16, 0.12);
-  --shadow-card-hover: 0 4px 8px rgba(15, 15, 16, 0.06), 0 16px 32px -12px rgba(234, 88, 12, 0.25);
+  --shadow-card-hover: 0 4px 8px rgba(15, 15, 16, 0.06), 0 16px 32px -12px rgba(234, 88, 12, 0.2);
   --radius-xl2: 1.25rem;
   --container-content: 1280px;
 
   --animate-fade-up: fade-up 0.6s ease-out both;
   --animate-fade-in: fade-in 0.5s ease-out both;
+  --animate-carousel-enter: carousel-enter 0.32s cubic-bezier(0.2, 0.7, 0.2, 1) both;
 
   @keyframes fade-up {
-    0% {
-      opacity: 0;
-      transform: translateY(16px);
-    }
-    100% {
-      opacity: 1;
-      transform: translateY(0);
-    }
+    0% { opacity: 0; transform: translateY(16px); }
+    100% { opacity: 1; transform: translateY(0); }
   }
 
   @keyframes fade-in {
-    0% {
-      opacity: 0;
-    }
-    100% {
-      opacity: 1;
-    }
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+  }
+
+  @keyframes carousel-enter {
+    0% { opacity: 0; transform: translate3d(12px, 0, 0); }
+    100% { opacity: 1; transform: translate3d(0, 0, 0); }
   }
 }
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+:root { color-scheme: light; }
 html {
   scroll-behavior: smooth;
-  scroll-padding-top: 72px;
+  scroll-padding-top: 88px;
+  -webkit-text-size-adjust: 100%;
 }
-
 body {
   @apply bg-cream text-charcoal-950 font-body antialiased;
+  min-width: 320px;
+  overflow-x: clip;
 }
-
 h1, h2, h3, h4 { @apply font-display; }
-
+p { line-height: 1.65; }
+.prose-compact { line-height: 1.65; }
 ::selection { @apply bg-orange-500 text-white; }
+:focus-visible { outline-offset: 3px; }
+section[id] { scroll-margin-top: 88px; }
 
 .blueprint-frame { position: relative; }
 .blueprint-frame::before,
@@ -82,6 +83,7 @@ h1, h2, h3, h4 { @apply font-display; }
   height: 22px;
   border-color: var(--color-orange);
   z-index: 10;
+  pointer-events: none;
 }
 .blueprint-frame::before { top: -10px; left: -10px; border-top: 3px solid; border-left: 3px solid; }
 .blueprint-frame::after { bottom: -10px; right: -10px; border-bottom: 3px solid; border-right: 3px solid; }
@@ -93,37 +95,34 @@ h1, h2, h3, h4 { @apply font-display; }
 }
 
 .eyebrow {
-  @apply inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-orange-700;
+  @apply inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-orange-700;
 }
-
-.section-pad { @apply px-6 sm:px-10 lg:px-16 py-20 lg:py-28; }
-.container-content { @apply mx-auto max-w-content; }
+.section-pad { @apply px-5 py-16 sm:px-8 sm:py-20 lg:px-12 lg:py-24; }
+.container-content { @apply mx-auto w-full max-w-content; }
 
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
 
-/* --- Cetak / Simpan PDF pratinjau order (components/OrderPreview.tsx) --- */
 @media print {
   @page { size: A4; margin: 14mm; }
-
   body > *:not(.order-print-overlay) { display: none !important; }
-
   .order-print-overlay {
-    position: static !important;
-    width: 100% !important;
-    overflow: visible !important;
-    background: #fff !important;
-    padding: 0 !important;
+    position: static !important; width: 100% !important; overflow: visible !important;
+    background: #fff !important; padding: 0 !important;
   }
   .order-print-toolbar { display: none !important; }
   .order-print-area {
-    max-width: none !important;
-    box-shadow: none !important;
-    border-radius: 0 !important;
-    padding: 0 !important;
+    max-width: none !important; box-shadow: none !important; border-radius: 0 !important; padding: 0 !important;
   }
-  .order-print-photos, .order-print-area header { break-inside: avoid; }
-  .order-print-area img { break-inside: avoid; }
+  .order-print-photos, .order-print-area header, .order-print-area img { break-inside: avoid; }
   .order-print-area { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
