@@ -6,6 +6,17 @@ import { responseStoreAdapter } from "@vinext/cloudflare/cache/response-store-ad
 import { imagesOptimizer } from "@vinext/cloudflare/images/images-optimizer";
 
 export default defineConfig({
+  // Keep browser/client source maps unchanged. The Cloudflare Worker bundle
+  // exceeded Cloudflare's 60 MiB encoded source-map upload limit in production.
+  // Disable maps only for the server-side Worker environments (RSC + SSR).
+  environments: {
+    rsc: {
+      build: { sourcemap: false },
+    },
+    ssr: {
+      build: { sourcemap: false },
+    },
+  },
   plugins: [
     vinext({
       cache: responseStoreAdapter(),
