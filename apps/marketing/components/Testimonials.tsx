@@ -99,7 +99,13 @@ export default function Testimonials() {
   const SWIPE_THRESHOLD = 40; // px minimal supaya dianggap swipe, bukan tap
 
   function handlePointerDown(e: React.PointerEvent<HTMLDivElement>) {
+    const target = e.target as HTMLElement | null;
+    if (target?.closest("button, a, input, textarea, select, [role='button']")) {
+      swipeStart.current = null;
+      return;
+    }
     swipeStart.current = { x: e.clientX, y: e.clientY };
+    e.currentTarget.setPointerCapture(e.pointerId);
   }
 
   function handlePointerUp(e: React.PointerEvent<HTMLDivElement>) {
