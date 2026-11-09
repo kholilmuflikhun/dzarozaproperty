@@ -35,3 +35,10 @@ The reconciliation branch aligns the mock with the production error contract and
 - Marketing and Ops Preview builds must pass before changing the Production Vercel Root Directory.
 - Do not deploy Prisma migrations to the Production database as part of CI or Preview validation.
 - Production promotion is a separate final gate after CI, Preview smoke tests, environment-variable review, and deployment configuration validation.
+
+
+## Cloudflare Workers Builds isolation (2026-11-09)
+
+The Cloudflare Workers Builds configurations for the legacy scripts `dzaroza-property` and `dzarozaproperty` were removed after confirming both configurations watched this repository's `main` branch, used repository root `/`, included all paths (`*`), and invoked legacy root build commands. Those settings caused unrelated monorepo pull requests to trigger legacy Worker builds.
+
+Only the Workers Builds configuration and its build triggers were removed. The two deployed Worker scripts were verified to remain present; their script code, routes, bindings, DNS records, and live deployments were not deleted or modified. This prevents legacy PR/main build automation from treating the monorepo as the old root application. Re-enable automation only after defining a Worker-specific workspace path and validated build/deploy commands.
