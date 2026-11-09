@@ -1,7 +1,6 @@
 "use client";
 
 import { useId, useState } from "react";
-import Link from "next/link";
 import { ChevronDown, MessageCircle, ArrowUpRight } from "lucide-react";
 import SectionHeading from "./SectionHeading";
 import { faqs, primaryWhatsApp } from "@/lib/data";
