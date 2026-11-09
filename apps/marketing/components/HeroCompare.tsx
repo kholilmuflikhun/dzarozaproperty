@@ -12,7 +12,7 @@ export default function HeroCompare({ rating }: HeroCompareProps) {
   const hasRating = rating !== "—";
 
   return (
-    <div className="blueprint-frame relative h-[340px] overflow-hidden rounded-[1.25rem] border border-white/10 sm:h-[420px] lg:h-[520px]">
+    <div className="blueprint-frame relative h-[320px] overflow-hidden rounded-[1.25rem] border border-white/10 sm:h-[420px] lg:h-[520px]">
       <Image
         src="/images/compare-after.png"
         alt="Hasil proyek properti Dzaroza Property"
@@ -59,19 +59,19 @@ export default function HeroCompare({ rating }: HeroCompareProps) {
         className="absolute inset-0 z-20 h-full w-full cursor-ew-resize opacity-0"
       />
 
-      <div className="pointer-events-none absolute bottom-4 left-4 right-4 flex items-center justify-between gap-4 rounded-xl border border-white/15 bg-charcoal-950/90 px-4 py-3 text-white shadow-card backdrop-blur sm:bottom-5 sm:left-5 sm:right-5 sm:px-5 sm:py-4">
-        <div className="min-w-0">
+      <div className="pointer-events-none absolute bottom-3 left-3 right-3 flex items-center justify-between gap-3 rounded-xl border border-white/15 bg-charcoal-950/95 px-3 py-3 text-white shadow-card backdrop-blur sm:bottom-5 sm:left-5 sm:right-5 sm:px-5 sm:py-4">
+        <div className="min-w-0 flex-1">
           <p className="text-[10px] font-semibold uppercase tracking-wider text-white/65">Ulasan Klien</p>
           {hasRating ? (
-            <p className="mt-1 text-lg font-bold text-orange-400 sm:text-xl">{rating} / 5.0</p>
+            <p className="mt-1 whitespace-nowrap text-base font-bold text-orange-400 sm:text-xl">{rating} / 5.0</p>
           ) : (
             <p className="mt-1 text-sm font-semibold text-white sm:text-base">Mengutamakan amanah</p>
           )}
         </div>
         <div className="h-9 w-px shrink-0 bg-white/25" />
-        <div className="min-w-0 text-right">
+        <div className="min-w-0 flex-1 text-right">
           <p className="text-[10px] font-semibold uppercase tracking-wider text-white/65">Prinsip Kerja</p>
-          <p className="mt-1 truncate text-sm font-bold text-orange-400 sm:text-base">Akad Jelas · Bebas Gharar</p>
+          <p className="mt-1 text-xs font-bold leading-snug text-orange-400 sm:text-base">Akad Jelas · Bebas Gharar</p>
         </div>
       </div>
     </div>
