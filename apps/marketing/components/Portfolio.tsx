@@ -46,6 +46,7 @@ export default function Portfolio() {
       return;
     }
     swipeStart.current = { x: e.clientX, y: e.clientY };
+    e.currentTarget.setPointerCapture(e.pointerId);
   }
 
   function handlePointerUp(e: React.PointerEvent<HTMLDivElement>) {
