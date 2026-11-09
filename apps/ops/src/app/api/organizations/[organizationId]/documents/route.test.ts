@@ -14,7 +14,7 @@ vi.mock("@/lib/tenant", () => ({
   toHttpError: (error: unknown) => {
     const name = error instanceof Error ? error.name : "";
     if (name === "UnauthorizedError") return { status: 401, message: "Autentikasi diperlukan." };
-    if (name === "ForbiddenError") return { status: 403, message: "Akses ditolak." };
+    if (name === "ForbiddenError") return { status: 403, message: "Akses ke organisasi atau tindakan ini tidak diizinkan." };
     return { status: 500, message: "Terjadi kesalahan pada server." };
   },
 }));
@@ -181,4 +181,27 @@ describe("tenant-scoped document metadata API", () => {
     expect(body.alreadyFinalized).toBe(true);
     expect(headR2Object).not.toHaveBeenCalled();
   });
+  it("returns 403 for document listing before querying storage when membership is denied", async () => {
+    requireTenantContext.mockRejectedValue(Object.assign(new Error("Akses ke organisasi atau tindakan ini tidak diizinkan."), { name: "ForbiddenError" }));
+    const response = await GET(new Request("http://localhost/api/organizations/org-a/documents") as never, context);
+    const body = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(body).toEqual({ error: "Akses ke organisasi atau tindakan ini tidak diizinkan." });
+    expect(findMany).not.toHaveBeenCalled();
+  });
+
+  it("returns 403 for document finalization before reading storage when membership is denied", async () => {
+    requireTenantContext.mockRejectedValue(Object.assign(new Error("Akses ke organisasi atau tindakan ini tidak diizinkan."), { name: "ForbiddenError" }));
+    const response = await POST(request({
+      objectKey: "organizations/org-a/documents/123e4567-e89b-12d3-a456-426614174000/contract.pdf",
+    }), context);
+    const body = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(body).toEqual({ error: "Akses ke organisasi atau tindakan ini tidak diizinkan." });
+    expect(findUnique).not.toHaveBeenCalled();
+    expect(headR2Object).not.toHaveBeenCalled();
+  });
+
 });
