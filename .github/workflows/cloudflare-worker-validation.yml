@@ -31,7 +31,7 @@ concurrency:
 
 jobs:
   validate:
-    name: Install and build Worker without oversized source maps
+    name: Install and build Worker with per-Worker source map limits
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:
@@ -62,12 +62,50 @@ jobs:
           NEXT_PUBLIC_GA_MEASUREMENT_ID: ""
           NEXT_PUBLIC_WHATSAPP_PRIMARY: ""
 
-      - name: Verify Worker source maps are not emitted
+      - name: Verify encoded source map size per Worker
         run: |
-          echo "Build completed. Inspecting Cloudflare output for oversized source maps."
-          if find .cloudflare/output -type f -name '*.map' -print -quit | grep -q .; then
-            echo "::error::Source map files are still present in Cloudflare build output."
-            find .cloudflare/output -type f -name '*.map' -printf '%p %s bytes\n'
-            exit 1
-          fi
-          echo "No source map files found in Cloudflare output."
+          python3 <<'PY'
+          import base64
+          from pathlib import Path
+          import sys
+
+          limit = 60 * 1024 * 1024
+          workers_root = Path(".cloudflare/output/v0/workers")
+          workers = {
+              "application Worker": workers_root / "default" / "bundle",
+              "Response Store Worker": workers_root / "dzaroza-property-response-store" / "bundle",
+          }
+
+          failed = False
+          for name, root in workers.items():
+              if not root.is_dir():
+                  print(f"::error::{name} output directory not found: {root}")
+                  failed = True
+                  continue
+
+              maps = sorted(root.rglob("*.map"))
+              encoded_total = sum(len(base64.b64encode(path.read_bytes())) for path in maps)
+              raw_total = sum(path.stat().st_size for path in maps)
+
+              print(
+                  f"{name}: {len(maps)} source map(s), "
+                  f"{raw_total:,} raw bytes, {encoded_total:,} base64-encoded bytes "
+                  f"({encoded_total / 1024 / 1024:.2f} MiB)"
+              )
+              for path in maps:
+                  raw = path.stat().st_size
+                  encoded = len(base64.b64encode(path.read_bytes()))
+                  print(f"  - {path}: {raw:,} raw / {encoded:,} encoded bytes")
+
+              if encoded_total > limit:
+                  print(
+                      f"::error::{name} source maps exceed Cloudflare's "
+                      f"60 MiB encoded limit ({encoded_total:,} > {limit:,} bytes)"
+                  )
+                  failed = True
+
+          if failed:
+              sys.exit(1)
+
+          print("Source map size checks passed independently for both Workers.")
+          PY
