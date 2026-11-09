@@ -38,13 +38,12 @@ export default function Portfolio() {
   const canPrev = safePage > 0;
   const canNext = safePage < pages.length - 1;
   const swipeStart = useRef<{ x: number; y: number } | null>(null);
+  const suppressCardClick = useRef(false);
 
   function handlePointerDown(e: React.PointerEvent<HTMLDivElement>) {
-    const target = e.target as HTMLElement | null;
-    if (target?.closest("button, a, input, textarea, select")) {
-      swipeStart.current = null;
-      return;
-    }
+    // Kartu portofolio sendiri berupa <button>; jangan mengecualikannya,
+    // karena area kartu adalah area utama untuk memulai gesture swipe.
+    if (e.pointerType === "mouse" && e.button !== 0) return;
     swipeStart.current = { x: e.clientX, y: e.clientY };
     e.currentTarget.setPointerCapture(e.pointerId);
   }
@@ -54,7 +53,9 @@ export default function Portfolio() {
     const deltaX = e.clientX - swipeStart.current.x;
     const deltaY = e.clientY - swipeStart.current.y;
     swipeStart.current = null;
-    if (Math.abs(deltaX) < 40 || Math.abs(deltaX) < Math.abs(deltaY)) return;
+    if (Math.abs(deltaX) < 40 || Math.abs(deltaX) < Math.abs(deltaY) * 1.15) return;
+    // Mencegah click sintetis setelah swipe membuka Lightbox secara tidak sengaja.
+    suppressCardClick.current = true;
     if (deltaX < 0 && canNext) setPage(safePage + 1);
     else if (deltaX > 0 && canPrev) setPage(safePage - 1);
   }
@@ -91,7 +92,13 @@ export default function Portfolio() {
             onPointerDown={handlePointerDown}
             onPointerUp={handlePointerUp}
             onPointerCancel={() => { swipeStart.current = null; }}
-            className="grid touch-pan-y gap-5 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3"
+            onClickCapture={(event) => {
+              if (!suppressCardClick.current) return;
+              suppressCardClick.current = false;
+              event.preventDefault();
+              event.stopPropagation();
+            }}
+            className="grid touch-pan-y select-none gap-5 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3"
           >
             {currentItems.map((project) => (
               <button
