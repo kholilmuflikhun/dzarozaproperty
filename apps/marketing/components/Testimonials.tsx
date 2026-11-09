@@ -131,13 +131,18 @@ export default function Testimonials() {
           onMouseLeave={() => setPaused(false)}
           onTouchStart={() => setPaused(true)}
           onTouchEnd={() => setPaused(false)}
+          onFocusCapture={() => setPaused(true)}
+          onBlurCapture={(event) => {
+            if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setPaused(false);
+          }}
         >
           <div
             key={safePage}
             onPointerDown={handlePointerDown}
             onPointerUp={handlePointerUp}
             onPointerCancel={handlePointerCancel}
-            aria-live={paused || reducedMotion ? "polite" : "off"}\n            className="grid animate-fade-in touch-pan-y select-none gap-5 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4"
+            aria-live={paused || reducedMotion ? "polite" : "off"}
+            className="grid animate-fade-in touch-pan-y select-none gap-5 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4"
           >
             {currentItems.map((t) => (
               <div key={t.id} className="rounded-xl2 border border-charcoal-100 bg-cream-soft p-6">
