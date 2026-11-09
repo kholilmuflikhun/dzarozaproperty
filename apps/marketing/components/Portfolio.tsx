@@ -98,7 +98,16 @@ export default function Portfolio() {
               event.preventDefault();
               event.stopPropagation();
             }}
-            className="grid touch-pan-y select-none gap-5 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3"
+            role="region"
+            aria-label="Carousel portofolio proyek"
+            aria-roledescription="carousel"
+            tabIndex={0}
+            onKeyDown={(event) => {
+              if (event.target !== event.currentTarget) return;
+              if (event.key === "ArrowLeft" && canPrev) { event.preventDefault(); setPage(safePage - 1); }
+              if (event.key === "ArrowRight" && canNext) { event.preventDefault(); setPage(safePage + 1); }
+            }}
+            className="grid animate-carousel-enter touch-pan-y select-none gap-5 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3"
           >
             {currentItems.map((project) => (
               <button
