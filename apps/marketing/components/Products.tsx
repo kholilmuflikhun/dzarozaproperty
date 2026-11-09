@@ -113,7 +113,7 @@ export default function Products() {
                       <h3 className="min-w-0 flex-1 text-lg font-bold leading-snug text-charcoal-950 sm:text-xl">{product.title}</h3>
                       <span className="shrink-0 rounded-lg bg-orange-50 px-3 py-1.5 text-sm font-bold text-orange-800 sm:text-base">{product.price}</span>
                     </div>
-                    <p className="mt-3 text-sm leading-7 text-charcoal-600">{product.summary}</p>
+                    <p className="mt-3 text-sm leading-relaxed text-charcoal-600">{product.summary}</p>
 
                     <ul className="mt-5 flex-1 space-y-3">
                       {product.features.slice(0, 3).map((feature) => (
