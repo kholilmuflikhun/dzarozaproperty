@@ -148,7 +148,16 @@ export default function Testimonials() {
             onPointerUp={handlePointerUp}
             onPointerCancel={handlePointerCancel}
             aria-live={paused || reducedMotion ? "polite" : "off"}
-            className="grid animate-fade-in touch-pan-y select-none gap-5 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4"
+            role="region"
+            aria-label="Carousel testimoni"
+            aria-roledescription="carousel"
+            tabIndex={0}
+            onKeyDown={(event) => {
+              if (event.target !== event.currentTarget) return;
+              if (event.key === "ArrowLeft") { event.preventDefault(); goPrev(); }
+              if (event.key === "ArrowRight") { event.preventDefault(); goNext(); }
+            }}
+            className="grid animate-carousel-enter touch-pan-y select-none gap-5 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4"
           >
             {currentItems.map((t) => (
               <div key={t.id} className="rounded-xl2 border border-charcoal-100 bg-cream-soft p-6">
