@@ -152,6 +152,7 @@ export default function TeamSection() {
           role="region"
           aria-label="Carousel anggota tim"
           aria-roledescription="carousel"
+          aria-live="polite"
           tabIndex={0}
           onKeyDown={(event) => {
             if (event.target !== event.currentTarget) return;
