@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
 import CarouselDots from "./CarouselDots";
@@ -16,6 +16,29 @@ type Props = {
 export default function Lightbox({ images, alt, title, subtitle, onClose }: Props) {
   const [index, setIndex] = useState(0);
   const hasMultiple = images.length > 1;
+  const swipeStart = useRef<{ x: number; y: number } | null>(null);
+
+  function handlePointerDown(event: React.PointerEvent<HTMLDivElement>) {
+    if (!hasMultiple || event.pointerType === "mouse") return;
+    const target = event.target as HTMLElement | null;
+    if (target?.closest("button, a")) {
+      swipeStart.current = null;
+      return;
+    }
+    swipeStart.current = { x: event.clientX, y: event.clientY };
+  }
+
+  function handlePointerUp(event: React.PointerEvent<HTMLDivElement>) {
+    if (!swipeStart.current) return;
+    const deltaX = event.clientX - swipeStart.current.x;
+    const deltaY = event.clientY - swipeStart.current.y;
+    swipeStart.current = null;
+
+    // Hanya anggap sebagai swipe jika gerakan horizontal dominan.
+    if (Math.abs(deltaX) < 45 || Math.abs(deltaX) < Math.abs(deltaY) * 1.2) return;
+    if (deltaX < 0) goNext();
+    else goPrev();
+  }
 
   function goPrev() {
     setIndex((i) => (i - 1 + images.length) % images.length);
@@ -62,7 +85,12 @@ export default function Lightbox({ images, alt, title, subtitle, onClose }: Prop
           </span>
         )}
 
-        <div className="relative aspect-[4/3] w-full bg-charcoal-950">
+        <div
+          className="relative aspect-[4/3] w-full touch-pan-y select-none bg-charcoal-950"
+          onPointerDown={handlePointerDown}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={() => { swipeStart.current = null; }}
+        >
           <Image
             src={images[index]}
             alt={`${alt} — foto ${index + 1}`}
