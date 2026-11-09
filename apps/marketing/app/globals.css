@@ -1,0 +1,128 @@
+@import "tailwindcss";
+
+@theme {
+  --color-orange-50: #FFF4ED;
+  --color-orange-100: #FFE4D2;
+  --color-orange-200: #FFC49C;
+  --color-orange-300: #FFA166;
+  --color-orange-400: #FB8B3D;
+  --color-orange: #EA580C;
+  --color-orange-500: #EA580C;
+  --color-orange-600: #D14E08;
+  --color-orange-700: #B34206;
+  --color-orange-800: #8A3305;
+  --color-orange-900: #5C2203;
+
+  --color-charcoal: #0F0F10;
+  --color-charcoal-50: #F4F4F5;
+  --color-charcoal-100: #E4E4E7;
+  --color-charcoal-400: #6B6B70;
+  --color-charcoal-600: #3F3F42;
+  --color-charcoal-800: #1C1C1E;
+  --color-charcoal-900: #141415;
+  --color-charcoal-950: #0A0A0B;
+
+  --color-cream: #FFFFFF;
+  --color-cream-soft: #F7F6F4;
+  --color-cream-muted: #F0EFEC;
+
+  --font-display: var(--font-plus-jakarta-sans), sans-serif;
+  --font-body: var(--font-plus-jakarta-sans), sans-serif;
+  --background-size-blueprint: 32px 32px;
+  --shadow-card: 0 1px 2px rgba(15, 15, 16, 0.04), 0 8px 24px -8px rgba(15, 15, 16, 0.12);
+  --shadow-card-hover: 0 4px 8px rgba(15, 15, 16, 0.06), 0 16px 32px -12px rgba(234, 88, 12, 0.2);
+  --radius-xl2: 1.25rem;
+  --container-content: 1280px;
+
+  --animate-fade-up: fade-up 0.6s ease-out both;
+  --animate-fade-in: fade-in 0.5s ease-out both;
+  --animate-carousel-enter: carousel-enter 0.32s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+
+  @keyframes fade-up {
+    0% { opacity: 0; transform: translateY(16px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes fade-in {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+  }
+
+  @keyframes carousel-enter {
+    0% { opacity: 0; transform: translate3d(12px, 0, 0); }
+    100% { opacity: 1; transform: translate3d(0, 0, 0); }
+  }
+}
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root { color-scheme: light; }
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 88px;
+  -webkit-text-size-adjust: 100%;
+}
+body {
+  @apply bg-cream text-charcoal-950 font-body antialiased;
+  min-width: 320px;
+  overflow-x: clip;
+}
+h1, h2, h3, h4 { @apply font-display; }
+p { line-height: 1.65; }
+.prose-compact { line-height: 1.65; }
+::selection { @apply bg-orange-500 text-white; }
+:focus-visible { outline-offset: 3px; }
+section[id] { scroll-margin-top: 88px; }
+
+.blueprint-frame { position: relative; }
+.blueprint-frame::before,
+.blueprint-frame::after {
+  content: "";
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  border-color: var(--color-orange);
+  z-index: 10;
+  pointer-events: none;
+}
+.blueprint-frame::before { top: -10px; left: -10px; border-top: 3px solid; border-left: 3px solid; }
+.blueprint-frame::after { bottom: -10px; right: -10px; border-bottom: 3px solid; border-right: 3px solid; }
+
+.blueprint-bg {
+  background-image: linear-gradient(rgba(255, 140, 0, 0.09) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 140, 0, 0.09) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+.eyebrow {
+  @apply inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-orange-700;
+}
+.section-pad { @apply px-5 py-16 sm:px-8 sm:py-20 lg:px-12 lg:py-24; }
+.container-content { @apply mx-auto w-full max-w-content; }
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media print {
+  @page { size: A4; margin: 14mm; }
+  body > *:not(.order-print-overlay) { display: none !important; }
+  .order-print-overlay {
+    position: static !important; width: 100% !important; overflow: visible !important;
+    background: #fff !important; padding: 0 !important;
+  }
+  .order-print-toolbar { display: none !important; }
+  .order-print-area {
+    max-width: none !important; box-shadow: none !important; border-radius: 0 !important; padding: 0 !important;
+  }
+  .order-print-photos, .order-print-area header, .order-print-area img { break-inside: avoid; }
+  .order-print-area { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
