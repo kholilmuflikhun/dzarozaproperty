@@ -88,7 +88,7 @@ export default async function Hero() {
             <div className="relative overflow-hidden rounded-[1.6rem] border border-white/15 bg-white/5 p-2 shadow-[0_30px_100px_rgba(0,0,0,0.35)]">
               <HeroCompare rating={displayRating} />
             </div>
-            <div className="absolute -bottom-5 left-4 right-4 flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-charcoal-900/95 px-4 py-3 shadow-card backdrop-blur sm:left-8 sm:right-8 sm:px-5">
+            <div className="relative mt-4 flex min-h-[76px] items-center justify-between gap-3 rounded-2xl border border-white/10 bg-charcoal-900/95 px-4 py-3 shadow-card backdrop-blur lg:absolute lg:-bottom-5 lg:left-8 lg:right-8 lg:mt-0 lg:px-5">
               <div className="min-w-0">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/50">Pendampingan Properti</p>
                 <p className="mt-1 truncate text-sm font-bold text-white">Dari perencanaan hingga serah terima</p>
