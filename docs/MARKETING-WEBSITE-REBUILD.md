@@ -46,3 +46,25 @@ This website phase must not alter Ops authorization, tenant isolation, database 
 8. Preview deployment and browser UAT before any production release.
 
 No Production deployment, DNS change, migration, or merge to `main` is authorized by this phase.
+
+
+## Vercel Preview
+
+An isolated Vercel project named `dzaroza-marketing-preview` is used for public-site review. It is configured with:
+
+- Root Directory: `apps/marketing`
+- Framework: Next.js
+- Node.js: 24.x
+- Install: `pnpm install --frozen-lockfile`
+- Build: `pnpm --filter @dzaroza/marketing build`
+- Workspace source files outside the root directory: enabled
+- Preview/staging access: Vercel team authentication enabled
+- No production custom domain is attached
+
+The first staging deployment is created from the feature branch with target `staging`, not Production. Preview-only integrations that require credentials (Google OAuth, Google Sheets, Midtrans, Upstash Redis, Vercel Blob) remain disabled until their dedicated Preview credentials are configured. Do not copy Production secrets into Preview.
+
+Staging deployment:
+`https://dzaroza-marketing-preview-d3gdcko1c-kholilmuflikhun-projects.vercel.app`
+
+Stable staging alias:
+`https://dzaroza-marketing-preview-kholilmuflikhun-projects.vercel.app`
