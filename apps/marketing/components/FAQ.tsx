@@ -57,7 +57,7 @@ export default function FAQ() {
                   {isOpen && (
                     <div id={answerId} role="region" aria-labelledby={`${panelId}-question-${index}`} className="px-5 pb-5 sm:px-6">
                       <div className="border-t border-orange-200/70 pt-4">
-                        <p className="text-sm leading-7 text-charcoal-600">{faq.answer}</p>
+                        <p className="text-sm leading-relaxed text-charcoal-600">{faq.answer}</p>
                       </div>
                     </div>
                   )}
