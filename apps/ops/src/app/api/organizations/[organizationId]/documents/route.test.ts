@@ -200,7 +200,7 @@ describe("tenant-scoped document metadata API", () => {
     findUnique.mockResolvedValue({
       id: "doc-existing", organizationId: "org-a", fileName: "contract.pdf",
       contentType: "application/pdf", sizeBytes: 2048n, etag: '"r2-etag"',
-      status: "AVAILABLE", projectId: null, invoiceId: null,
+      checksumSha256: "a".repeat(64), status: "AVAILABLE", projectId: null, invoiceId: null,
       createdAt: new Date("2026-11-04T00:00:00.000Z"), deletedAt: null,
     });
     getR2Object.mockResolvedValue({
@@ -219,7 +219,7 @@ describe("tenant-scoped document metadata API", () => {
     findUnique.mockResolvedValue({
       id: "doc-existing", organizationId: "org-a", fileName: "contract.pdf",
       contentType: "application/pdf", sizeBytes: 2048n, etag: '"original-etag"',
-      status: "AVAILABLE", projectId: null, invoiceId: null,
+      checksumSha256: "a".repeat(64), status: "AVAILABLE", projectId: null, invoiceId: null,
       createdAt: new Date("2026-11-04T00:00:00.000Z"), deletedAt: null,
     });
     getR2Object.mockResolvedValue({
