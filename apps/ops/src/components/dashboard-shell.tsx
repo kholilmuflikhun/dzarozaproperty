@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { ArrowUpRight, Building2, CreditCard, FileText, LayoutDashboard, ReceiptText, Wallet } from "lucide-react";
+import { ArrowUpRight, Building2, FileText, FolderOpen, LayoutDashboard, ReceiptText, Wallet } from "lucide-react";
 
 const navigation = [
   { href: "", label: "Ringkasan", icon: LayoutDashboard },
   { href: "/quotations", label: "Penawaran", icon: FileText },
   { href: "/invoices", label: "Invoice", icon: ReceiptText },
+  { href: "/documents", label: "Dokumen", icon: FolderOpen },
   { href: "/finance", label: "Keuangan", icon: Wallet },
 ];
 
