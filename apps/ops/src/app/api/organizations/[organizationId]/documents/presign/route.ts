@@ -6,6 +6,7 @@ import {
   createPresignedDownloadUrl,
   createPresignedUploadUrl,
   createTenantDocumentKey,
+  headR2Object,
 } from "@/lib/r2-storage";
 
 export const runtime = "nodejs";
@@ -96,10 +97,23 @@ export async function POST(
         status: "AVAILABLE",
         deletedAt: null,
       },
-      select: { objectKey: true },
+      select: { objectKey: true, etag: true, sizeBytes: true, contentType: true },
     });
     if (!document) {
       return NextResponse.json({ error: "Dokumen tidak ditemukan pada organisasi ini." }, { status: 404 });
+    }
+
+    // A presigned PUT remains usable until expiry. Refuse downloads if the object
+    // no longer matches the ETag captured during finalization.
+    const currentObject = await headR2Object(document.objectKey);
+    if (
+      !currentObject
+      || !document.etag
+      || currentObject.etag !== document.etag
+      || currentObject.contentLength !== Number(document.sizeBytes)
+      || currentObject.contentType !== document.contentType
+    ) {
+      return NextResponse.json({ error: "Integritas berkas tidak dapat diverifikasi. Unduhan ditahan untuk pemeriksaan." }, { status: 409 });
     }
 
     const signed = await createPresignedDownloadUrl(document.objectKey, 300);
