@@ -3,6 +3,8 @@ import {
   createPresignedDownloadUrl,
   createPresignedUploadUrl,
   headR2Object,
+  getR2Object,
+  sha256Bytes,
   createTenantDocumentKey,
   isTenantDocumentKey,
 } from "./r2-storage";
@@ -125,6 +127,42 @@ describe("R2 storage adapter", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(null, { status: 404 })));
     await expect(headR2Object("organizations/org_123/documents/123e4567-e89b-12d3-a456-426614174000/missing.pdf"))
       .resolves.toBeNull();
+  });
+
+
+  it("downloads a bounded R2 object body for independent content verification", async () => {
+    configureR2();
+    const bytes = new TextEncoder().encode("%PDF-1.7");
+    const fetchMock = vi.fn().mockResolvedValue(new Response(bytes, {
+      status: 200,
+      headers: {
+        "content-length": String(bytes.byteLength),
+        "content-type": "application/pdf",
+        etag: '"r2-etag"',
+      },
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+    const result = await getR2Object("organizations/org_123/documents/123e4567-e89b-12d3-a456-426614174000/contract.pdf", 1024);
+    expect(result?.contentLength).toBe(bytes.byteLength);
+    expect(result?.contentType).toBe("application/pdf");
+    expect(result?.etag).toBe('"r2-etag"');
+    expect(Array.from(result?.bytes ?? [])).toEqual(Array.from(bytes));
+  });
+
+  it("rejects R2 object bodies larger than the configured verification limit", async () => {
+    configureR2();
+    const fetchMock = vi.fn().mockResolvedValue(new Response(new Uint8Array(16), {
+      status: 200,
+      headers: { "content-length": "16", "content-type": "application/pdf" },
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(getR2Object("organizations/org_123/documents/123e4567-e89b-12d3-a456-426614174000/large.pdf", 8))
+      .rejects.toThrow("invalid or excessive content length");
+  });
+
+  it("computes a SHA-256 digest from the actual object bytes", async () => {
+    const digest = await sha256Bytes(new TextEncoder().encode("abc"));
+    expect(digest).toBe("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
   });
 
   it("rejects non-HTTPS and mismatched account endpoints", async () => {
