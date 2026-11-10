@@ -66,6 +66,7 @@ describe("tenant-scoped document metadata API", () => {
       contentType: "application/pdf",
       sizeBytes: 2048n,
       etag: '"r2-etag"',
+      checksumSha256: "a".repeat(64),
       status: "AVAILABLE",
       projectId: null,
       invoiceId: null,
@@ -183,7 +184,8 @@ describe("tenant-scoped document metadata API", () => {
       status: "AVAILABLE", projectId: null, invoiceId: null,
       createdAt: new Date("2026-11-04T00:00:00.000Z"), deletedAt: null,
     });
-    headR2Object.mockResolvedValue({
+    getR2Object.mockResolvedValue({
+      bytes: (() => { const value = new Uint8Array(2048); value.set(new TextEncoder().encode("%PDF-")); return value; })(),
       contentLength: 2048, contentType: "application/pdf", etag: '"r2-etag"',
     });
     const response = await POST(request({
@@ -192,7 +194,7 @@ describe("tenant-scoped document metadata API", () => {
     const body = await response.json();
     expect(response.status).toBe(200);
     expect(body.alreadyFinalized).toBe(true);
-    expect(headR2Object).toHaveBeenCalledTimes(1);
+    expect(getR2Object).toHaveBeenCalledTimes(1);
   });
   it("rejects idempotent finalization when the stored object ETag has drifted", async () => {
     findUnique.mockResolvedValue({
@@ -201,7 +203,8 @@ describe("tenant-scoped document metadata API", () => {
       status: "AVAILABLE", projectId: null, invoiceId: null,
       createdAt: new Date("2026-11-04T00:00:00.000Z"), deletedAt: null,
     });
-    headR2Object.mockResolvedValue({
+    getR2Object.mockResolvedValue({
+      bytes: new Uint8Array(2048),
       contentLength: 2048, contentType: "application/pdf", etag: '"changed-etag"',
     });
     const response = await POST(request({
