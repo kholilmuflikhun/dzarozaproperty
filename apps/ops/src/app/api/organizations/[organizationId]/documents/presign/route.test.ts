@@ -1,11 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { requireTenantContext, createPresignedUploadUrl, createPresignedDownloadUrl, createTenantDocumentKey, headR2Object, findFirst, create } = vi.hoisted(() => ({
+const { requireTenantContext, createPresignedUploadUrl, createPresignedDownloadUrl, createTenantDocumentKey, getR2Object, sha256Bytes, findFirst, create } = vi.hoisted(() => ({
   requireTenantContext: vi.fn(),
   createPresignedUploadUrl: vi.fn(),
   createPresignedDownloadUrl: vi.fn(),
   createTenantDocumentKey: vi.fn(),
-  headR2Object: vi.fn(),
+  getR2Object: vi.fn(),
+  sha256Bytes: vi.fn(),
   findFirst: vi.fn(),
   create: vi.fn(),
 }));
@@ -24,7 +25,8 @@ vi.mock("@/lib/r2-storage", () => ({
   createPresignedUploadUrl,
   createPresignedDownloadUrl,
   createTenantDocumentKey,
-  headR2Object,
+  getR2Object,
+  sha256Bytes,
 }));
 
 vi.mock("@dzaroza/database", () => ({ prisma: { document: { findFirst, create } } }));
@@ -44,14 +46,16 @@ describe("tenant-scoped R2 presign API", () => {
     createPresignedUploadUrl.mockReset();
     createPresignedDownloadUrl.mockReset();
     createTenantDocumentKey.mockReset();
-    headR2Object.mockReset();
+    getR2Object.mockReset();
+    sha256Bytes.mockReset();
     findFirst.mockReset();
     create.mockReset();
     create.mockResolvedValue({ id: "doc-a" });
     findFirst.mockResolvedValue(null);
     requireTenantContext.mockResolvedValue({ organizationId: "org-a", userId: "user-a", role: "STAFF" });
     createTenantDocumentKey.mockReturnValue("organizations/org-a/documents/random/file.pdf");
-    headR2Object.mockResolvedValue({ contentLength: 1024, contentType: "application/pdf", etag: '"etag-a"' });
+    getR2Object.mockResolvedValue({ bytes: new Uint8Array([1,2,3,4]), contentLength: 1024, contentType: "application/pdf", etag: '"etag-a"' });
+    sha256Bytes.mockResolvedValue("a".repeat(64));
     createPresignedUploadUrl.mockResolvedValue({
       method: "PUT", url: "https://r2.example/signed-upload", expiresIn: 300, headers: { "Content-Type": "application/pdf" },
     });
@@ -111,7 +115,7 @@ describe("tenant-scoped R2 presign API", () => {
   });
 
   it("issues a download URL only for an AVAILABLE document in the active tenant", async () => {
-    findFirst.mockResolvedValue({ objectKey: "organizations/org-a/documents/random/file.pdf", etag: '"etag-a"', sizeBytes: 1024n, contentType: "application/pdf" });
+    findFirst.mockResolvedValue({ objectKey: "organizations/org-a/documents/random/file.pdf", etag: '"etag-a"', checksumSha256: "a".repeat(64), sizeBytes: 1024n, contentType: "application/pdf" });
     const response = await POST(request({
       action: "download", documentId: "doc-a",
     }), context);
@@ -127,10 +131,11 @@ describe("tenant-scoped R2 presign API", () => {
     findFirst.mockResolvedValue({
       objectKey: "organizations/org-a/documents/random/file.pdf",
       etag: '"stored-etag"',
+      checksumSha256: "a".repeat(64),
       sizeBytes: 1024n,
       contentType: "application/pdf",
     });
-    headR2Object.mockResolvedValue({
+    getR2Object.mockResolvedValue({
       contentLength: 1024,
       contentType: "application/pdf",
       etag: '"overwritten-etag"',
