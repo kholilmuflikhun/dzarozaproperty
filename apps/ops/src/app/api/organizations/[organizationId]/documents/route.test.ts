@@ -185,6 +185,38 @@ describe("tenant-scoped document metadata API", () => {
     expect(body.alreadyFinalized).toBe(true);
     expect(headR2Object).toHaveBeenCalledTimes(1);
   });
+  it("rejects idempotent finalization when the stored object ETag has drifted", async () => {
+    findUnique.mockResolvedValue({
+      id: "doc-existing", organizationId: "org-a", fileName: "contract.pdf",
+      contentType: "application/pdf", sizeBytes: 2048n, etag: '"original-etag"',
+      status: "AVAILABLE", projectId: null, invoiceId: null,
+      createdAt: new Date("2026-11-04T00:00:00.000Z"), deletedAt: null,
+    });
+    headR2Object.mockResolvedValue({
+      contentLength: 2048, contentType: "application/pdf", etag: '"changed-etag"',
+    });
+    const response = await POST(request({
+      objectKey: "organizations/org-a/documents/123e4567-e89b-12d3-a456-426614174000/contract.pdf",
+    }), context);
+    expect(response.status).toBe(409);
+    expect(updateMany).not.toHaveBeenCalled();
+  });
+
+  it("handles a concurrent finalizer without overwriting the winning ETag", async () => {
+    findUnique.mockResolvedValueOnce({
+      id: "doc-a", organizationId: "org-a", fileName: "contract.pdf",
+      contentType: "application/pdf", sizeBytes: 2048n, etag: null,
+      status: "PENDING_UPLOAD", projectId: null, invoiceId: null,
+      createdAt: new Date("2026-11-04T00:00:00.000Z"), deletedAt: null,
+    });
+    updateMany.mockResolvedValue({ count: 0 });
+    const response = await POST(request({
+      objectKey: "organizations/org-a/documents/123e4567-e89b-12d3-a456-426614174000/contract.pdf",
+    }), context);
+    expect(response.status).toBe(200);
+    expect((await response.json()).alreadyFinalized).toBe(true);
+  });
+
   it("returns 403 for document listing before querying storage when membership is denied", async () => {
     requireTenantContext.mockRejectedValue(Object.assign(new Error("Akses ke organisasi atau tindakan ini tidak diizinkan."), { name: "ForbiddenError" }));
     const response = await GET(new Request("http://localhost/api/organizations/org-a/documents") as never, context);
