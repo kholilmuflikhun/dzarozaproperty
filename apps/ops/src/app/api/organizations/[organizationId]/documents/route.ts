@@ -130,7 +130,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ or
       where: { objectKey },
       select: {
         id: true, organizationId: true, fileName: true, contentType: true, sizeBytes: true,
-        etag: true, status: true, projectId: true, invoiceId: true, createdAt: true, deletedAt: true,
+        etag: true, checksumSha256: true, status: true, projectId: true, invoiceId: true, createdAt: true, deletedAt: true,
       },
     });
     if (!existing || existing.organizationId !== organizationId || existing.deletedAt) {
@@ -199,7 +199,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ or
       where: { id: existing.id },
       select: {
         id: true, organizationId: true, fileName: true, contentType: true, sizeBytes: true,
-        etag: true, status: true, projectId: true, invoiceId: true, createdAt: true, deletedAt: true,
+        etag: true, checksumSha256: true, status: true, projectId: true, invoiceId: true, createdAt: true, deletedAt: true,
       },
     });
     if (
