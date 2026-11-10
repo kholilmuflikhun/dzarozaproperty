@@ -1,8 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { requireTenantContext, headR2Object, isTenantDocumentKey, findMany, findUnique, updateMany } = vi.hoisted(() => ({
+const { requireTenantContext, headR2Object, getR2Object, sha256Bytes, isTenantDocumentKey, findMany, findUnique, updateMany } = vi.hoisted(() => ({
   requireTenantContext: vi.fn(),
   headR2Object: vi.fn(),
+  getR2Object: vi.fn(),
+  sha256Bytes: vi.fn(),
   isTenantDocumentKey: vi.fn(),
   findMany: vi.fn(),
   findUnique: vi.fn(),
@@ -19,7 +21,7 @@ vi.mock("@/lib/tenant", () => ({
   },
 }));
 
-vi.mock("@/lib/r2-storage", () => ({ headR2Object, isTenantDocumentKey }));
+vi.mock("@/lib/r2-storage", () => ({ headR2Object, getR2Object, sha256Bytes, isTenantDocumentKey }));
 vi.mock("@dzaroza/database", () => ({
   prisma: { document: { findMany, findUnique, updateMany } },
 }));
@@ -37,6 +39,8 @@ describe("tenant-scoped document metadata API", () => {
   beforeEach(() => {
     requireTenantContext.mockReset();
     headR2Object.mockReset();
+    getR2Object.mockReset();
+    sha256Bytes.mockReset();
     isTenantDocumentKey.mockReset();
     findMany.mockReset();
     findUnique.mockReset();
@@ -45,6 +49,10 @@ describe("tenant-scoped document metadata API", () => {
     isTenantDocumentKey.mockReturnValue(true);
     findMany.mockResolvedValue([]);
     findUnique.mockResolvedValue(null);
+    const validPdf = new Uint8Array(2048);
+    validPdf.set(new TextEncoder().encode("%PDF-"));
+    getR2Object.mockResolvedValue({ bytes: validPdf, contentLength: 2048, contentType: "application/pdf", etag: '"r2-etag"' });
+    sha256Bytes.mockResolvedValue("a".repeat(64));
     headR2Object.mockResolvedValue({
       contentLength: 2048,
       contentType: "application/pdf",
@@ -96,9 +104,10 @@ describe("tenant-scoped document metadata API", () => {
     expect(response.status).toBe(201);
     expect(requireTenantContext).toHaveBeenCalledWith("org-a");
     expect(headR2Object).toHaveBeenCalledWith("organizations/org-a/documents/123e4567-e89b-12d3-a456-426614174000/contract.pdf");
+    expect(getR2Object).toHaveBeenCalledWith("organizations/org-a/documents/123e4567-e89b-12d3-a456-426614174000/contract.pdf", 20 * 1024 * 1024);
     expect(updateMany).toHaveBeenCalledWith(expect.objectContaining({
       where: { id: "doc-a", organizationId: "org-a", status: "PENDING_UPLOAD", deletedAt: null },
-      data: { status: "AVAILABLE", etag: '"r2-etag"' },
+      data: { status: "AVAILABLE", etag: '"r2-etag"', checksumSha256: "a".repeat(64) },
     }));
     expect(body.document.sizeBytes).toBe("2048");
   });
