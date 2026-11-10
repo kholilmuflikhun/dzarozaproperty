@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
+import Link from "next/link";
 import { AlertCircle, CheckCircle2, Download, FileText, Loader2, RefreshCw, ShieldCheck, UploadCloud } from "lucide-react";
 
 type DocumentItem = {
@@ -177,6 +178,7 @@ export default function DocumentManagementPage() {
 
   return (
     <div className="space-y-7">
+      <Link href={`/dashboard/${organizationId}`} className="inline-flex text-sm font-semibold text-blue-700 hover:text-blue-900">← Kembali ke workspace</Link>
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-xs font-bold uppercase tracking-[.18em] text-blue-700">Workspace · Dokumen</p>
