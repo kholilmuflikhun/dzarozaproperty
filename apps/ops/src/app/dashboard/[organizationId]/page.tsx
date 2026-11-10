@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, FileText, ReceiptText, Wallet } from "lucide-react";
+import { ArrowRight, FileText, FolderOpen, ReceiptText, Wallet } from "lucide-react";
 import { notFound, redirect } from "next/navigation";
 import { prisma } from "@dzaroza/database";
 import { requireTenantContext } from "@/lib/tenant";
@@ -9,6 +9,7 @@ import { DashboardShell } from "@/components/dashboard-shell";
 const modules = [
   { href: "quotations", eyebrow: "Penjualan", title: "Penawaran & Persetujuan", description: "Susun penawaran, kirim tautan persetujuan kepada klien, dan konversikan penawaran yang disetujui menjadi proyek.", icon: FileText, accent: "bg-blue-50 text-blue-700" },
   { href: "invoices", eyebrow: "Penagihan", title: "Invoice & Pembayaran", description: "Terbitkan invoice, kirim dokumen PDF, dan pantau pembayaran manual maupun Midtrans.", icon: ReceiptText, accent: "bg-violet-50 text-violet-700" },
+  { href: "documents", eyebrow: "Arsip", title: "Pusat Dokumen", description: "Unggah, simpan, dan unduh dokumen organisasi dengan perlindungan akses tenant dan tautan sementara.", icon: FolderOpen, accent: "bg-amber-50 text-amber-700" },
   { href: "finance", eyebrow: "Kontrol bisnis", title: "Dashboard Keuangan", description: "Pantau penerimaan, pengeluaran, arus kas bersih, piutang, dan tren keuangan.", icon: Wallet, accent: "bg-emerald-50 text-emerald-700" },
 ];
 
