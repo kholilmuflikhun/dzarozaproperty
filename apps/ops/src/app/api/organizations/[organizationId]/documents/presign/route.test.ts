@@ -1,10 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { requireTenantContext, createPresignedUploadUrl, createPresignedDownloadUrl, createTenantDocumentKey, findFirst, create } = vi.hoisted(() => ({
+const { requireTenantContext, createPresignedUploadUrl, createPresignedDownloadUrl, createTenantDocumentKey, headR2Object, findFirst, create } = vi.hoisted(() => ({
   requireTenantContext: vi.fn(),
   createPresignedUploadUrl: vi.fn(),
   createPresignedDownloadUrl: vi.fn(),
   createTenantDocumentKey: vi.fn(),
+  headR2Object: vi.fn(),
   findFirst: vi.fn(),
   create: vi.fn(),
 }));
@@ -23,6 +24,7 @@ vi.mock("@/lib/r2-storage", () => ({
   createPresignedUploadUrl,
   createPresignedDownloadUrl,
   createTenantDocumentKey,
+  headR2Object,
 }));
 
 vi.mock("@dzaroza/database", () => ({ prisma: { document: { findFirst, create } } }));
@@ -42,12 +44,14 @@ describe("tenant-scoped R2 presign API", () => {
     createPresignedUploadUrl.mockReset();
     createPresignedDownloadUrl.mockReset();
     createTenantDocumentKey.mockReset();
+    headR2Object.mockReset();
     findFirst.mockReset();
     create.mockReset();
     create.mockResolvedValue({ id: "doc-a" });
     findFirst.mockResolvedValue(null);
     requireTenantContext.mockResolvedValue({ organizationId: "org-a", userId: "user-a", role: "STAFF" });
     createTenantDocumentKey.mockReturnValue("organizations/org-a/documents/random/file.pdf");
+    headR2Object.mockResolvedValue({ contentLength: 1024, contentType: "application/pdf", etag: '"etag-a"' });
     createPresignedUploadUrl.mockResolvedValue({
       method: "PUT", url: "https://r2.example/signed-upload", expiresIn: 300, headers: { "Content-Type": "application/pdf" },
     });
@@ -107,7 +111,7 @@ describe("tenant-scoped R2 presign API", () => {
   });
 
   it("issues a download URL only for an AVAILABLE document in the active tenant", async () => {
-    findFirst.mockResolvedValue({ objectKey: "organizations/org-a/documents/random/file.pdf" });
+    findFirst.mockResolvedValue({ objectKey: "organizations/org-a/documents/random/file.pdf", etag: '"etag-a"', sizeBytes: 1024n, contentType: "application/pdf" });
     const response = await POST(request({
       action: "download", documentId: "doc-a",
     }), context);
