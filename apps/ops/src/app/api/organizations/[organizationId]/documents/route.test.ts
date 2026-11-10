@@ -113,6 +113,25 @@ describe("tenant-scoped document metadata API", () => {
     expect(body.document.sizeBytes).toBe("2048");
   });
 
+
+  it("rejects a PDF upload whose bytes do not match the declared file type", async () => {
+    findUnique.mockResolvedValueOnce({
+      id: "doc-a", organizationId: "org-a", fileName: "fake.pdf",
+      contentType: "application/pdf", sizeBytes: 2048n, etag: null,
+      status: "PENDING_UPLOAD", projectId: null, invoiceId: null,
+      createdAt: new Date("2026-11-04T00:00:00.000Z"), deletedAt: null,
+    });
+    getR2Object.mockResolvedValue({
+      bytes: new Uint8Array(2048).fill(0x41),
+      contentLength: 2048, contentType: "application/pdf", etag: '"r2-etag"',
+    });
+    const response = await POST(request({
+      objectKey: "organizations/org-a/documents/123e4567-e89b-12d3-a456-426614174000/fake.pdf",
+    }), context);
+    expect(response.status).toBe(422);
+    expect(updateMany).not.toHaveBeenCalled();
+  });
+
   it("rejects object keys outside the active tenant", async () => {
     isTenantDocumentKey.mockReturnValue(false);
     const response = await POST(request({ objectKey: "organizations/org-b/documents/secret.pdf" }), context);
