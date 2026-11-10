@@ -43,6 +43,35 @@ const formatDate = (value: string) => new Intl.DateTimeFormat("id-ID", {
   dateStyle: "medium", timeStyle: "short",
 }).format(new Date(value));
 
+function putFileWithProgress(
+  url: string,
+  headers: Record<string, string>,
+  file: File,
+  onProgress: (value: number) => void,
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const request = new XMLHttpRequest();
+    request.open("PUT", url);
+    Object.entries(headers).forEach(([name, value]) => request.setRequestHeader(name, value));
+    request.upload.onprogress = (event) => {
+      if (event.lengthComputable) onProgress(Math.round((event.loaded / event.total) * 80));
+    };
+    request.onload = () => {
+      if (request.status >= 200 && request.status < 300) {
+        onProgress(85);
+        resolve();
+      } else if (request.status === 412 || request.status === 409) {
+        reject(new Error("Objek sudah pernah dibuat. Unggahan ulang ditolak untuk mencegah overwrite."));
+      } else {
+        reject(new Error(`Penyimpanan menolak unggahan (HTTP ${request.status}). Periksa konfigurasi CORS R2 jika permintaan diblokir browser.`));
+      }
+    };
+    request.onerror = () => reject(new Error("Koneksi ke penyimpanan gagal. Periksa koneksi dan konfigurasi CORS R2."));
+    request.onabort = () => reject(new Error("Unggahan dibatalkan."));
+    request.send(file);
+  });
+}
+
 export default function DocumentManagementPage() {
   const { organizationId } = useParams<{ organizationId: string }>();
   const endpoint = `/api/organizations/${encodeURIComponent(organizationId)}/documents`;
@@ -100,19 +129,8 @@ export default function DocumentManagementPage() {
       }
 
       const upload = presignPayload.upload;
-      const putResponse = await fetch(upload.url, {
-        method: upload.method,
-        // Forward every signed header verbatim. In particular, If-None-Match prevents overwrites.
-        headers: upload.headers,
-        body: file,
-      });
-      if (!putResponse.ok) {
-        if (putResponse.status === 412 || putResponse.status === 409) {
-          throw new Error("Objek sudah pernah dibuat. Unggahan ulang ditolak untuk mencegah overwrite.");
-        }
-        throw new Error(`Penyimpanan menolak unggahan (HTTP ${putResponse.status}). Periksa konfigurasi CORS R2 jika permintaan diblokir browser.`);
-      }
-      setProgress(85);
+      // Forward every signed header verbatim. In particular, If-None-Match prevents overwrites.
+      await putFileWithProgress(upload.url, upload.headers, file, setProgress);
 
       const finalizeResponse = await fetch(endpoint, {
         method: "POST",
