@@ -203,6 +203,51 @@ export async function headR2Object(objectKey: string): Promise<R2ObjectMetadata 
   };
 }
 
+
+export interface R2ObjectBody {
+  bytes: Uint8Array;
+  contentLength: number;
+  contentType: string | null;
+  etag: string | null;
+}
+
+export async function getR2Object(objectKey: string, maxBytes: number): Promise<R2ObjectBody | null> {
+  if (!Number.isSafeInteger(maxBytes) || maxBytes < 1) {
+    throw new Error("Maximum R2 object size is invalid.");
+  }
+  const signed = await signObjectUrl("GET", objectKey, 60);
+  const response = await fetch(signed.url, { method: "GET", cache: "no-store" });
+  if (response.status === 404 || response.status === 410) return null;
+  if (!response.ok) {
+    throw new Error(`R2 object download verification failed with status ${response.status}.`);
+  }
+
+  const declaredLength = Number(response.headers.get("content-length"));
+  if (!Number.isSafeInteger(declaredLength) || declaredLength < 1 || declaredLength > maxBytes) {
+    await response.body?.cancel();
+    throw new Error("R2 object returned an invalid or excessive content length.");
+  }
+
+  const bytes = new Uint8Array(await response.arrayBuffer());
+  if (bytes.byteLength !== declaredLength || bytes.byteLength > maxBytes) {
+    throw new Error("R2 object body length does not match its metadata.");
+  }
+
+  return {
+    bytes,
+    contentLength: bytes.byteLength,
+    contentType: response.headers.get("content-type")?.split(";")[0]?.trim().toLowerCase() ?? null,
+    etag: response.headers.get("etag"),
+  };
+}
+
+export async function sha256Bytes(bytes: Uint8Array): Promise<string> {
+  const copy = new Uint8Array(bytes.byteLength);
+  copy.set(bytes);
+  const digest = await crypto.subtle.digest("SHA-256", copy.buffer);
+  return toHex(new Uint8Array(digest));
+}
+
 export function createTenantDocumentKey(organizationId: string, fileName: string): string {
   if (!/^[a-zA-Z0-9_-]{1,64}$/.test(organizationId)) {
     throw new Error("Organization ID is invalid.");
