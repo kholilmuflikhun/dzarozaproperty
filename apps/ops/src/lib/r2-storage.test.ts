@@ -64,10 +64,25 @@ describe("R2 storage adapter", () => {
     expect(url.searchParams.get("X-Amz-Algorithm")).toBe("AWS4-HMAC-SHA256");
     expect(url.searchParams.get("X-Amz-Credential")).toContain("preview-access-key/");
     expect(url.searchParams.get("X-Amz-Expires")).toBe("300");
-    expect(url.searchParams.get("X-Amz-SignedHeaders")).toBe("content-type;host");
-    expect(result.headers).toEqual({ "Content-Type": "application/pdf" });
+    expect(url.searchParams.get("X-Amz-SignedHeaders")).toBe("content-type;host;if-none-match");
+    expect(result.headers).toEqual({ "Content-Type": "application/pdf", "If-None-Match": "*" });
     expect(url.searchParams.get("X-Amz-Signature")).toMatch(/^[a-f0-9]{64}$/);
     expect(result.url).not.toContain("preview-secret-key-do-not-log");
+  });
+
+  it("signs the create-once condition into every presigned PUT request", async () => {
+    configureR2();
+    const result = await createPresignedUploadUrl(
+      "organizations/org_123/documents/123e4567-e89b-12d3-a456-426614174000/file.pdf",
+      300,
+      "application/pdf",
+    );
+    expect(result.headers).toEqual({
+      "Content-Type": "application/pdf",
+      "If-None-Match": "*",
+    });
+    expect(new URL(result.url).searchParams.get("X-Amz-SignedHeaders"))
+      .toBe("content-type;host;if-none-match");
   });
 
   it("creates a signed GET URL and rejects excessive URL lifetimes", async () => {
