@@ -104,6 +104,10 @@ export async function POST(request: NextRequest, context: { params: Promise<{ or
       return NextResponse.json({ error: "Sesi unggah dokumen tidak ditemukan." }, { status: 404 });
     }
     if (existing.status === "AVAILABLE") {
+      const currentObject = await headR2Object(objectKey);
+      if (!currentObject || !existing.etag || currentObject.etag !== existing.etag) {
+        return NextResponse.json({ error: "Integritas berkas berubah setelah finalisasi. Dokumen dikarantina untuk pemeriksaan." }, { status: 409 });
+      }
       return NextResponse.json({ document: serializeDocument(existing), alreadyFinalized: true });
     }
     if (existing.status !== "PENDING_UPLOAD") {
@@ -125,15 +129,37 @@ export async function POST(request: NextRequest, context: { params: Promise<{ or
       return NextResponse.json({ error: "Metadata berkas tidak sesuai dengan permintaan unggah." }, { status: 422 });
     }
 
-    const document = await prisma.document.update({
-      where: { id: existing.id },
+    // Compare-and-set prevents two concurrent finalizers from overwriting metadata.
+    const finalized = await prisma.document.updateMany({
+      where: {
+        id: existing.id,
+        organizationId,
+        status: "PENDING_UPLOAD",
+        deletedAt: null,
+      },
       data: { status: "AVAILABLE", etag: object.etag },
+    });
+
+    const document = await prisma.document.findUnique({
+      where: { id: existing.id },
       select: {
         id: true, organizationId: true, fileName: true, contentType: true, sizeBytes: true,
-        etag: true, status: true, projectId: true, invoiceId: true, createdAt: true,
+        etag: true, status: true, projectId: true, invoiceId: true, createdAt: true, deletedAt: true,
       },
     });
-    return NextResponse.json({ document: serializeDocument(document) }, { status: 201 });
+    if (
+      !document
+      || document.organizationId !== organizationId
+      || document.deletedAt
+      || document.status !== "AVAILABLE"
+      || document.etag !== object.etag
+    ) {
+      return NextResponse.json({ error: "Status dokumen berubah selama finalisasi. Silakan ulangi pemeriksaan." }, { status: 409 });
+    }
+    return NextResponse.json(
+      { document: serializeDocument(document), ...(finalized.count === 0 ? { alreadyFinalized: true } : {}) },
+      { status: finalized.count === 1 ? 201 : 200 },
+    );
   } catch (error) {
     const code = typeof error === "object" && error !== null && "code" in error ? error.code : undefined;
     if (code === "P2002") {
