@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { requireTenantContext, headR2Object, isTenantDocumentKey, findMany, findUnique, update } = vi.hoisted(() => ({
+const { requireTenantContext, headR2Object, isTenantDocumentKey, findMany, findUnique, updateMany } = vi.hoisted(() => ({
   requireTenantContext: vi.fn(),
   headR2Object: vi.fn(),
   isTenantDocumentKey: vi.fn(),
   findMany: vi.fn(),
   findUnique: vi.fn(),
-  update: vi.fn(),
+  updateMany: vi.fn(),
 }));
 
 vi.mock("@/lib/tenant", () => ({
@@ -21,7 +21,7 @@ vi.mock("@/lib/tenant", () => ({
 
 vi.mock("@/lib/r2-storage", () => ({ headR2Object, isTenantDocumentKey }));
 vi.mock("@dzaroza/database", () => ({
-  prisma: { document: { findMany, findUnique, update } },
+  prisma: { document: { findMany, findUnique, updateMany } },
 }));
 
 import { GET, POST } from "./route";
@@ -40,7 +40,7 @@ describe("tenant-scoped document metadata API", () => {
     isTenantDocumentKey.mockReset();
     findMany.mockReset();
     findUnique.mockReset();
-    update.mockReset();
+    updateMany.mockReset();
     requireTenantContext.mockResolvedValue({ organizationId: "org-a", userId: "user-a", role: "STAFF" });
     isTenantDocumentKey.mockReturnValue(true);
     findMany.mockResolvedValue([]);
@@ -50,7 +50,8 @@ describe("tenant-scoped document metadata API", () => {
       contentType: "application/pdf",
       etag: '"r2-etag"',
     });
-    update.mockResolvedValue({
+    updateMany.mockResolvedValue({ count: 1 });
+    findUnique.mockResolvedValue({
       id: "doc-a",
       organizationId: "org-a",
       fileName: "contract.pdf",
@@ -81,7 +82,7 @@ describe("tenant-scoped document metadata API", () => {
   });
 
   it("verifies R2 metadata before promoting a pending document to AVAILABLE", async () => {
-    findUnique.mockResolvedValue({
+    findUnique.mockResolvedValueOnce({
       id: "doc-a", organizationId: "org-a", fileName: "contract.pdf",
       contentType: "application/pdf", sizeBytes: 2048n, etag: null,
       status: "PENDING_UPLOAD", projectId: null, invoiceId: null,
@@ -95,8 +96,8 @@ describe("tenant-scoped document metadata API", () => {
     expect(response.status).toBe(201);
     expect(requireTenantContext).toHaveBeenCalledWith("org-a");
     expect(headR2Object).toHaveBeenCalledWith("organizations/org-a/documents/123e4567-e89b-12d3-a456-426614174000/contract.pdf");
-    expect(update).toHaveBeenCalledWith(expect.objectContaining({
-      where: { id: "doc-a" },
+    expect(updateMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: "doc-a", organizationId: "org-a", status: "PENDING_UPLOAD", deletedAt: null },
       data: { status: "AVAILABLE", etag: '"r2-etag"' },
     }));
     expect(body.document.sizeBytes).toBe("2048");
@@ -107,7 +108,7 @@ describe("tenant-scoped document metadata API", () => {
     const response = await POST(request({ objectKey: "organizations/org-b/documents/secret.pdf" }), context);
     expect(response.status).toBe(404);
     expect(headR2Object).not.toHaveBeenCalled();
-    expect(update).not.toHaveBeenCalled();
+    expect(updateMany).not.toHaveBeenCalled();
   });
 
   it("does not finalize a pending upload when the object is missing from R2", async () => {
@@ -122,7 +123,7 @@ describe("tenant-scoped document metadata API", () => {
       objectKey: "organizations/org-a/documents/123e4567-e89b-12d3-a456-426614174000/contract.pdf",
     }), context);
     expect(response.status).toBe(404);
-    expect(update).not.toHaveBeenCalled();
+    expect(updateMany).not.toHaveBeenCalled();
   });
 
   it("rejects finalization when the uploaded object's size differs from the pending record", async () => {
@@ -139,7 +140,7 @@ describe("tenant-scoped document metadata API", () => {
       objectKey: "organizations/org-a/documents/123e4567-e89b-12d3-a456-426614174000/contract.pdf",
     }), context);
     expect(response.status).toBe(422);
-    expect(update).not.toHaveBeenCalled();
+    expect(updateMany).not.toHaveBeenCalled();
   });
 
   it("rejects files with unsupported content types or excessive size", async () => {
@@ -163,7 +164,7 @@ describe("tenant-scoped document metadata API", () => {
     }), context);
     expect(unsupported.status).toBe(422);
     expect(tooLarge.status).toBe(422);
-    expect(update).not.toHaveBeenCalled();
+    expect(updateMany).not.toHaveBeenCalled();
   });
 
   it("returns an existing finalized document idempotently", async () => {
@@ -173,13 +174,16 @@ describe("tenant-scoped document metadata API", () => {
       status: "AVAILABLE", projectId: null, invoiceId: null,
       createdAt: new Date("2026-11-04T00:00:00.000Z"), deletedAt: null,
     });
+    headR2Object.mockResolvedValue({
+      contentLength: 2048, contentType: "application/pdf", etag: '"r2-etag"',
+    });
     const response = await POST(request({
       objectKey: "organizations/org-a/documents/123e4567-e89b-12d3-a456-426614174000/contract.pdf",
     }), context);
     const body = await response.json();
     expect(response.status).toBe(200);
     expect(body.alreadyFinalized).toBe(true);
-    expect(headR2Object).not.toHaveBeenCalled();
+    expect(headR2Object).toHaveBeenCalledTimes(1);
   });
   it("returns 403 for document listing before querying storage when membership is denied", async () => {
     requireTenantContext.mockRejectedValue(Object.assign(new Error("Akses ke organisasi atau tindakan ini tidak diizinkan."), { name: "ForbiddenError" }));
