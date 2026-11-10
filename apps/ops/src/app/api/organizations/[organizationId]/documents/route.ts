@@ -39,7 +39,7 @@ function hasValidFileSignature(contentType: string, bytes: Uint8Array): boolean 
     case "text/csv":
       try {
         const text = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
-        return text.length > 0 && !text.includes("\\0");
+        return text.length > 0 && !text.includes("\0");
       } catch {
         return false;
       }
