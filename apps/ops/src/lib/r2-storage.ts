@@ -99,6 +99,7 @@ async function signObjectUrl(
   objectKey: string,
   expiresIn: number,
   contentType?: string,
+  ifNoneMatch?: string,
 ): Promise<R2ObjectUrl> {
   if (!Number.isInteger(expiresIn) || expiresIn < 1 || expiresIn > MAX_PRESIGN_TTL_SECONDS) {
     throw new Error(`Presigned URL expiry must be between 1 and ${MAX_PRESIGN_TTL_SECONDS} seconds.`);
@@ -118,18 +119,26 @@ async function signObjectUrl(
   const encodedKey = objectKey.split("/").map(encodeRfc3986).join("/");
   url.pathname = `/${config.bucket}/${encodedKey}`;
 
+  const signedHeaderNames = [
+    ...(contentType ? ["content-type"] : []),
+    ...(ifNoneMatch ? ["if-none-match"] : []),
+    "host",
+  ].sort();
+  const signedHeaders = signedHeaderNames.join(";");
+  const canonicalHeaders = [
+    ...(contentType ? [`content-type:${contentType.trim()}\n`] : []),
+    `host:${url.host}\n`,
+    ...(ifNoneMatch ? [`if-none-match:${ifNoneMatch.trim()}\n`] : []),
+  ].join("");
+
   const params = new URLSearchParams({
     "X-Amz-Algorithm": "AWS4-HMAC-SHA256",
     "X-Amz-Credential": `${config.accessKeyId}/${credentialScope}`,
     "X-Amz-Date": amzDate,
     "X-Amz-Expires": String(expiresIn),
-    "X-Amz-SignedHeaders": contentType ? "content-type;host" : "host",
+    "X-Amz-SignedHeaders": signedHeaders,
   });
   const query = canonicalQuery(params);
-  const canonicalHeaders = contentType
-    ? `content-type:${contentType.trim()}\nhost:${url.host}\n`
-    : `host:${url.host}\n`;
-  const signedHeaders = contentType ? "content-type;host" : "host";
   const canonicalRequest = [
     method,
     url.pathname,
@@ -157,7 +166,12 @@ async function signObjectUrl(
     url: url.toString(),
     method,
     expiresIn,
-    ...(contentType ? { headers: { "Content-Type": contentType.trim() } } : {}),
+    ...((contentType || ifNoneMatch) ? {
+      headers: {
+        ...(contentType ? { "Content-Type": contentType.trim() } : {}),
+        ...(ifNoneMatch ? { "If-None-Match": ifNoneMatch.trim() } : {}),
+      },
+    } : {}),
   };
 }
 
@@ -222,7 +236,7 @@ export function createPresignedUploadUrl(
   expiresIn = DEFAULT_UPLOAD_TTL_SECONDS,
   contentType?: string,
 ) {
-  return signObjectUrl("PUT", objectKey, expiresIn, contentType);
+  return signObjectUrl("PUT", objectKey, expiresIn, contentType, "*");
 }
 
 export function createPresignedDownloadUrl(objectKey: string, expiresIn = DEFAULT_DOWNLOAD_TTL_SECONDS) {
