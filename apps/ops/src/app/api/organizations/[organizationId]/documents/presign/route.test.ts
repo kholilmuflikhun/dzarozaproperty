@@ -123,6 +123,23 @@ describe("tenant-scoped R2 presign API", () => {
     expect(body.download.method).toBe("GET");
   });
 
+  it("blocks downloads when the R2 object no longer matches finalized metadata", async () => {
+    findFirst.mockResolvedValue({
+      objectKey: "organizations/org-a/documents/random/file.pdf",
+      etag: '"stored-etag"',
+      sizeBytes: 1024n,
+      contentType: "application/pdf",
+    });
+    headR2Object.mockResolvedValue({
+      contentLength: 1024,
+      contentType: "application/pdf",
+      etag: '"overwritten-etag"',
+    });
+    const response = await POST(request({ action: "download", documentId: "doc-a" }), context);
+    expect(response.status).toBe(409);
+    expect(createPresignedDownloadUrl).not.toHaveBeenCalled();
+  });
+
   it("does not create signed URLs when membership authorization fails", async () => {
     requireTenantContext.mockRejectedValue(Object.assign(new Error("Forbidden"), { name: "ForbiddenError" }));
     const response = await POST(request({
