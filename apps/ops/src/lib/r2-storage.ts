@@ -242,9 +242,9 @@ export async function getR2Object(objectKey: string, maxBytes: number): Promise<
 }
 
 export async function sha256Bytes(bytes: Uint8Array): Promise<string> {
-  const copy = new Uint8Array(bytes.byteLength);
-  copy.set(bytes);
-  const digest = await crypto.subtle.digest("SHA-256", copy.buffer);
+  const copy = new ArrayBuffer(bytes.byteLength);
+  new Uint8Array(copy).set(bytes);
+  const digest = await crypto.subtle.digest("SHA-256", copy);
   return toHex(new Uint8Array(digest));
 }
 
