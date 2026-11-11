@@ -4,6 +4,7 @@ import { z } from "zod";
 import { requireTenantContext, toHttpError } from "@/lib/tenant";
 import { getR2Object, headR2Object, isTenantDocumentKey, sha256Bytes } from "@/lib/r2-storage";
 import { hasValidOoxmlPackage } from "@/lib/ooxml-validation";
+import { authorizedDocumentWhere, canManageDocument } from "@/lib/document-access-query";
 
 export const runtime = "nodejs";
 
@@ -62,7 +63,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ org
     if (!organizationId || organizationId.length > 64) {
       return NextResponse.json({ error: "Organisasi tidak valid." }, { status: 400 });
     }
-    await requireTenantContext(organizationId);
+    const actor = await requireTenantContext(organizationId);
 
     const url = new URL(request.url);
     const limit = Number(url.searchParams.get("limit") ?? 50);
@@ -75,7 +76,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ org
     }
 
     const rows = await prisma.document.findMany({
-      where: { organizationId, status: "AVAILABLE", deletedAt: null },
+      where: authorizedDocumentWhere(actor),
       ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
       select: {
         id: true, fileName: true, contentType: true, sizeBytes: true, etag: true,
@@ -106,7 +107,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ or
     if (!organizationId || organizationId.length > 64) {
       return NextResponse.json({ error: "Organisasi tidak valid." }, { status: 400 });
     }
-    await requireTenantContext(organizationId);
+    const actor = await requireTenantContext(organizationId);
 
     let body: unknown;
     try {
@@ -133,6 +134,9 @@ export async function POST(request: NextRequest, context: { params: Promise<{ or
     });
     if (!existing || existing.organizationId !== organizationId || existing.deletedAt) {
       return NextResponse.json({ error: "Sesi unggah dokumen tidak ditemukan." }, { status: 404 });
+    }
+    if (!(await canManageDocument(actor, existing.id, "FINALIZE"))) {
+      return NextResponse.json({ error: "Dokumen tidak ditemukan pada organisasi ini." }, { status: 404 });
     }
     if (existing.status === "AVAILABLE") {
       const currentObject = await getR2Object(objectKey, MAX_FILE_SIZE_BYTES);
