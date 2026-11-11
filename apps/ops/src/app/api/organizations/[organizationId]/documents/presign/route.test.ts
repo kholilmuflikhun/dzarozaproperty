@@ -127,13 +127,19 @@ describe("tenant-scoped R2 presign API", () => {
 
   it("rejects linking a project from another client to an unassigned invoice", async () => {
     invoiceFindFirst.mockResolvedValue({ id: "invoice-a", projectId: null, quotation: { clientId: "client-a" } });
-    projectFindFirst.mockResolvedValue(null);
+    projectFindFirst
+      .mockResolvedValueOnce({ id: "project-other-client" })
+      .mockResolvedValueOnce(null);
     const response = await POST(request({
       action: "upload", fileName: "invoice.pdf", contentType: "application/pdf", size: 1024,
       projectId: "project-other-client", invoiceId: "invoice-a",
     }), context);
     expect(response.status).toBe(422);
-    expect(projectFindFirst).toHaveBeenCalledWith({
+    expect(projectFindFirst).toHaveBeenNthCalledWith(1, {
+      where: { id: "project-other-client", organizationId: "org-a" },
+      select: { id: true },
+    });
+    expect(projectFindFirst).toHaveBeenNthCalledWith(2, {
       where: { id: "project-other-client", organizationId: "org-a", clientId: "client-a" },
       select: { id: true },
     });
