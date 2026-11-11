@@ -78,7 +78,7 @@ function extractRequiredEntries(bytes: Uint8Array, requiredNames: string[]): Map
     if (wanted.has(name)) {
       if (
         extracted.has(name) || (flags & 0x0001) !== 0 || (flags & 0x0040) !== 0
-        || (flags & 0x0008) !== 0 || ![0, 8].includes(method)
+        || ![0, 8].includes(method)
         || compressedSize === 0xffffffff || uncompressedSize > MAX_XML_ENTRY_BYTES
         || localOffset + 30 > centralOffset
         || view.getUint32(localOffset, true) !== LOCAL_SIGNATURE
