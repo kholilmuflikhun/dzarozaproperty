@@ -6,6 +6,9 @@ import {
   createPresignedDownloadUrl,
   createPresignedUploadUrl,
   createTenantDocumentKey,
+  headR2Object,
+  getR2Object,
+  sha256Bytes,
 } from "@/lib/r2-storage";
 
 export const runtime = "nodejs";
@@ -27,6 +30,8 @@ const requestSchema = z.discriminatedUnion("action", [
     fileName: z.string().trim().min(1).max(180),
     contentType: z.enum(allowedContentTypes),
     size: z.number().int().positive().max(MAX_FILE_SIZE_BYTES),
+    projectId: z.string().trim().min(1).max(64).optional(),
+    invoiceId: z.string().trim().min(1).max(64).optional(),
   }),
   z.object({
     action: z.literal("download"),
@@ -62,12 +67,59 @@ export async function POST(
     }
 
     if (parsed.data.action === "upload") {
+      let linkedProjectId = parsed.data.projectId;
+      if (parsed.data.projectId) {
+        const project = await prisma.project.findFirst({
+          where: { id: parsed.data.projectId, organizationId },
+          select: { id: true },
+        });
+        if (!project) {
+          return NextResponse.json({ error: "Proyek tidak ditemukan pada organisasi ini." }, { status: 404 });
+        }
+      }
+      if (parsed.data.invoiceId) {
+        const invoice = await prisma.invoice.findFirst({
+          where: { id: parsed.data.invoiceId, organizationId },
+          select: {
+            id: true,
+            projectId: true,
+            project: { select: { clientId: true } },
+            quotation: { select: { clientId: true } },
+          },
+        });
+        if (!invoice) {
+          return NextResponse.json({ error: "Invoice tidak ditemukan pada organisasi ini." }, { status: 404 });
+        }
+        if (
+          invoice.projectId
+          && invoice.quotation?.clientId
+          && invoice.project?.clientId !== invoice.quotation.clientId
+        ) {
+          return NextResponse.json({ error: "Proyek invoice tidak sesuai dengan klien pada penawaran." }, { status: 422 });
+        }
+        if (linkedProjectId && invoice.projectId && linkedProjectId !== invoice.projectId) {
+          return NextResponse.json({ error: "Proyek dan invoice tidak saling terkait." }, { status: 422 });
+        }
+        if (linkedProjectId && !invoice.projectId && invoice.quotation?.clientId) {
+          const project = await prisma.project.findFirst({
+            where: { id: linkedProjectId, organizationId, clientId: invoice.quotation?.clientId ?? undefined },
+            select: { id: true },
+          });
+          if (!project) {
+            return NextResponse.json({ error: "Proyek tidak sesuai dengan klien invoice." }, { status: 422 });
+          }
+        }
+        linkedProjectId = linkedProjectId ?? invoice.projectId ?? undefined;
+      }
+
       const objectKey = createTenantDocumentKey(organizationId, parsed.data.fileName);
       const signed = await createPresignedUploadUrl(objectKey, 300, parsed.data.contentType);
       const document = await prisma.document.create({
         data: {
           organizationId,
           uploadedById: actor.userId,
+          projectId: linkedProjectId,
+          invoiceId: parsed.data.invoiceId,
           fileName: objectKey.split("/").at(-1) ?? "document",
           objectKey,
           contentType: parsed.data.contentType,
@@ -96,10 +148,25 @@ export async function POST(
         status: "AVAILABLE",
         deletedAt: null,
       },
-      select: { objectKey: true },
+      select: { objectKey: true, etag: true, checksumSha256: true, sizeBytes: true, contentType: true },
     });
     if (!document) {
       return NextResponse.json({ error: "Dokumen tidak ditemukan pada organisasi ini." }, { status: 404 });
+    }
+
+    // A presigned PUT remains usable until expiry. Refuse downloads if the object
+    // no longer matches the ETag captured during finalization.
+    const currentObject = await getR2Object(document.objectKey, MAX_FILE_SIZE_BYTES);
+    if (
+      !currentObject
+      || !document.etag
+      || !document.checksumSha256
+      || currentObject.etag !== document.etag
+      || currentObject.contentLength !== Number(document.sizeBytes)
+      || currentObject.contentType !== document.contentType
+      || await sha256Bytes(currentObject.bytes) !== document.checksumSha256
+    ) {
+      return NextResponse.json({ error: "Integritas berkas tidak dapat diverifikasi. Unduhan ditahan untuk pemeriksaan." }, { status: 409 });
     }
 
     const signed = await createPresignedDownloadUrl(document.objectKey, 300);

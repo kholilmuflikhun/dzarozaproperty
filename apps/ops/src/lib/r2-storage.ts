@@ -99,6 +99,7 @@ async function signObjectUrl(
   objectKey: string,
   expiresIn: number,
   contentType?: string,
+  ifNoneMatch?: string,
 ): Promise<R2ObjectUrl> {
   if (!Number.isInteger(expiresIn) || expiresIn < 1 || expiresIn > MAX_PRESIGN_TTL_SECONDS) {
     throw new Error(`Presigned URL expiry must be between 1 and ${MAX_PRESIGN_TTL_SECONDS} seconds.`);
@@ -118,18 +119,26 @@ async function signObjectUrl(
   const encodedKey = objectKey.split("/").map(encodeRfc3986).join("/");
   url.pathname = `/${config.bucket}/${encodedKey}`;
 
+  const signedHeaderNames = [
+    ...(contentType ? ["content-type"] : []),
+    ...(ifNoneMatch ? ["if-none-match"] : []),
+    "host",
+  ].sort();
+  const signedHeaders = signedHeaderNames.join(";");
+  const canonicalHeaders = [
+    ...(contentType ? [`content-type:${contentType.trim()}\n`] : []),
+    `host:${url.host}\n`,
+    ...(ifNoneMatch ? [`if-none-match:${ifNoneMatch.trim()}\n`] : []),
+  ].join("");
+
   const params = new URLSearchParams({
     "X-Amz-Algorithm": "AWS4-HMAC-SHA256",
     "X-Amz-Credential": `${config.accessKeyId}/${credentialScope}`,
     "X-Amz-Date": amzDate,
     "X-Amz-Expires": String(expiresIn),
-    "X-Amz-SignedHeaders": contentType ? "content-type;host" : "host",
+    "X-Amz-SignedHeaders": signedHeaders,
   });
   const query = canonicalQuery(params);
-  const canonicalHeaders = contentType
-    ? `content-type:${contentType.trim()}\nhost:${url.host}\n`
-    : `host:${url.host}\n`;
-  const signedHeaders = contentType ? "content-type;host" : "host";
   const canonicalRequest = [
     method,
     url.pathname,
@@ -157,7 +166,12 @@ async function signObjectUrl(
     url: url.toString(),
     method,
     expiresIn,
-    ...(contentType ? { headers: { "Content-Type": contentType.trim() } } : {}),
+    ...((contentType || ifNoneMatch) ? {
+      headers: {
+        ...(contentType ? { "Content-Type": contentType.trim() } : {}),
+        ...(ifNoneMatch ? { "If-None-Match": ifNoneMatch.trim() } : {}),
+      },
+    } : {}),
   };
 }
 
@@ -187,6 +201,81 @@ export async function headR2Object(objectKey: string): Promise<R2ObjectMetadata 
     contentType: response.headers.get("content-type")?.split(";")[0]?.trim().toLowerCase() ?? null,
     etag: response.headers.get("etag"),
   };
+}
+
+
+export interface R2ObjectBody {
+  bytes: Uint8Array;
+  contentLength: number;
+  contentType: string | null;
+  etag: string | null;
+}
+
+export async function getR2Object(objectKey: string, maxBytes: number): Promise<R2ObjectBody | null> {
+  if (!Number.isSafeInteger(maxBytes) || maxBytes < 1) {
+    throw new Error("Maximum R2 object size is invalid.");
+  }
+  const signed = await signObjectUrl("GET", objectKey, 60);
+  const response = await fetch(signed.url, { method: "GET", cache: "no-store" });
+  if (response.status === 404 || response.status === 410) return null;
+  if (!response.ok) {
+    throw new Error(`R2 object download verification failed with status ${response.status}.`);
+  }
+
+  const declaredLength = Number(response.headers.get("content-length"));
+  if (!Number.isSafeInteger(declaredLength) || declaredLength < 1 || declaredLength > maxBytes) {
+    await response.body?.cancel();
+    throw new Error("R2 object returned an invalid or excessive content length.");
+  }
+
+  if (!response.body) {
+    throw new Error("R2 object response has no readable body.");
+  }
+
+  // Enforce the limit while streaming. Checking arrayBuffer() afterwards would
+  // allow a dishonest Content-Length header to trigger an unbounded allocation.
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      totalBytes += value.byteLength;
+      if (totalBytes > maxBytes || totalBytes > declaredLength) {
+        await reader.cancel();
+        throw new Error("R2 object body exceeds its declared or configured size limit.");
+      }
+      chunks.push(value);
+    }
+  } catch (error) {
+    try { await reader.cancel(); } catch { /* The stream may already be closed. */ }
+    throw error;
+  }
+
+  if (totalBytes !== declaredLength) {
+    throw new Error("R2 object body length does not match its metadata.");
+  }
+  const bytes = new Uint8Array(totalBytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+
+  return {
+    bytes,
+    contentLength: bytes.byteLength,
+    contentType: response.headers.get("content-type")?.split(";")[0]?.trim().toLowerCase() ?? null,
+    etag: response.headers.get("etag"),
+  };
+}
+
+export async function sha256Bytes(bytes: Uint8Array): Promise<string> {
+  const copy = new ArrayBuffer(bytes.byteLength);
+  new Uint8Array(copy).set(bytes);
+  const digest = await crypto.subtle.digest("SHA-256", copy);
+  return toHex(new Uint8Array(digest));
 }
 
 export function createTenantDocumentKey(organizationId: string, fileName: string): string {
@@ -222,7 +311,7 @@ export function createPresignedUploadUrl(
   expiresIn = DEFAULT_UPLOAD_TTL_SECONDS,
   contentType?: string,
 ) {
-  return signObjectUrl("PUT", objectKey, expiresIn, contentType);
+  return signObjectUrl("PUT", objectKey, expiresIn, contentType, "*");
 }
 
 export function createPresignedDownloadUrl(objectKey: string, expiresIn = DEFAULT_DOWNLOAD_TTL_SECONDS) {

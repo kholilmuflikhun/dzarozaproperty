@@ -1,12 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { requireTenantContext, createPresignedUploadUrl, createPresignedDownloadUrl, createTenantDocumentKey, findFirst, create } = vi.hoisted(() => ({
+const { requireTenantContext, createPresignedUploadUrl, createPresignedDownloadUrl, createTenantDocumentKey, getR2Object, sha256Bytes, findFirst, create, projectFindFirst, invoiceFindFirst } = vi.hoisted(() => ({
   requireTenantContext: vi.fn(),
   createPresignedUploadUrl: vi.fn(),
   createPresignedDownloadUrl: vi.fn(),
   createTenantDocumentKey: vi.fn(),
+  getR2Object: vi.fn(),
+  sha256Bytes: vi.fn(),
   findFirst: vi.fn(),
   create: vi.fn(),
+  projectFindFirst: vi.fn(),
+  invoiceFindFirst: vi.fn(),
 }));
 
 vi.mock("@/lib/tenant", () => ({
@@ -23,9 +27,11 @@ vi.mock("@/lib/r2-storage", () => ({
   createPresignedUploadUrl,
   createPresignedDownloadUrl,
   createTenantDocumentKey,
+  getR2Object,
+  sha256Bytes,
 }));
 
-vi.mock("@dzaroza/database", () => ({ prisma: { document: { findFirst, create } } }));
+vi.mock("@dzaroza/database", () => ({ prisma: { document: { findFirst, create }, project: { findFirst: projectFindFirst }, invoice: { findFirst: invoiceFindFirst } } }));
 
 import { POST } from "./route";
 
@@ -42,12 +48,20 @@ describe("tenant-scoped R2 presign API", () => {
     createPresignedUploadUrl.mockReset();
     createPresignedDownloadUrl.mockReset();
     createTenantDocumentKey.mockReset();
+    getR2Object.mockReset();
+    sha256Bytes.mockReset();
     findFirst.mockReset();
     create.mockReset();
+    projectFindFirst.mockReset();
+    invoiceFindFirst.mockReset();
+    projectFindFirst.mockResolvedValue(null);
+    invoiceFindFirst.mockResolvedValue(null);
     create.mockResolvedValue({ id: "doc-a" });
     findFirst.mockResolvedValue(null);
     requireTenantContext.mockResolvedValue({ organizationId: "org-a", userId: "user-a", role: "STAFF" });
     createTenantDocumentKey.mockReturnValue("organizations/org-a/documents/random/file.pdf");
+    getR2Object.mockResolvedValue({ bytes: new Uint8Array([1,2,3,4]), contentLength: 1024, contentType: "application/pdf", etag: '"etag-a"' });
+    sha256Bytes.mockResolvedValue("a".repeat(64));
     createPresignedUploadUrl.mockResolvedValue({
       method: "PUT", url: "https://r2.example/signed-upload", expiresIn: 300, headers: { "Content-Type": "application/pdf" },
     });
@@ -83,6 +97,83 @@ describe("tenant-scoped R2 presign API", () => {
     }));
   });
 
+
+  it("rejects project and invoice links outside the active organization before signing", async () => {
+    const response = await POST(request({
+      action: "upload", fileName: "file.pdf", contentType: "application/pdf", size: 1024, projectId: "project-foreign",
+    }), context);
+    expect(response.status).toBe(404);
+    expect(projectFindFirst).toHaveBeenCalledWith({
+      where: { id: "project-foreign", organizationId: "org-a" }, select: { id: true },
+    });
+    expect(createPresignedUploadUrl).not.toHaveBeenCalled();
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it("derives the project link from a tenant-owned invoice", async () => {
+    invoiceFindFirst.mockResolvedValue({ id: "invoice-a", projectId: "project-a", project: { clientId: "client-a" }, quotation: { clientId: "client-a" } });
+    const response = await POST(request({
+      action: "upload", fileName: "invoice.pdf", contentType: "application/pdf", size: 1024, invoiceId: "invoice-a",
+    }), context);
+    expect(response.status).toBe(200);
+    expect(invoiceFindFirst).toHaveBeenCalledWith({
+      where: { id: "invoice-a", organizationId: "org-a" }, select: {
+        id: true, projectId: true, project: { select: { clientId: true } },
+        quotation: { select: { clientId: true } },
+      },
+    });
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ organizationId: "org-a", projectId: "project-a", invoiceId: "invoice-a" }),
+    }));
+  });
+
+
+  it("rejects linking a project from another client to an unassigned invoice", async () => {
+    invoiceFindFirst.mockResolvedValue({ id: "invoice-a", projectId: null, quotation: { clientId: "client-a" } });
+    projectFindFirst
+      .mockResolvedValueOnce({ id: "project-other-client" })
+      .mockResolvedValueOnce(null);
+    const response = await POST(request({
+      action: "upload", fileName: "invoice.pdf", contentType: "application/pdf", size: 1024,
+      projectId: "project-other-client", invoiceId: "invoice-a",
+    }), context);
+    expect(response.status).toBe(422);
+    expect(projectFindFirst).toHaveBeenNthCalledWith(1, {
+      where: { id: "project-other-client", organizationId: "org-a" },
+      select: { id: true },
+    });
+    expect(projectFindFirst).toHaveBeenNthCalledWith(2, {
+      where: { id: "project-other-client", organizationId: "org-a", clientId: "client-a" },
+      select: { id: true },
+    });
+    expect(createPresignedUploadUrl).not.toHaveBeenCalled();
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it("rejects an invoice whose linked project belongs to a different client than its quotation", async () => {
+    invoiceFindFirst.mockResolvedValue({
+      id: "invoice-a", projectId: "project-a", project: { clientId: "client-b" }, quotation: { clientId: "client-a" },
+    });
+    const response = await POST(request({
+      action: "upload", fileName: "invoice.pdf", contentType: "application/pdf", size: 1024, invoiceId: "invoice-a",
+    }), context);
+    expect(response.status).toBe(422);
+    expect(createPresignedUploadUrl).not.toHaveBeenCalled();
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it("rejects mismatched project and invoice associations", async () => {
+    projectFindFirst.mockResolvedValue({ id: "project-a" });
+    invoiceFindFirst.mockResolvedValue({ id: "invoice-a", projectId: "project-b", project: { clientId: "client-a" }, quotation: { clientId: "client-a" } });
+    const response = await POST(request({
+      action: "upload", fileName: "invoice.pdf", contentType: "application/pdf", size: 1024,
+      projectId: "project-a", invoiceId: "invoice-a",
+    }), context);
+    expect(response.status).toBe(422);
+    expect(createPresignedUploadUrl).not.toHaveBeenCalled();
+    expect(create).not.toHaveBeenCalled();
+  });
+
   it("rejects files with unsupported types or excessive sizes", async () => {
     const unsupported = await POST(request({
       action: "upload", fileName: "script.js", contentType: "application/javascript", size: 10,
@@ -107,7 +198,7 @@ describe("tenant-scoped R2 presign API", () => {
   });
 
   it("issues a download URL only for an AVAILABLE document in the active tenant", async () => {
-    findFirst.mockResolvedValue({ objectKey: "organizations/org-a/documents/random/file.pdf" });
+    findFirst.mockResolvedValue({ objectKey: "organizations/org-a/documents/random/file.pdf", etag: '"etag-a"', checksumSha256: "a".repeat(64), sizeBytes: 1024n, contentType: "application/pdf" });
     const response = await POST(request({
       action: "download", documentId: "doc-a",
     }), context);
@@ -117,6 +208,24 @@ describe("tenant-scoped R2 presign API", () => {
       "organizations/org-a/documents/random/file.pdf", 300,
     );
     expect(body.download.method).toBe("GET");
+  });
+
+  it("blocks downloads when the R2 object no longer matches finalized metadata", async () => {
+    findFirst.mockResolvedValue({
+      objectKey: "organizations/org-a/documents/random/file.pdf",
+      etag: '"stored-etag"',
+      checksumSha256: "a".repeat(64),
+      sizeBytes: 1024n,
+      contentType: "application/pdf",
+    });
+    getR2Object.mockResolvedValue({
+      contentLength: 1024,
+      contentType: "application/pdf",
+      etag: '"overwritten-etag"',
+    });
+    const response = await POST(request({ action: "download", documentId: "doc-a" }), context);
+    expect(response.status).toBe(409);
+    expect(createPresignedDownloadUrl).not.toHaveBeenCalled();
   });
 
   it("does not create signed URLs when membership authorization fails", async () => {
