@@ -30,7 +30,7 @@ CREATE TABLE "ClientPortalAccess" (
   "revokedAt" TIMESTAMP(3),
   CONSTRAINT "ClientPortalAccess_pkey" PRIMARY KEY ("id")
 );
-CREATE UNIQUE INDEX "ProjectAssignment_organizationId_projectId_membershipId_status_key" ON "ProjectAssignment"("organizationId","projectId","membershipId","status");
+CREATE INDEX "ProjectAssignment_organizationId_projectId_membershipId_status_idx" ON "ProjectAssignment"("organizationId","projectId","membershipId","status");
 CREATE INDEX "ProjectAssignment_organizationId_membershipId_status_idx" ON "ProjectAssignment"("organizationId","membershipId","status");
 CREATE INDEX "ProjectAssignment_organizationId_projectId_status_idx" ON "ProjectAssignment"("organizationId","projectId","status");
 CREATE INDEX "ClientPortalAccess_organizationId_clientId_membershipId_status_idx" ON "ClientPortalAccess"("organizationId","clientId","membershipId","status");
