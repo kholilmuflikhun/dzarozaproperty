@@ -111,13 +111,16 @@ describe("tenant-scoped R2 presign API", () => {
   });
 
   it("derives the project link from a tenant-owned invoice", async () => {
-    invoiceFindFirst.mockResolvedValue({ id: "invoice-a", projectId: "project-a", quotation: { clientId: "client-a" } });
+    invoiceFindFirst.mockResolvedValue({ id: "invoice-a", projectId: "project-a", project: { clientId: "client-a" }, quotation: { clientId: "client-a" } });
     const response = await POST(request({
       action: "upload", fileName: "invoice.pdf", contentType: "application/pdf", size: 1024, invoiceId: "invoice-a",
     }), context);
     expect(response.status).toBe(200);
     expect(invoiceFindFirst).toHaveBeenCalledWith({
-      where: { id: "invoice-a", organizationId: "org-a" }, select: { id: true, projectId: true, quotation: { select: { clientId: true } } },
+      where: { id: "invoice-a", organizationId: "org-a" }, select: {
+        id: true, projectId: true, project: { select: { clientId: true } },
+        quotation: { select: { clientId: true } },
+      },
     });
     expect(create).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({ organizationId: "org-a", projectId: "project-a", invoiceId: "invoice-a" }),
@@ -147,9 +150,21 @@ describe("tenant-scoped R2 presign API", () => {
     expect(create).not.toHaveBeenCalled();
   });
 
+  it("rejects an invoice whose linked project belongs to a different client than its quotation", async () => {
+    invoiceFindFirst.mockResolvedValue({
+      id: "invoice-a", projectId: "project-a", project: { clientId: "client-b" }, quotation: { clientId: "client-a" },
+    });
+    const response = await POST(request({
+      action: "upload", fileName: "invoice.pdf", contentType: "application/pdf", size: 1024, invoiceId: "invoice-a",
+    }), context);
+    expect(response.status).toBe(422);
+    expect(createPresignedUploadUrl).not.toHaveBeenCalled();
+    expect(create).not.toHaveBeenCalled();
+  });
+
   it("rejects mismatched project and invoice associations", async () => {
     projectFindFirst.mockResolvedValue({ id: "project-a" });
-    invoiceFindFirst.mockResolvedValue({ id: "invoice-a", projectId: "project-b", quotation: { clientId: "client-a" } });
+    invoiceFindFirst.mockResolvedValue({ id: "invoice-a", projectId: "project-b", project: { clientId: "client-a" }, quotation: { clientId: "client-a" } });
     const response = await POST(request({
       action: "upload", fileName: "invoice.pdf", contentType: "application/pdf", size: 1024,
       projectId: "project-a", invoiceId: "invoice-a",
