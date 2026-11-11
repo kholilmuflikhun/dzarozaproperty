@@ -492,6 +492,6 @@ model SalesClientAccess {
   revokedAt DateTime?
   client Client @relation(fields: [organizationId, clientId], references: [organizationId, id], onDelete: Cascade)
   membership Membership @relation(fields: [organizationId, membershipId], references: [organizationId, id], onDelete: Cascade)
-  @@unique([organizationId, clientId, membershipId])
+  @@index([organizationId, clientId, membershipId, status])
   @@index([organizationId, membershipId, status])
 }
