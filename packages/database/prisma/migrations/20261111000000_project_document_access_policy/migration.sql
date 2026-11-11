@@ -4,7 +4,6 @@ CREATE TYPE "ProjectAssignmentStatus" AS ENUM ('ACTIVE', 'REVOKED');
 
 ALTER TABLE "Membership" ADD CONSTRAINT "Membership_organizationId_id_key" UNIQUE ("organizationId", "id");
 
-ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "unusedPolicyMarker" BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE "Client" ADD CONSTRAINT "Client_organizationId_id_key" UNIQUE ("organizationId", "id");
 
 CREATE TABLE "ProjectAssignment" (
@@ -41,3 +40,6 @@ ALTER TABLE "ProjectAssignment" ADD CONSTRAINT "ProjectAssignment_member_fkey" F
 ALTER TABLE "ProjectAssignment" ADD CONSTRAINT "ProjectAssignment_actor_fkey" FOREIGN KEY ("organizationId","assignedByMembershipId") REFERENCES "Membership"("organizationId","id") ON DELETE SET NULL ON UPDATE CASCADE;
 ALTER TABLE "ClientPortalAccess" ADD CONSTRAINT "ClientPortalAccess_client_fkey" FOREIGN KEY ("organizationId","clientId") REFERENCES "Client"("organizationId","id") ON DELETE CASCADE ON UPDATE CASCADE;
 ALTER TABLE "ClientPortalAccess" ADD CONSTRAINT "ClientPortalAccess_member_fkey" FOREIGN KEY ("organizationId","membershipId") REFERENCES "Membership"("organizationId","id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- Only one active assignment may exist for a membership/project pair; revoked history is retained.
+CREATE UNIQUE INDEX "ProjectAssignment_one_active_per_member_project" ON "ProjectAssignment"("organizationId","projectId","membershipId") WHERE "status" = 'ACTIVE';
