@@ -43,3 +43,19 @@ ALTER TABLE "ClientPortalAccess" ADD CONSTRAINT "ClientPortalAccess_member_fkey"
 
 -- Only one active assignment may exist for a membership/project pair; revoked history is retained.
 CREATE UNIQUE INDEX "ProjectAssignment_one_active_per_member_project" ON "ProjectAssignment"("organizationId","projectId","membershipId") WHERE "status" = 'ACTIVE';
+
+CREATE TABLE "SalesClientAccess" (
+  "id" TEXT NOT NULL,
+  "organizationId" TEXT NOT NULL,
+  "clientId" TEXT NOT NULL,
+  "membershipId" TEXT NOT NULL,
+  "status" "ProjectAssignmentStatus" NOT NULL DEFAULT 'ACTIVE',
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TIMESTAMP(3) NOT NULL,
+  "revokedAt" TIMESTAMP(3),
+  CONSTRAINT "SalesClientAccess_pkey" PRIMARY KEY ("id")
+);
+CREATE UNIQUE INDEX "SalesClientAccess_organizationId_clientId_membershipId_key" ON "SalesClientAccess"("organizationId","clientId","membershipId");
+CREATE INDEX "SalesClientAccess_organizationId_membershipId_status_idx" ON "SalesClientAccess"("organizationId","membershipId","status");
+ALTER TABLE "SalesClientAccess" ADD CONSTRAINT "SalesClientAccess_client_fkey" FOREIGN KEY ("organizationId","clientId") REFERENCES "Client"("organizationId","id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "SalesClientAccess" ADD CONSTRAINT "SalesClientAccess_member_fkey" FOREIGN KEY ("organizationId","membershipId") REFERENCES "Membership"("organizationId","id") ON DELETE CASCADE ON UPDATE CASCADE;
