@@ -94,7 +94,7 @@ describe("OOXML package validation", () => {
 
   it("rejects a corrupted required entry checksum", () => {
     const archive = makeStoredZip(docxEntries);
-    archive[40] ^= 0xff;
+    archive[30 + encoder.encode("[Content_Types].xml").length] ^= 0xff;
     expect(hasValidOoxmlPackage(
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       archive,
