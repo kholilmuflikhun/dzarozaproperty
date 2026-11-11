@@ -65,6 +65,8 @@ model User {
   activations LicenseActivation[]
   platformAuditLogs PlatformAuditLog[]
   uploadedDocuments Document[]
+  projectAssignments ProjectAssignment[]
+  clientPortalAccesses ClientPortalAccess[]
 }
 model Organization {
   id String @id @default(cuid())
@@ -97,6 +99,7 @@ model Membership {
   organization Organization @relation(fields:[organizationId],references:[id],onDelete:Cascade)
   user User @relation(fields:[userId],references:[id],onDelete:Cascade)
   @@unique([organizationId,userId])
+  @@unique([organizationId,id])
   @@index([userId])
   @@index([organizationId,role])
 }
@@ -218,6 +221,7 @@ model Client {
   leads Lead[]
   projects Project[]
   quotations Quotation[]
+  portalAccesses ClientPortalAccess[]
   @@index([organizationId,name])
   @@index([organizationId,email])
 }
@@ -260,6 +264,7 @@ model Project {
   invoices Invoice[]
   expenses Expense[]
   documents Document[]
+  assignments ProjectAssignment[]
   @@unique([organizationId,code])
   @@index([organizationId,status])
 }
@@ -421,4 +426,50 @@ model Document {
   @@index([organizationId,projectId])
   @@index([organizationId,invoiceId])
   @@index([uploadedById])
+}
+
+
+enum ProjectAssignmentRole {
+  PROJECT_MANAGER
+  CONTRIBUTOR
+  VIEWER
+}
+
+enum ProjectAssignmentStatus {
+  ACTIVE
+  REVOKED
+}
+
+model ProjectAssignment {
+  id String @id @default(cuid())
+  organizationId String
+  projectId String
+  membershipId String
+  assignmentRole ProjectAssignmentRole @default(CONTRIBUTOR)
+  status ProjectAssignmentStatus @default(ACTIVE)
+  assignedByMembershipId String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  revokedAt DateTime?
+  project Project @relation(fields: [organizationId, projectId], references: [organizationId, id], onDelete: Cascade)
+  membership Membership @relation("ProjectAssignmentMember", fields: [organizationId, membershipId], references: [organizationId, id], onDelete: Cascade)
+  assignedBy Membership? @relation("ProjectAssignmentActor", fields: [organizationId, assignedByMembershipId], references: [organizationId, id], onDelete: SetNull)
+  @@index([organizationId, membershipId, status])
+  @@index([organizationId, projectId, status])
+  @@unique([organizationId, projectId, membershipId, status])
+}
+
+model ClientPortalAccess {
+  id String @id @default(cuid())
+  organizationId String
+  clientId String
+  membershipId String
+  status ProjectAssignmentStatus @default(ACTIVE)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  revokedAt DateTime?
+  client Client @relation(fields: [organizationId, clientId], references: [organizationId, id], onDelete: Cascade)
+  membership Membership @relation(fields: [organizationId, membershipId], references: [organizationId, id], onDelete: Cascade)
+  @@unique([organizationId, clientId, membershipId])
+  @@index([organizationId, membershipId, status])
 }
