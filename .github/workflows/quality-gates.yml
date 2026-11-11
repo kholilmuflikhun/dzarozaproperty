@@ -3,9 +3,9 @@ name: Monorepo quality gates
 on:
   workflow_dispatch:
   push:
-    branches: [main, integration/monorepo-main-reconciliation, feat/monorepo-saas-foundation, chore/ci-hardening-phase0-1, feat/crm-leads-api, feat/quotation-management-api, feat/phase-2-business-finance-workflows, feat/cloudflare-r2-integration, feat/document-metadata-foundation, feat/ops-ux-dashboard-foundation, feat/project-workspace-document-engine]
+    branches: [main, integration/monorepo-main-reconciliation, feat/project-document-access-policy, feat/monorepo-saas-foundation, chore/ci-hardening-phase0-1, feat/crm-leads-api, feat/quotation-management-api, feat/phase-2-business-finance-workflows, feat/cloudflare-r2-integration, feat/document-metadata-foundation, feat/ops-ux-dashboard-foundation, feat/project-workspace-document-engine]
   pull_request:
-    branches: [main, integration/monorepo-main-reconciliation, feat/monorepo-saas-foundation, feat/crm-leads-api, feat/quotation-management-api, feat/phase-2-business-finance-workflows, feat/cloudflare-r2-integration, feat/document-metadata-foundation, feat/ops-ux-dashboard-foundation]
+    branches: [main, integration/monorepo-main-reconciliation, fix/dms-security-hardening, feat/monorepo-saas-foundation, feat/crm-leads-api, feat/quotation-management-api, feat/phase-2-business-finance-workflows, feat/cloudflare-r2-integration, feat/document-metadata-foundation, feat/ops-ux-dashboard-foundation]
 
 concurrency:
   group: quality-gates-${{ github.workflow }}-${{ github.ref }}
