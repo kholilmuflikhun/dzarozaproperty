@@ -2,9 +2,9 @@
 CREATE TYPE "ProjectAssignmentRole" AS ENUM ('PROJECT_MANAGER', 'CONTRIBUTOR', 'VIEWER');
 CREATE TYPE "ProjectAssignmentStatus" AS ENUM ('ACTIVE', 'REVOKED');
 
-ALTER TABLE "Membership" ADD CONSTRAINT "Membership_organizationId_id_key" UNIQUE ("organizationId", "id");
+CREATE UNIQUE INDEX IF NOT EXISTS "Membership_organizationId_id_key" ON "Membership"("organizationId", "id");
 
-ALTER TABLE "Client" ADD CONSTRAINT "Client_organizationId_id_key" UNIQUE ("organizationId", "id");
+-- Client_organizationId_id_key is already created by 20261031010000_enforce_tenant_scoped_relations.
 
 CREATE TABLE "ProjectAssignment" (
   "id" TEXT NOT NULL,
