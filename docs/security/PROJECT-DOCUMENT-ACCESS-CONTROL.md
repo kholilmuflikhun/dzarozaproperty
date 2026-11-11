@@ -1,6 +1,6 @@
 # Project & Document Access Control Policy
 
-> Status: **Proposed — requires product-owner approval before schema migration or enforcement changes.**
+> Status: **Approved policy — implementation in progress; Preview validation required before merge.**
 > Baseline: `fix/dms-security-hardening` at `73aa1e937a80fa86e455817cda78a0a842ec81ce`.
 > Scope: Ops API authorization for project assignments and DMS resources. This document does not authorize Production changes.
 
@@ -110,3 +110,25 @@ Before schema migration, the product owner must confirm:
 6. Who can create/revoke project assignments: OWNER/ADMIN only, or also PROJECT_MANAGER within assigned projects?
 
 Until these questions are approved, keep the policy in proposal state and do not create a production migration or alter live access.
+
+
+## 8. Approved product-owner decisions
+
+Approved by the product owner for this feature branch:
+
+1. **Finance: all** — organization-wide invoice document read/upload/finalize/download, including invoice documents linked to projects.
+2. **Project Manager: finance_read** — read/download invoice documents only when the invoice belongs to a project where the membership has an active PROJECT_MANAGER assignment. No invoice upload/finalize.
+3. **Sales: retain** — read-only access to documents for explicitly assigned clients, including after project handover. No implicit access based only on organization membership.
+4. **Staff: self** — may upload and finalize their own documents. Project documents require an active CONTRIBUTOR or VIEWER assignment; unlinked documents remain uploader-only.
+5. **Client: portal** — read-only access only through an explicit active Client Portal grant to the linked client. No organization-wide access and no write actions.
+6. **Assignment: owner_pm** — OWNER/ADMIN can manage project assignments; a PROJECT_MANAGER can manage contributor/viewer assignments only on projects where they hold an active PROJECT_MANAGER assignment. Only OWNER/ADMIN may assign/revoke another PROJECT_MANAGER.
+
+Client and Sales grants are explicitly managed by OWNER/ADMIN and are audited. Revocation blocks new list/download/finalize requests; already-issued signed URLs remain usable only until their short expiry.
+
+## 9. Implementation and rollout status
+
+- Schema and migration are isolated to this feature branch.
+- Existing projects and memberships are not auto-assigned.
+- Production remains untouched. Do not run this migration against Production.
+- Required next gates: Prisma schema validation, migration test database, TypeScript, unit/integration tests, and authenticated Preview end-to-end tests with SSO enabled.
+- The branch is not merge-ready until all gates pass.
