@@ -13,7 +13,7 @@ export function authorizedDocumentWhere(actor: Actor) {
       { invoice: { project: { assignments: { some: { organizationId: actor.organizationId, membershipId: actor.id, status: "ACTIVE" } } } } },
     ],
     STAFF: [
-      { project: { assignments: { some: { organizationId: actor.organizationId, membershipId: actor.id, status: "ACTIVE" } } } },
+      { projectId: { not: null }, invoiceId: null, project: { assignments: { some: { organizationId: actor.organizationId, membershipId: actor.id, status: "ACTIVE" } } } },
       { projectId: null, invoiceId: null, uploadedById: actor.userId },
     ],
     SALES: [
