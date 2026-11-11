@@ -9,11 +9,11 @@ export function authorizedDocumentWhere(actor: Actor) {
   const scopes: Record<string, object[]> = {
     FINANCE: [{ invoiceId: { not: null } }],
     PROJECT_MANAGER: [
-      { project: { assignments: { some: { organizationId: actor.organizationId, membershipId: actor.id, status: "ACTIVE" } } } },
+      { project: { assignments: { some: { organizationId: actor.organizationId, membershipId: actor.id, assignmentRole: "PROJECT_MANAGER", status: "ACTIVE" } } } },
       { invoice: { project: { assignments: { some: { organizationId: actor.organizationId, membershipId: actor.id, status: "ACTIVE" } } } } },
     ],
     STAFF: [
-      { projectId: { not: null }, invoiceId: null, project: { assignments: { some: { organizationId: actor.organizationId, membershipId: actor.id, status: "ACTIVE" } } } },
+      { projectId: { not: null }, invoiceId: null, project: { assignments: { some: { organizationId: actor.organizationId, membershipId: actor.id, assignmentRole: "PROJECT_MANAGER", status: "ACTIVE" } } } },
       { projectId: null, invoiceId: null, uploadedById: actor.userId },
     ],
     SALES: [
