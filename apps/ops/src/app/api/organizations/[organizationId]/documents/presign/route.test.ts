@@ -142,7 +142,8 @@ describe("tenant-scoped R2 presign API", () => {
   });
 
   it("rejects mismatched project and invoice associations", async () => {
-    invoiceFindFirst.mockResolvedValue({ id: "invoice-a", projectId: "project-b" });
+    projectFindFirst.mockResolvedValue({ id: "project-a" });
+    invoiceFindFirst.mockResolvedValue({ id: "invoice-a", projectId: "project-b", clientId: "client-a" });
     const response = await POST(request({
       action: "upload", fileName: "invoice.pdf", contentType: "application/pdf", size: 1024,
       projectId: "project-a", invoiceId: "invoice-a",
