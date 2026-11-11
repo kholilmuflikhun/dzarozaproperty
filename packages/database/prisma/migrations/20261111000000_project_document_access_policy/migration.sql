@@ -1,0 +1,43 @@
+-- Project/document authorization foundations. No existing memberships or projects are auto-assigned.
+CREATE TYPE "ProjectAssignmentRole" AS ENUM ('PROJECT_MANAGER', 'CONTRIBUTOR', 'VIEWER');
+CREATE TYPE "ProjectAssignmentStatus" AS ENUM ('ACTIVE', 'REVOKED');
+
+ALTER TABLE "Membership" ADD CONSTRAINT "Membership_organizationId_id_key" UNIQUE ("organizationId", "id");
+
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "unusedPolicyMarker" BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE "Client" ADD CONSTRAINT "Client_organizationId_id_key" UNIQUE ("organizationId", "id");
+
+CREATE TABLE "ProjectAssignment" (
+  "id" TEXT NOT NULL,
+  "organizationId" TEXT NOT NULL,
+  "projectId" TEXT NOT NULL,
+  "membershipId" TEXT NOT NULL,
+  "assignmentRole" "ProjectAssignmentRole" NOT NULL DEFAULT 'CONTRIBUTOR',
+  "status" "ProjectAssignmentStatus" NOT NULL DEFAULT 'ACTIVE',
+  "assignedByMembershipId" TEXT,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TIMESTAMP(3) NOT NULL,
+  "revokedAt" TIMESTAMP(3),
+  CONSTRAINT "ProjectAssignment_pkey" PRIMARY KEY ("id")
+);
+CREATE TABLE "ClientPortalAccess" (
+  "id" TEXT NOT NULL,
+  "organizationId" TEXT NOT NULL,
+  "clientId" TEXT NOT NULL,
+  "membershipId" TEXT NOT NULL,
+  "status" "ProjectAssignmentStatus" NOT NULL DEFAULT 'ACTIVE',
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TIMESTAMP(3) NOT NULL,
+  "revokedAt" TIMESTAMP(3),
+  CONSTRAINT "ClientPortalAccess_pkey" PRIMARY KEY ("id")
+);
+CREATE UNIQUE INDEX "ProjectAssignment_organizationId_projectId_membershipId_status_key" ON "ProjectAssignment"("organizationId","projectId","membershipId","status");
+CREATE INDEX "ProjectAssignment_organizationId_membershipId_status_idx" ON "ProjectAssignment"("organizationId","membershipId","status");
+CREATE INDEX "ProjectAssignment_organizationId_projectId_status_idx" ON "ProjectAssignment"("organizationId","projectId","status");
+CREATE UNIQUE INDEX "ClientPortalAccess_organizationId_clientId_membershipId_key" ON "ClientPortalAccess"("organizationId","clientId","membershipId");
+CREATE INDEX "ClientPortalAccess_organizationId_membershipId_status_idx" ON "ClientPortalAccess"("organizationId","membershipId","status");
+ALTER TABLE "ProjectAssignment" ADD CONSTRAINT "ProjectAssignment_project_fkey" FOREIGN KEY ("organizationId","projectId") REFERENCES "Project"("organizationId","id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "ProjectAssignment" ADD CONSTRAINT "ProjectAssignment_member_fkey" FOREIGN KEY ("organizationId","membershipId") REFERENCES "Membership"("organizationId","id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "ProjectAssignment" ADD CONSTRAINT "ProjectAssignment_actor_fkey" FOREIGN KEY ("organizationId","assignedByMembershipId") REFERENCES "Membership"("organizationId","id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "ClientPortalAccess" ADD CONSTRAINT "ClientPortalAccess_client_fkey" FOREIGN KEY ("organizationId","clientId") REFERENCES "Client"("organizationId","id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "ClientPortalAccess" ADD CONSTRAINT "ClientPortalAccess_member_fkey" FOREIGN KEY ("organizationId","membershipId") REFERENCES "Membership"("organizationId","id") ON DELETE CASCADE ON UPDATE CASCADE;
