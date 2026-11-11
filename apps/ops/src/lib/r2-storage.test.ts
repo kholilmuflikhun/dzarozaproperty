@@ -160,6 +160,32 @@ describe("R2 storage adapter", () => {
       .rejects.toThrow("invalid or excessive content length");
   });
 
+  it("stops streaming immediately when the actual R2 body exceeds the limit despite a smaller Content-Length", async () => {
+    configureR2();
+    let cancelled = false;
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new Uint8Array(8));
+        controller.enqueue(new Uint8Array(8));
+      },
+      cancel() { cancelled = true; },
+    });
+    const response = new Response(body, {
+      status: 200,
+      headers: {
+        "content-length": "8",
+        "content-type": "application/pdf",
+      },
+    });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(response));
+
+    await expect(getR2Object(
+      "organizations/org_123/documents/123e4567-e89b-12d3-a456-426614174000/oversized.pdf",
+      12,
+    )).rejects.toThrow("exceeds its declared or configured size limit");
+    expect(cancelled).toBe(true);
+  });
+
   it("computes a SHA-256 digest from the actual object bytes", async () => {
     const digest = await sha256Bytes(new TextEncoder().encode("abc"));
     expect(digest).toBe("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
