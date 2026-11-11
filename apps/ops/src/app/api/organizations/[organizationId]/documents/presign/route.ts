@@ -80,7 +80,7 @@ export async function POST(
       if (parsed.data.invoiceId) {
         const invoice = await prisma.invoice.findFirst({
           where: { id: parsed.data.invoiceId, organizationId },
-          select: { id: true, projectId: true, clientId: true },
+          select: { id: true, projectId: true, quotation: { select: { clientId: true } } },
         });
         if (!invoice) {
           return NextResponse.json({ error: "Invoice tidak ditemukan pada organisasi ini." }, { status: 404 });
@@ -88,9 +88,9 @@ export async function POST(
         if (linkedProjectId && invoice.projectId && linkedProjectId !== invoice.projectId) {
           return NextResponse.json({ error: "Proyek dan invoice tidak saling terkait." }, { status: 422 });
         }
-        if (linkedProjectId && !invoice.projectId) {
+        if (linkedProjectId && !invoice.projectId && invoice.quotation?.clientId) {
           const project = await prisma.project.findFirst({
-            where: { id: linkedProjectId, organizationId, clientId: invoice.clientId },
+            where: { id: linkedProjectId, organizationId, clientId: invoice.quotation?.clientId ?? undefined },
             select: { id: true },
           });
           if (!project) {
