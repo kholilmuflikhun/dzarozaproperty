@@ -30,6 +30,8 @@ const requestSchema = z.discriminatedUnion("action", [
     fileName: z.string().trim().min(1).max(180),
     contentType: z.enum(allowedContentTypes),
     size: z.number().int().positive().max(MAX_FILE_SIZE_BYTES),
+    projectId: z.string().trim().min(1).max(64).optional(),
+    invoiceId: z.string().trim().min(1).max(64).optional(),
   }),
   z.object({
     action: z.literal("download"),
@@ -65,12 +67,38 @@ export async function POST(
     }
 
     if (parsed.data.action === "upload") {
+      let linkedProjectId = parsed.data.projectId;
+      if (parsed.data.projectId) {
+        const project = await prisma.project.findFirst({
+          where: { id: parsed.data.projectId, organizationId },
+          select: { id: true },
+        });
+        if (!project) {
+          return NextResponse.json({ error: "Proyek tidak ditemukan pada organisasi ini." }, { status: 404 });
+        }
+      }
+      if (parsed.data.invoiceId) {
+        const invoice = await prisma.invoice.findFirst({
+          where: { id: parsed.data.invoiceId, organizationId },
+          select: { id: true, projectId: true },
+        });
+        if (!invoice) {
+          return NextResponse.json({ error: "Invoice tidak ditemukan pada organisasi ini." }, { status: 404 });
+        }
+        if (linkedProjectId && invoice.projectId && linkedProjectId !== invoice.projectId) {
+          return NextResponse.json({ error: "Proyek dan invoice tidak saling terkait." }, { status: 422 });
+        }
+        linkedProjectId = linkedProjectId ?? invoice.projectId ?? undefined;
+      }
+
       const objectKey = createTenantDocumentKey(organizationId, parsed.data.fileName);
       const signed = await createPresignedUploadUrl(objectKey, 300, parsed.data.contentType);
       const document = await prisma.document.create({
         data: {
           organizationId,
           uploadedById: actor.userId,
+          projectId: linkedProjectId,
+          invoiceId: parsed.data.invoiceId,
           fileName: objectKey.split("/").at(-1) ?? "document",
           objectKey,
           contentType: parsed.data.contentType,
