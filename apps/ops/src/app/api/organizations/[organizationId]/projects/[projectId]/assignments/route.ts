@@ -17,7 +17,7 @@ async function resolveProjectAccess(organizationId: string, projectId: string, a
     where: { id: projectId, organizationId },
     select: {
       id: true,
-      assignments: { where: { membershipId: actor.id, status: "ACTIVE" }, select: { id: true } },
+      assignments: { where: { membershipId: actor.id, assignmentRole: "PROJECT_MANAGER", status: "ACTIVE" }, select: { id: true } },
     },
   });
   if (!project) return { project: null, allowed: false };
