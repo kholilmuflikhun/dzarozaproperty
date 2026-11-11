@@ -111,17 +111,34 @@ describe("tenant-scoped R2 presign API", () => {
   });
 
   it("derives the project link from a tenant-owned invoice", async () => {
-    invoiceFindFirst.mockResolvedValue({ id: "invoice-a", projectId: "project-a" });
+    invoiceFindFirst.mockResolvedValue({ id: "invoice-a", projectId: "project-a", clientId: "client-a" });
     const response = await POST(request({
       action: "upload", fileName: "invoice.pdf", contentType: "application/pdf", size: 1024, invoiceId: "invoice-a",
     }), context);
     expect(response.status).toBe(200);
     expect(invoiceFindFirst).toHaveBeenCalledWith({
-      where: { id: "invoice-a", organizationId: "org-a" }, select: { id: true, projectId: true },
+      where: { id: "invoice-a", organizationId: "org-a" }, select: { id: true, projectId: true, clientId: true },
     });
     expect(create).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({ organizationId: "org-a", projectId: "project-a", invoiceId: "invoice-a" }),
     }));
+  });
+
+
+  it("rejects linking a project from another client to an unassigned invoice", async () => {
+    invoiceFindFirst.mockResolvedValue({ id: "invoice-a", projectId: null, clientId: "client-a" });
+    projectFindFirst.mockResolvedValue(null);
+    const response = await POST(request({
+      action: "upload", fileName: "invoice.pdf", contentType: "application/pdf", size: 1024,
+      projectId: "project-other-client", invoiceId: "invoice-a",
+    }), context);
+    expect(response.status).toBe(422);
+    expect(projectFindFirst).toHaveBeenCalledWith({
+      where: { id: "project-other-client", organizationId: "org-a", clientId: "client-a" },
+      select: { id: true },
+    });
+    expect(createPresignedUploadUrl).not.toHaveBeenCalled();
+    expect(create).not.toHaveBeenCalled();
   });
 
   it("rejects mismatched project and invoice associations", async () => {
