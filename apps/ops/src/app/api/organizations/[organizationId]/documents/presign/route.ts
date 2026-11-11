@@ -80,10 +80,22 @@ export async function POST(
       if (parsed.data.invoiceId) {
         const invoice = await prisma.invoice.findFirst({
           where: { id: parsed.data.invoiceId, organizationId },
-          select: { id: true, projectId: true, quotation: { select: { clientId: true } } },
+          select: {
+            id: true,
+            projectId: true,
+            project: { select: { clientId: true } },
+            quotation: { select: { clientId: true } },
+          },
         });
         if (!invoice) {
           return NextResponse.json({ error: "Invoice tidak ditemukan pada organisasi ini." }, { status: 404 });
+        }
+        if (
+          invoice.projectId
+          && invoice.quotation?.clientId
+          && invoice.project?.clientId !== invoice.quotation.clientId
+        ) {
+          return NextResponse.json({ error: "Proyek invoice tidak sesuai dengan klien pada penawaran." }, { status: 422 });
         }
         if (linkedProjectId && invoice.projectId && linkedProjectId !== invoice.projectId) {
           return NextResponse.json({ error: "Proyek dan invoice tidak saling terkait." }, { status: 422 });
