@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { requireTenantContext, createPresignedUploadUrl, createPresignedDownloadUrl, createTenantDocumentKey, getR2Object, sha256Bytes, findFirst, create, projectFindFirst, invoiceFindFirst } = vi.hoisted(() => ({
+const { canManageDocument, requireTenantContext, createPresignedUploadUrl, createPresignedDownloadUrl, createTenantDocumentKey, getR2Object, sha256Bytes, findFirst, create, projectFindFirst, invoiceFindFirst } = vi.hoisted(() => ({
   requireTenantContext: vi.fn(),
+  canManageDocument: vi.fn(),
   createPresignedUploadUrl: vi.fn(),
   createPresignedDownloadUrl: vi.fn(),
   createTenantDocumentKey: vi.fn(),
@@ -22,6 +23,8 @@ vi.mock("@/lib/tenant", () => ({
     return { status: 500, message: "Terjadi kesalahan pada server." };
   },
 }));
+
+vi.mock("@/lib/document-access-query", () => ({ canManageDocument }));
 
 vi.mock("@/lib/r2-storage", () => ({
   createPresignedUploadUrl,
@@ -45,6 +48,8 @@ const request = (body: unknown) => new Request("http://localhost/api/organizatio
 describe("tenant-scoped R2 presign API", () => {
   beforeEach(() => {
     requireTenantContext.mockReset();
+    canManageDocument.mockReset();
+    canManageDocument.mockResolvedValue(true);
     createPresignedUploadUrl.mockReset();
     createPresignedDownloadUrl.mockReset();
     createTenantDocumentKey.mockReset();
@@ -58,7 +63,7 @@ describe("tenant-scoped R2 presign API", () => {
     invoiceFindFirst.mockResolvedValue(null);
     create.mockResolvedValue({ id: "doc-a" });
     findFirst.mockResolvedValue(null);
-    requireTenantContext.mockResolvedValue({ organizationId: "org-a", userId: "user-a", role: "STAFF" });
+    requireTenantContext.mockResolvedValue({ id: "member-a", organizationId: "org-a", userId: "user-a", role: "STAFF" });
     createTenantDocumentKey.mockReturnValue("organizations/org-a/documents/random/file.pdf");
     getR2Object.mockResolvedValue({ bytes: new Uint8Array([1,2,3,4]), contentLength: 1024, contentType: "application/pdf", etag: '"etag-a"' });
     sha256Bytes.mockResolvedValue("a".repeat(64));
@@ -104,7 +109,7 @@ describe("tenant-scoped R2 presign API", () => {
     }), context);
     expect(response.status).toBe(404);
     expect(projectFindFirst).toHaveBeenCalledWith({
-      where: { id: "project-foreign", organizationId: "org-a" }, select: { id: true },
+      where: { id: "project-foreign", organizationId: "org-a" }, select: { id: true, assignments: { where: { membershipId: "member-a", status: "ACTIVE" }, select: { id: true } } },
     });
     expect(createPresignedUploadUrl).not.toHaveBeenCalled();
     expect(create).not.toHaveBeenCalled();
