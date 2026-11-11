@@ -36,9 +36,11 @@ CREATE INDEX "ProjectAssignment_organizationId_projectId_status_idx" ON "Project
 CREATE INDEX "ClientPortalAccess_organizationId_clientId_membershipId_status_idx" ON "ClientPortalAccess"("organizationId","clientId","membershipId","status");
 CREATE UNIQUE INDEX "ClientPortalAccess_one_active_grant" ON "ClientPortalAccess"("organizationId","clientId","membershipId") WHERE "status" = 'ACTIVE';
 CREATE INDEX "ClientPortalAccess_organizationId_membershipId_status_idx" ON "ClientPortalAccess"("organizationId","membershipId","status");
+ALTER TABLE "ProjectAssignment" ADD CONSTRAINT "ProjectAssignment_organization_fkey" FOREIGN KEY ("organizationId") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 ALTER TABLE "ProjectAssignment" ADD CONSTRAINT "ProjectAssignment_project_fkey" FOREIGN KEY ("organizationId","projectId") REFERENCES "Project"("organizationId","id") ON DELETE CASCADE ON UPDATE CASCADE;
 ALTER TABLE "ProjectAssignment" ADD CONSTRAINT "ProjectAssignment_member_fkey" FOREIGN KEY ("organizationId","membershipId") REFERENCES "Membership"("organizationId","id") ON DELETE CASCADE ON UPDATE CASCADE;
 ALTER TABLE "ProjectAssignment" ADD CONSTRAINT "ProjectAssignment_actor_fkey" FOREIGN KEY ("organizationId","assignedByMembershipId") REFERENCES "Membership"("organizationId","id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "ClientPortalAccess" ADD CONSTRAINT "ClientPortalAccess_organization_fkey" FOREIGN KEY ("organizationId") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 ALTER TABLE "ClientPortalAccess" ADD CONSTRAINT "ClientPortalAccess_client_fkey" FOREIGN KEY ("organizationId","clientId") REFERENCES "Client"("organizationId","id") ON DELETE CASCADE ON UPDATE CASCADE;
 ALTER TABLE "ClientPortalAccess" ADD CONSTRAINT "ClientPortalAccess_member_fkey" FOREIGN KEY ("organizationId","membershipId") REFERENCES "Membership"("organizationId","id") ON DELETE CASCADE ON UPDATE CASCADE;
 
@@ -59,5 +61,6 @@ CREATE TABLE "SalesClientAccess" (
 CREATE INDEX "SalesClientAccess_organizationId_clientId_membershipId_status_idx" ON "SalesClientAccess"("organizationId","clientId","membershipId","status");
 CREATE UNIQUE INDEX "SalesClientAccess_one_active_grant" ON "SalesClientAccess"("organizationId","clientId","membershipId") WHERE "status" = 'ACTIVE';
 CREATE INDEX "SalesClientAccess_organizationId_membershipId_status_idx" ON "SalesClientAccess"("organizationId","membershipId","status");
+ALTER TABLE "SalesClientAccess" ADD CONSTRAINT "SalesClientAccess_organization_fkey" FOREIGN KEY ("organizationId") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 ALTER TABLE "SalesClientAccess" ADD CONSTRAINT "SalesClientAccess_client_fkey" FOREIGN KEY ("organizationId","clientId") REFERENCES "Client"("organizationId","id") ON DELETE CASCADE ON UPDATE CASCADE;
 ALTER TABLE "SalesClientAccess" ADD CONSTRAINT "SalesClientAccess_member_fkey" FOREIGN KEY ("organizationId","membershipId") REFERENCES "Membership"("organizationId","id") ON DELETE CASCADE ON UPDATE CASCADE;
