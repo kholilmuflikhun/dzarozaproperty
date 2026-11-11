@@ -228,9 +228,39 @@ export async function getR2Object(objectKey: string, maxBytes: number): Promise<
     throw new Error("R2 object returned an invalid or excessive content length.");
   }
 
-  const bytes = new Uint8Array(await response.arrayBuffer());
-  if (bytes.byteLength !== declaredLength || bytes.byteLength > maxBytes) {
+  if (!response.body) {
+    throw new Error("R2 object response has no readable body.");
+  }
+
+  // Enforce the limit while streaming. Checking arrayBuffer() afterwards would
+  // allow a dishonest Content-Length header to trigger an unbounded allocation.
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      totalBytes += value.byteLength;
+      if (totalBytes > maxBytes || totalBytes > declaredLength) {
+        await reader.cancel();
+        throw new Error("R2 object body exceeds its declared or configured size limit.");
+      }
+      chunks.push(value);
+    }
+  } catch (error) {
+    try { await reader.cancel(); } catch { /* The stream may already be closed. */ }
+    throw error;
+  }
+
+  if (totalBytes !== declaredLength) {
     throw new Error("R2 object body length does not match its metadata.");
+  }
+  const bytes = new Uint8Array(totalBytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
   }
 
   return {
