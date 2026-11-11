@@ -89,6 +89,7 @@ model Organization {
   documents Document[]
   projectAssignments ProjectAssignment[]
   clientPortalAccesses ClientPortalAccess[]
+  salesClientAccesses SalesClientAccess[]
 }
 model Membership {
   id String @id @default(cuid())
@@ -103,6 +104,7 @@ model Membership {
   projectAssignments ProjectAssignment[] @relation("ProjectAssignmentMember")
   assignmentsMade ProjectAssignment[] @relation("ProjectAssignmentActor")
   clientPortalAccesses ClientPortalAccess[]
+  salesClientAccesses SalesClientAccess[]
   @@index([userId])
   @@index([organizationId,role])
 }
@@ -225,6 +227,7 @@ model Client {
   projects Project[]
   quotations Quotation[]
   portalAccesses ClientPortalAccess[]
+  salesAccesses SalesClientAccess[]
   @@index([organizationId,name])
   @@index([organizationId,email])
 }
@@ -463,6 +466,22 @@ model ProjectAssignment {
 }
 
 model ClientPortalAccess {
+  id String @id @default(cuid())
+  organizationId String
+  clientId String
+  membershipId String
+  status ProjectAssignmentStatus @default(ACTIVE)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  revokedAt DateTime?
+  client Client @relation(fields: [organizationId, clientId], references: [organizationId, id], onDelete: Cascade)
+  membership Membership @relation(fields: [organizationId, membershipId], references: [organizationId, id], onDelete: Cascade)
+  @@unique([organizationId, clientId, membershipId])
+  @@index([organizationId, membershipId, status])
+}
+
+
+model SalesClientAccess {
   id String @id @default(cuid())
   organizationId String
   clientId String
