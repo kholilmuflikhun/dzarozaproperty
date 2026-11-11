@@ -60,19 +60,29 @@ export async function canManageDocument(
   const portalGranted = (document.project?.client.portalAccesses.length ?? 0) > 0
     || (document.invoice?.project?.client.portalAccesses.length ?? 0) > 0
     || (document.invoice?.quotation?.client.portalAccesses.length ?? 0) > 0;
+
+  // Invoice scope takes precedence for linked invoice documents: Finance has
+  // organization-wide invoice access; Project Managers are read-only.
+  if (document.invoiceId) {
+    if (actor.role === "FINANCE") return true;
+    if (actor.role === "PROJECT_MANAGER") {
+      return (document.invoice?.project?.assignments.length ?? 0) > 0
+        && ["READ", "DOWNLOAD"].includes(action);
+    }
+    if (actor.role === "SALES") return salesGranted && action === "READ";
+    if (actor.role === "CLIENT") return portalGranted && action === "READ";
+    return false;
+  }
+
   if (actor.role === "SALES") return salesGranted && action === "READ";
   if (actor.role === "CLIENT") return portalGranted && action === "READ";
+
   if (document.projectId) {
     const assigned = (document.project?.assignments.length ?? 0) > 0;
     if (actor.role === "PROJECT_MANAGER") return assigned;
     if (actor.role === "STAFF") {
       return assigned && (action === "READ" || (document.uploadedById === actor.userId && ["FINALIZE", "DOWNLOAD"].includes(action)));
     }
-    return false;
-  }
-  if (document.invoiceId) {
-    if (actor.role === "FINANCE") return true;
-    if (actor.role === "PROJECT_MANAGER") return (document.invoice?.project?.assignments.length ?? 0) > 0 && ["READ", "DOWNLOAD"].includes(action);
     return false;
   }
   return ["STAFF", "FINANCE", "SALES", "PROJECT_MANAGER"].includes(actor.role)
