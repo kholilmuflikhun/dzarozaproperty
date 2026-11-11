@@ -68,13 +68,20 @@ export async function POST(
     }
 
     if (parsed.data.action === "upload") {
+      if (actor.role === "CLIENT") {
+        return NextResponse.json({ error: "Client Portal hanya memiliki akses baca dokumen." }, { status: 403 });
+      }
       let linkedProjectId = parsed.data.projectId;
       if (parsed.data.projectId) {
         const project = await prisma.project.findFirst({
           where: { id: parsed.data.projectId, organizationId },
           select: {
             id: true,
-            assignments: { where: { membershipId: actor.id, status: "ACTIVE" }, select: { id: true } },
+            assignments: { where: {
+              membershipId: actor.id,
+              status: "ACTIVE",
+              ...(actor.role === "PROJECT_MANAGER" ? { assignmentRole: "PROJECT_MANAGER" } : { assignmentRole: { in: ["CONTRIBUTOR", "VIEWER"] } }),
+            }, select: { id: true } },
           },
         });
         if (!project) {
