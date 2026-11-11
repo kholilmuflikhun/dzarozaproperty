@@ -82,7 +82,8 @@ export async function POST(
         }
         const elevated = actor.role === "OWNER" || actor.role === "ADMIN";
         const assignedOperator = (actor.role === "PROJECT_MANAGER" || actor.role === "STAFF") && project.assignments.length > 0;
-        if (!elevated && !assignedOperator) {
+        const invoiceFinanceScope = Boolean(parsed.data.invoiceId) && actor.role === "FINANCE";
+        if (!elevated && !assignedOperator && !invoiceFinanceScope) {
           return NextResponse.json({ error: "Akses unggah dokumen proyek tidak diizinkan." }, { status: 403 });
         }
       }
