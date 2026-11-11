@@ -457,6 +457,7 @@ model ProjectAssignment {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   revokedAt DateTime?
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   project Project @relation(fields: [organizationId, projectId], references: [organizationId, id], onDelete: Cascade)
   membership Membership @relation("ProjectAssignmentMember", fields: [organizationId, membershipId], references: [organizationId, id], onDelete: Cascade)
   assignedBy Membership? @relation("ProjectAssignmentActor", fields: [organizationId, assignedByMembershipId], references: [organizationId, id], onDelete: Restrict)
@@ -474,6 +475,7 @@ model ClientPortalAccess {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   revokedAt DateTime?
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   client Client @relation(fields: [organizationId, clientId], references: [organizationId, id], onDelete: Cascade)
   membership Membership @relation(fields: [organizationId, membershipId], references: [organizationId, id], onDelete: Cascade)
   @@index([organizationId, clientId, membershipId, status])
@@ -490,6 +492,7 @@ model SalesClientAccess {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   revokedAt DateTime?
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   client Client @relation(fields: [organizationId, clientId], references: [organizationId, id], onDelete: Cascade)
   membership Membership @relation(fields: [organizationId, membershipId], references: [organizationId, id], onDelete: Cascade)
   @@index([organizationId, clientId, membershipId, status])
