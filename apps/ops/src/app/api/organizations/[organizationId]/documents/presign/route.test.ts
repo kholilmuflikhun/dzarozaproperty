@@ -109,7 +109,7 @@ describe("tenant-scoped R2 presign API", () => {
     }), context);
     expect(response.status).toBe(404);
     expect(projectFindFirst).toHaveBeenCalledWith({
-      where: { id: "project-foreign", organizationId: "org-a" }, select: { id: true, assignments: { where: { membershipId: "member-a", status: "ACTIVE" }, select: { id: true } } },
+      where: { id: "project-foreign", organizationId: "org-a" }, select: { id: true, assignments: { where: { membershipId: "member-a", status: "ACTIVE", assignmentRole: { in: ["CONTRIBUTOR", "VIEWER"] } }, select: { id: true } } },
     });
     expect(createPresignedUploadUrl).not.toHaveBeenCalled();
     expect(create).not.toHaveBeenCalled();
