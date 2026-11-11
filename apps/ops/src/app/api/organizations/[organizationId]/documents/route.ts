@@ -3,6 +3,7 @@ import { prisma } from "@dzaroza/database";
 import { z } from "zod";
 import { requireTenantContext, toHttpError } from "@/lib/tenant";
 import { getR2Object, headR2Object, isTenantDocumentKey, sha256Bytes } from "@/lib/r2-storage";
+import { hasValidOoxmlPackage } from "@/lib/ooxml-validation";
 
 export const runtime = "nodejs";
 
@@ -45,10 +46,7 @@ function hasValidFileSignature(contentType: string, bytes: Uint8Array): boolean 
       }
     case "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
     case "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
-      // OOXML documents are ZIP containers; deeper archive/package validation is a separate layer.
-      return bytes[0] === 0x50 && bytes[1] === 0x4b
-        && [0x03, 0x05, 0x07].includes(bytes[2])
-        && [0x04, 0x06, 0x08].includes(bytes[3]);
+      return hasValidOoxmlPackage(contentType, bytes);
     default:
       return false;
   }
