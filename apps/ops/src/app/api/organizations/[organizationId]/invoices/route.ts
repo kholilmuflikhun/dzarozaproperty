@@ -12,12 +12,14 @@ const itemSchema = z.object({
 const createSchema = z.object({
   projectId: z.string().trim().min(1).max(64).optional(),
   quotationId: z.string().trim().min(1).max(64).optional(),
+  paymentTermId: z.string().trim().min(1).max(64).optional(),
   items: z.array(itemSchema).min(1).max(100).optional(),
   discount: z.number().finite().min(0).max(999_999_999_999).optional().default(0),
   tax: z.number().finite().min(0).max(999_999_999_999).optional().default(0),
   dueAt: z.string().datetime().nullable().optional(),
-}).refine((value) => Boolean(value.quotationId || value.projectId), { message: "Pilih quotation atau proyek." })
-  .refine((value) => Boolean(value.quotationId) || Boolean(value.items?.length), { message: "Item invoice wajib diisi." });
+}).refine((value) => Boolean(value.quotationId || value.paymentTermId || value.projectId), { message: "Pilih quotation, termin, atau proyek." })
+  .refine((value) => Boolean(value.quotationId || value.paymentTermId) || Boolean(value.items?.length), { message: "Item invoice wajib diisi." })
+  .refine((value) => !(value.quotationId && value.paymentTermId), { message: "Pilih quotation atau termin, bukan keduanya." });
 
 const MAX_AMOUNT = new Prisma.Decimal("999999999999.99");
 
@@ -69,7 +71,18 @@ export async function POST(request: NextRequest, context: { params: Promise<{ or
       let subtotal: Prisma.Decimal;
       let discount: Prisma.Decimal;
       let tax: Prisma.Decimal;
-      if (input.quotationId) {
+      let paymentTermId: string | null = null;
+      if (input.paymentTermId) {
+        if (!projectId) return { kind: "project-not-found" as const };
+        const term = await tx.paymentTerm.findFirst({
+          where: { organizationId, projectId, id: input.paymentTermId, status: "UNPAID", invoiceId: null },
+          select: { id: true, name: true, amount: true },
+        });
+        if (!term) return { kind: "payment-term-not-found" as const };
+        paymentTermId = term.id;
+        items = [{ description: term.name, quantity: new Prisma.Decimal(1), unitPrice: term.amount, lineTotal: term.amount, sortOrder: 0 }];
+        subtotal = term.amount; discount = new Prisma.Decimal(0); tax = new Prisma.Decimal(0);
+      } else if (input.quotationId) {
         const quotation = await tx.quotation.findFirst({
           where: { organizationId, id: input.quotationId, status: { in: ["ACCEPTED", "CONVERTED"] } },
           include: { items: { orderBy: { sortOrder: "asc" } } },
@@ -115,23 +128,32 @@ export async function POST(request: NextRequest, context: { params: Promise<{ or
         },
         include: { items: { orderBy: { sortOrder: "asc" } }, project: { select: { id: true, code: true, name: true } } },
       });
+      if (paymentTermId) {
+        const linkedTerm = await tx.paymentTerm.updateMany({
+          where: { organizationId, projectId: projectId!, id: paymentTermId, status: "UNPAID", invoiceId: null },
+          data: { invoiceId: invoice.id, status: "INVOICED" },
+        });
+        if (linkedTerm.count !== 1) throw new Error("PAYMENT_TERM_LINK_CONFLICT");
+      }
       await tx.auditLog.create({
         data: {
           organizationId, actorId: actor.userId, action: "invoice.created",
           entityType: "Invoice", entityId: invoice.id,
-          afterState: { number, projectId, quotationId: input.quotationId ?? null, subtotal: subtotal.toString(), discount: discount.toString(), tax: tax.toString(), total: total.toString() },
+          afterState: { number, projectId, quotationId: input.quotationId ?? null, paymentTermId, subtotal: subtotal.toString(), discount: discount.toString(), tax: tax.toString(), total: total.toString() },
         },
       });
       return { kind: "created" as const, invoice };
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
     if (result.kind === "quotation-not-found") return NextResponse.json({ error: "Quotation ACCEPTED/CONVERTED tidak ditemukan pada organisasi ini." }, { status: 404 });
     if (result.kind === "project-not-found") return NextResponse.json({ error: "Proyek tidak ditemukan pada organisasi ini." }, { status: 404 });
+    if (result.kind === "payment-term-not-found") return NextResponse.json({ error: "Termin tidak ditemukan, sudah ditagihkan, atau bukan milik proyek ini." }, { status: 404 });
     if (result.kind === "project-mismatch") return NextResponse.json({ error: "Proyek tidak sesuai dengan quotation." }, { status: 409 });
     if (result.kind === "amount-invalid") return NextResponse.json({ error: "Item atau nominal invoice tidak valid." }, { status: 400 });
     return NextResponse.json({ invoice: result.invoice }, { status: 201 });
   } catch (error) {
     const code = typeof error === "object" && error !== null && "code" in error ? error.code : undefined;
     if (code === "P2002") return NextResponse.json({ error: "Invoice untuk quotation ini sudah ada atau nomor invoice duplikat." }, { status: 409 });
+    if (error instanceof Error && error.message === "PAYMENT_TERM_LINK_CONFLICT") return NextResponse.json({ error: "Termin sudah ditagihkan oleh proses lain. Muat ulang workspace." }, { status: 409 });
     if (code === "P2034") return NextResponse.json({ error: "Perubahan bersamaan terdeteksi. Silakan coba kembali." }, { status: 409 });
     const result = toHttpError(error);
     return NextResponse.json({ error: result.message }, { status: result.status });
