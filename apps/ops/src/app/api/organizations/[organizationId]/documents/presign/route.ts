@@ -10,6 +10,7 @@ import {
   getR2Object,
   sha256Bytes,
 } from "@/lib/r2-storage";
+import { canManageDocument } from "@/lib/document-access-query";
 
 export const runtime = "nodejs";
 
@@ -67,17 +68,36 @@ export async function POST(
     }
 
     if (parsed.data.action === "upload") {
+      if (actor.role === "CLIENT") {
+        return NextResponse.json({ error: "Client Portal hanya memiliki akses baca dokumen." }, { status: 403 });
+      }
       let linkedProjectId = parsed.data.projectId;
       if (parsed.data.projectId) {
         const project = await prisma.project.findFirst({
           where: { id: parsed.data.projectId, organizationId },
-          select: { id: true },
+          select: {
+            id: true,
+            assignments: { where: {
+              membershipId: actor.id,
+              status: "ACTIVE",
+              ...(actor.role === "PROJECT_MANAGER" ? { assignmentRole: "PROJECT_MANAGER" } : { assignmentRole: { in: ["CONTRIBUTOR", "VIEWER"] } }),
+            }, select: { id: true } },
+          },
         });
         if (!project) {
           return NextResponse.json({ error: "Proyek tidak ditemukan pada organisasi ini." }, { status: 404 });
         }
+        const elevated = actor.role === "OWNER" || actor.role === "ADMIN";
+        const assignedOperator = (actor.role === "PROJECT_MANAGER" || actor.role === "STAFF") && project.assignments.length > 0;
+        const invoiceFinanceScope = Boolean(parsed.data.invoiceId) && actor.role === "FINANCE";
+        if (!elevated && !assignedOperator && !invoiceFinanceScope) {
+          return NextResponse.json({ error: "Akses unggah dokumen proyek tidak diizinkan." }, { status: 403 });
+        }
       }
       if (parsed.data.invoiceId) {
+        if (actor.role !== "OWNER" && actor.role !== "ADMIN" && actor.role !== "FINANCE") {
+          return NextResponse.json({ error: "Akses unggah dokumen invoice tidak diizinkan." }, { status: 403 });
+        }
         const invoice = await prisma.invoice.findFirst({
           where: { id: parsed.data.invoiceId, organizationId },
           select: {
@@ -150,7 +170,7 @@ export async function POST(
       },
       select: { objectKey: true, etag: true, checksumSha256: true, sizeBytes: true, contentType: true },
     });
-    if (!document) {
+    if (!document || !(await canManageDocument(actor, parsed.data.documentId, "DOWNLOAD"))) {
       return NextResponse.json({ error: "Dokumen tidak ditemukan pada organisasi ini." }, { status: 404 });
     }
 

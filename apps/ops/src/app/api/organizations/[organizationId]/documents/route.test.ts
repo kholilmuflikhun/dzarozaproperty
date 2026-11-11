@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { requireTenantContext, headR2Object, getR2Object, sha256Bytes, isTenantDocumentKey, findMany, findUnique, updateMany } = vi.hoisted(() => ({
+const { canManageDocument, authorizedDocumentWhere, requireTenantContext, headR2Object, getR2Object, sha256Bytes, isTenantDocumentKey, findMany, findUnique, updateMany } = vi.hoisted(() => ({
   requireTenantContext: vi.fn(),
+  canManageDocument: vi.fn(),
+  authorizedDocumentWhere: vi.fn(),
   headR2Object: vi.fn(),
   getR2Object: vi.fn(),
   sha256Bytes: vi.fn(),
@@ -21,6 +23,8 @@ vi.mock("@/lib/tenant", () => ({
   },
 }));
 
+vi.mock("@/lib/document-access-query", () => ({ canManageDocument, authorizedDocumentWhere }));
+
 vi.mock("@/lib/r2-storage", () => ({ headR2Object, getR2Object, sha256Bytes, isTenantDocumentKey }));
 vi.mock("@dzaroza/database", () => ({
   prisma: { document: { findMany, findUnique, updateMany } },
@@ -38,6 +42,10 @@ const request = (body: unknown) => new Request("http://localhost/api/organizatio
 describe("tenant-scoped document metadata API", () => {
   beforeEach(() => {
     requireTenantContext.mockReset();
+    canManageDocument.mockReset();
+    authorizedDocumentWhere.mockReset();
+    canManageDocument.mockResolvedValue(true);
+    authorizedDocumentWhere.mockReturnValue({ organizationId: "org-a", status: "AVAILABLE", deletedAt: null });
     headR2Object.mockReset();
     getR2Object.mockReset();
     sha256Bytes.mockReset();
@@ -45,7 +53,7 @@ describe("tenant-scoped document metadata API", () => {
     findMany.mockReset();
     findUnique.mockReset();
     updateMany.mockReset();
-    requireTenantContext.mockResolvedValue({ organizationId: "org-a", userId: "user-a", role: "STAFF" });
+    requireTenantContext.mockResolvedValue({ id: "member-a", organizationId: "org-a", userId: "user-a", role: "STAFF" });
     isTenantDocumentKey.mockReturnValue(true);
     findMany.mockResolvedValue([]);
     findUnique.mockResolvedValue(null);
